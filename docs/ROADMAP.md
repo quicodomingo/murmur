@@ -21,12 +21,36 @@ En aturar la gravació, reprocessar l'àudio desat:
 - [x] Verificació de parlants en acabar (infraestructura, interfície i reassignació respectant noms i canvis manuals).
 - [ ] Ajustar la verificació amb l'etiquetatge manual (`data/qui-parla.html`) i activar-la per defecte.
 - [ ] Transcripció final: decidir entre el Conformer actual o Whisper AINA (cal convertir-lo a MLX / whisper.cpp; amb faster-whisper a CPU va massa lent).
-- [ ] Puntuació i majúscules amb un LLM.
-- [ ] Resum, acords i tasques (amb responsable) amb un LLM.
-- [ ] **Prova de LLM local** sobre la transcripció de la reunió real: qualitat del català, temps i memòria (objectiu M1 8 GB):
-  - **Gemma 4 E2B** — candidat prioritari a explorar per als resums.
-  - Gemma 3 4B, Qwen 3 4B, Salamandra 7B (BSC) com a comparació.
+- [ ] **Prova de LLM local** sobre la transcripció de la reunió real (20 min ≈ 3.600 paraules): qualitat del català, temps i memòria (objectiu M1 8 GB):
+  - **Gemma 4 E2B** — candidat prioritari (128K de context: una reunió d'1–2 h cap sencera, sense trossejar; cal comprovar si la llegeix bé sencera).
+  - Gemma 3 4B, Qwen 3 4B, Salamandra 7B (BSC) com a comparació si l'E2B queda just.
   - Un model de núvol de referència (clau pròpia) per saber on és el sostre.
+  - Mesurar: tokens reals per hora de reunió, temps de lectura (prefill) i de generació, memòria.
+
+### Usos del LLM (propostes a analitzar i prioritzar)
+
+Sobre la transcripció:
+- [ ] Puntuació, majúscules i paràgrafs (la tasca més segura: no inventa res).
+- [ ] Corregir noms i marques pel context (worpress → WordPress), amb el vocabulari personalitzat i els convidats del calendari.
+- [ ] Versió «neta» per llegir (sense «eh», «o sigui», repeticions), conservant l'original.
+- [ ] Suggerir el nom dels parlants pel context («com deia el Guillem»), sempre com a proposta, mai automàtic.
+
+Sobre el contingut:
+- [ ] Resum.
+- [ ] Acords i tasques amb responsable i data (si se'n parla).
+- [ ] Títol automàtic de la reunió.
+- [ ] Temes i capítols amb el minut d'inici, per saltar-hi des de la transcripció.
+- [ ] Preguntes obertes i decisions pendents.
+- [ ] Esborrany de correu de seguiment per als assistents.
+- Cada acord o tasca porta el minut d'on surt, per comprovar-ho amb un clic (els models petits poden inventar).
+
+Durant la reunió:
+- [ ] «Què s'ha dit fins ara?»: resum dels últims minuts (si arribes tard o et despistes).
+- [ ] Tenir en compte les notes de l'usuari per prioritzar el resum.
+
+Entre reunions (bloc 5):
+- [ ] Preguntes a totes les reunions («Què vam decidir dels preus?»): cerca a SQLite + LLM.
+
 - [ ] Integrar el model triat amb llama.cpp al nucli Rust, carregant els models per torns (directe → alliberar → passada final → alliberar → LLM).
 - [ ] Mostrar l'estat de la passada final a la interfície i el panell Resum · Acords · Tasques (disseny ja fet a Superdesign).
 
