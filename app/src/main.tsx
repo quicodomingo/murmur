@@ -1,13 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
-import "./index.css";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
-// Follow the system appearance (shadcn's tokens switch on the .dark class).
-const dark = window.matchMedia("(prefers-color-scheme: dark)");
-const applyTheme = () => document.documentElement.classList.toggle("dark", dark.matches);
-applyTheme();
-dark.addEventListener("change", applyTheme);
+import App from "./App";
+import { ToastWindow } from "./components/ToastWindow";
+import "./index.css";
+import { initAppearance } from "./lib/appearance";
+
+// Theme and mode from the settings (Aparença), applied before the first render.
+initAppearance();
 
 // A web page's right-click menu ("Reload", "Inspect Element") feels out of place in a native app.
 // Keep it for editable text (copy/paste) and in dev builds (inspector).
@@ -18,8 +19,10 @@ if (!import.meta.env.DEV) {
   });
 }
 
+// The same page also runs the floating alert window (shell.rs), transparent around its card.
+const isToast = "__TAURI_INTERNALS__" in window && getCurrentWindow().label === "toast";
+if (isToast) document.documentElement.classList.add("toast-window");
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <React.StrictMode>{isToast ? <ToastWindow /> : <App />}</React.StrictMode>,
 );

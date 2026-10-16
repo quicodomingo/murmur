@@ -3,6 +3,7 @@ import { Plus, Search, Settings, X } from "lucide-react";
 
 import { clock, dayGroup, duration } from "@/lib/format";
 import type { MeetingSummary, SearchHit } from "@/lib/types";
+import { LogoIcon } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -44,10 +45,25 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
 
   return (
     <nav className="flex h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar" aria-label="Reunions">
-      {/* Room for the traffic lights; the strip also drags the window. */}
-      <div data-tauri-drag-region className="h-[52px] shrink-0" />
+      {/* Traffic lights on the left (native), the brand on the right; the strip drags the window. */}
+      <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-center justify-end pr-3.5">
+        <span data-tauri-drag-region className="flex items-center gap-1.5 text-[12px] font-bold tracking-[-0.02em]">
+          <LogoIcon size={18} />
+          murmur
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={onNew}
+        disabled={!canCreate}
+        className="mx-3 mb-2.5 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-mm-new-meeting px-2.5 text-[13px] font-semibold text-mm-on-new-meeting transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40"
+      >
+        <Plus className="size-3.5" strokeWidth={2.4} aria-hidden />
+        <span className="flex-1 text-left">Nova reunió</span>
+        <kbd className="font-sans text-[11px] font-medium opacity-60">⌘N</kbd>
+      </button>
       <div className="px-3">
-        <label className="flex h-7 items-center gap-1.5 rounded-md bg-black/5 px-2 text-muted-foreground dark:bg-white/10">
+        <label className="flex h-7 items-center gap-1.5 rounded-md bg-mm-search-field px-2 text-muted-foreground">
           <Search className="size-3.5 shrink-0" />
           <input
             value={query}
@@ -79,14 +95,20 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
                     key={m.id}
                     type="button"
                     onClick={() => onSelect(m.id)}
+                    aria-current={m.id === selectedId ? "page" : undefined}
                     className={cn(
-                      "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[13px]",
-                      m.id === selectedId ? "bg-sidebar-accent" : "hover:bg-black/5 dark:hover:bg-white/5",
+                      "relative flex h-[30px] w-full items-center gap-2 rounded-md pl-2.5 pr-2 text-left text-[13px]",
+                      m.id === selectedId ? "bg-mm-sidebar-selection font-medium" : "hover:bg-black/5 dark:hover:bg-white/5",
                     )}
                   >
+                    {/* The selected row's bar echoes the logo. */}
+                    {m.id === selectedId && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-[2px] bg-mm-sidebar-selection-bar" aria-hidden />}
                     <span className="flex-1 truncate">{m.title}</span>
                     {m.status === "recording" ? (
-                      <span className="size-1.5 animate-pulse rounded-full bg-record" aria-label="En directe" />
+                      <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label="Gravant">
+                        <span className="mm-rec size-2 rounded-full bg-mm-recording-dot" aria-hidden />
+                        REC
+                      </span>
                     ) : m.status === "processing" ? (
                       <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label="Verificant parlants" />
                     ) : (
@@ -99,16 +121,8 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
           })
         )}
       </div>
-      <div className="flex h-10 items-center border-t border-sidebar-border pl-4 pr-2">
-        <button
-          type="button"
-          onClick={onNew}
-          disabled={!canCreate}
-          className="flex flex-1 items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground disabled:opacity-40"
-        >
-          <Plus className="size-4" />
-          Nova reunió
-        </button>
+      <div className="flex h-11 items-center border-t border-sidebar-border pl-3.5 pr-2 text-muted-foreground">
+        <span className="flex-1 text-[11px]">Tot es queda en aquest Mac</span>
         <button type="button" onClick={onSettings} aria-label="Configuració" title="Configuració (⌘,)" className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10">
           <Settings className="size-4" />
         </button>

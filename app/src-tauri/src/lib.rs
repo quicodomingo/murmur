@@ -4,10 +4,12 @@ pub mod db;
 pub mod diarize;
 pub mod engine;
 pub mod llm;
+pub mod micwatch;
 pub mod models;
 pub mod punctuate;
 pub mod pipeline;
 pub mod recorder;
+pub mod shell;
 pub mod storage;
 
 use std::collections::HashMap;
@@ -116,6 +118,7 @@ async fn start_recording(
         },
     });
     ready_rx.recv().map_err(|e| e.to_string())??;
+    shell::set_recording(&app, true);
 
     let audio_path = if save_audio {
         // The folder chosen in the settings, or the app's own data folder.
@@ -204,6 +207,7 @@ async fn start_recording(
             }
         };
         let _ = app.emit("transcript-done", ());
+        shell::set_recording(&app, false);
         // Runs on its own thread so stopping returns at once; the UI shows its progress.
         // Without it, "final-pass-done" still follows so the UI can go on (punctuation, cover).
         match tapped {
@@ -669,8 +673,10 @@ pub fn run() {
             None,
         ))
         .setup(|app| {
-            // The standard macOS menus (Edit gives copy/paste), plus Settings… in the app menu.
+            // The standard macOS menus (Edit gives copy/paste), with our own About window and
+            // Settings… in the app menu.
             let menu = tauri::menu::Menu::default(app.handle())?;
+            let about = tauri::menu::MenuItem::with_id(app, "about", "Quant a Murmur", true, None::<&str>)?;
             let settings = tauri::menu::MenuItem::with_id(
                 app,
                 "settings",
@@ -679,17 +685,35 @@ pub fn run() {
                 Some("CmdOrCtrl+,"),
             )?;
             if let Some(tauri::menu::MenuItemKind::Submenu(app_menu)) = menu.items()?.first() {
+                app_menu.remove_at(0)?; // the standard About panel
+                app_menu.insert(&about, 0)?;
                 app_menu.insert(&settings, 1)?;
             }
             app.set_menu(menu)?;
-            app.on_menu_event(|app, event| {
-                if event.id() == "settings" {
-                    let _ = app.emit("open-settings", ());
+            app.on_menu_event(|app, event| match event.id().as_ref() {
+                "settings" => {
+                    let _ = app.emit_to("main", "open-settings", ());
                 }
+                "about" => {
+                    shell::show_main(app);
+                    let _ = app.emit_to("main", "open-about", ());
+                }
+                _ => {}
             });
+            shell::setup(app)?;
             Ok(())
         })
         .manage(AppState::default())
+        .manage(shell::Shell::default())
+        // Closing the window keeps Murmur in the menu bar (it still notices meetings).
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             prepare,
             start_recording,
@@ -710,8 +734,18 @@ pub fn run() {
             delete_model,
             punctuate,
             run_llm,
-            release_llm
+            release_llm,
+            shell::current_toast,
+            shell::dismiss_toast,
+            shell::toast_start,
+            shell::set_meeting_detection
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|app, event| {
+            // Clicking the Dock icon brings the hidden window back.
+            if let tauri::RunEvent::Reopen { .. } = event {
+                shell::show_main(app);
+            }
+        });
 }

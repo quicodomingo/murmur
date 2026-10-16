@@ -59,7 +59,7 @@ impl Recorder {
         head.push(0); // mapping family
         writer.write_packet(head, SERIAL, PacketWriteEndInfo::EndPage, 0)?;
         // Comment header.
-        let vendor = b"Transcriptor";
+        let vendor = b"Murmur";
         let mut tags = b"OpusTags".to_vec();
         tags.extend((vendor.len() as u32).to_le_bytes());
         tags.extend(vendor);

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Murmur, icona petita (tema Negre i àcid). Mono: segona barra #FFFFFF al 45%. Formigó: barres #D3D4D1 i #E10600 sobre #121212. -->
+  <rect width="200" height="200" rx="46" fill="#0B0B0B"/>
+  <rect x="62" y="52" width="26" height="96" rx="13" fill="#F5F5F5"/>
+  <rect x="112" y="52" width="26" height="96" rx="13" fill="#D4FF3A"/>
+</svg>

@@ -19,7 +19,11 @@ export function duration(seconds: number): string {
 
 export function longDate(ms: number): string {
   const d = new Date(ms);
-  const date = d.toLocaleDateString("ca-ES", { day: "numeric", month: "long", year: "numeric" });
+  // The browser writes "16 d’octubre del 2026"; Murmur's style is "16 d'octubre de 2026".
+  const date = d
+    .toLocaleDateString("ca-ES", { day: "numeric", month: "long", year: "numeric" })
+    .replace(/’/g, "'")
+    .replace(/ del (\d{4})$/, " de $1");
   const time = d.toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" });
   return `${date} · ${time}`;
 }

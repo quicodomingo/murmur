@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>Murmur, configuració</title>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{color:inherit}
+</style>
+<style>.mm-bar,.mm-caret,.mm-rec{animation:none!important}</style>
+</head>
+<body>
+<div style="width: 1560px; height: 4220px; box-sizing: border-box; padding: 40px; display: grid; grid-template-columns: repeat(2, 720px); gap: 40px; align-content: start; background: #DADADA; font: 13px/1.5 -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; -webkit-font-smoothing: antialiased">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">General · Mode clar</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #F6F6F6; color: #111111; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #FFFFFF; border-bottom: 1px solid #E4E4E4; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #ECECEC; color: #111111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B">Inici</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Obre Murmur en iniciar la sessió</div><div style="font-size: 12px; color: #6B6B6B">L'app s'obrirà sola quan engeguis l'ordinador.</div></div>
+          <span role="switch" aria-checked="false" aria-label="Obre Murmur en iniciar la sessió" style="width: 40px; height: 24px; border-radius: 12px; background: #D9D9DC; position: relative; flex: none"><span style="position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B; margin-top: 12px">Interfície</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Panell principal</div><div style="font-size: 12px; color: #6B6B6B">L'altre es mostra al costat i es pot amagar des de la barra d'eines.</div></div>
+          <div style="display: flex; background: rgba(0,0,0,0.06); border-radius: 7px; padding: 2px">
+            <button style="font: inherit; font-size: 12px; font-weight: 600; border: 0; padding: 4px 12px; border-radius: 5px; background: #FFFFFF; color: #111111; box-shadow: 0 1px 2px rgba(0,0,0,0.2)">Transcripció</button>
+            <button style="font: inherit; font-size: 12px; border: 0; padding: 4px 12px; border-radius: 5px; background: transparent; color: #6B6B6B">Notes</button>
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B; margin-top: 12px">Calendaris</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E4E4E4">
+            <div style="flex: 1"><div style="font-size: 14px">Google Calendar</div><div style="font-size: 12px; color: #6B6B6B">Encara no disponible</div></div>
+            <button disabled style="font: inherit; height: 28px; padding: 0 14px; border-radius: 7px; border: 1px solid #E4E4E4; background: #FFFFFF; color: #9A9A9A">Connecta</button>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Apple Calendar</div><div style="font-size: 12px; color: #6B6B6B">Encara no disponible</div></div>
+            <button disabled style="font: inherit; height: 28px; padding: 0 14px; border-radius: 7px; border: 1px solid #E4E4E4; background: #FFFFFF; color: #9A9A9A">Connecta</button>
+          </div>
+        </div>
+        <p style="margin: 6px 2px 0; font-size: 12px; color: #6B6B6B">Amb un calendari connectat, les reunions agafaran el títol de l'esdeveniment i els noms dels convidats per anomenar els parlants.</p>
+      
+
+      
+
+      
+
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">General · Mode fosc</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #0E0E0E; color: #F2F2F2; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #141414; border-bottom: 1px solid #262626; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #222222; color: #F2F2F2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A">Inici</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Obre Murmur en iniciar la sessió</div><div style="font-size: 12px; color: #9A9A9A">L'app s'obrirà sola quan engeguis l'ordinador.</div></div>
+          <span role="switch" aria-checked="false" aria-label="Obre Murmur en iniciar la sessió" style="width: 40px; height: 24px; border-radius: 12px; background: #3A3A3C; position: relative; flex: none"><span style="position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A; margin-top: 12px">Interfície</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Panell principal</div><div style="font-size: 12px; color: #9A9A9A">L'altre es mostra al costat i es pot amagar des de la barra d'eines.</div></div>
+          <div style="display: flex; background: rgba(255,255,255,0.08); border-radius: 7px; padding: 2px">
+            <button style="font: inherit; font-size: 12px; font-weight: 600; border: 0; padding: 4px 12px; border-radius: 5px; background: #2C2C2C; color: #F2F2F2; box-shadow: 0 1px 2px rgba(0,0,0,0.2)">Transcripció</button>
+            <button style="font: inherit; font-size: 12px; border: 0; padding: 4px 12px; border-radius: 5px; background: transparent; color: #9A9A9A">Notes</button>
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A; margin-top: 12px">Calendaris</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #262626">
+            <div style="flex: 1"><div style="font-size: 14px">Google Calendar</div><div style="font-size: 12px; color: #9A9A9A">Encara no disponible</div></div>
+            <button disabled style="font: inherit; height: 28px; padding: 0 14px; border-radius: 7px; border: 1px solid #262626; background: #141414; color: #6E6E6E">Connecta</button>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Apple Calendar</div><div style="font-size: 12px; color: #9A9A9A">Encara no disponible</div></div>
+            <button disabled style="font: inherit; height: 28px; padding: 0 14px; border-radius: 7px; border: 1px solid #262626; background: #141414; color: #6E6E6E">Connecta</button>
+          </div>
+        </div>
+        <p style="margin: 6px 2px 0; font-size: 12px; color: #9A9A9A">Amb un calendari connectat, les reunions agafaran el títol de l'esdeveniment i els noms dels convidats per anomenar els parlants.</p>
+      
+
+      
+
+      
+
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Aparença · Mode clar</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #F6F6F6; color: #111111; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #FFFFFF; border-bottom: 1px solid #E4E4E4; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #ECECEC; color: #111111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B">Tema</div>
+        <div role="radiogroup" aria-label="Tema" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+          <button aria-pressed="true" style="font: inherit; color: #111111; text-align: left; padding: 8px; border: 0; border-radius: 10px; background: #FFFFFF; box-shadow: 0 0 0 2px #111111; display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 88px; border-radius: 6px; overflow: hidden; display: flex; box-shadow: 0 0 0 1px rgba(127,127,127,0.25)">
+              <div style="flex: 1; display: flex; background: #FFFFFF"><div style="width: 20px; background: #F4F4F4; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #0B0B0B"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #D4FF3A"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #DADADA"></span></div></div>
+              <div style="flex: 1; display: flex; background: #0E0E0E"><div style="width: 20px; background: #131313; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #D4FF3A"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #D4FF3A"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #2A2A2A"></span></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 0 2px"><span style="flex: 1; font-size: 13px; font-weight: 500">Negre i àcid</span><span style="width: 16px; height: 16px; border-radius: 50%; background: #111111; color: #FFFFFF; display: grid; place-items: center; font-size: 10px; font-weight: 700">✓</span></div>
+          </button>
+          <button aria-pressed="false" style="font: inherit; color: #111111; text-align: left; padding: 8px; border: 0; border-radius: 10px; background: #FFFFFF; box-shadow: 0 0 0 1px #E4E4E4; display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 88px; border-radius: 6px; overflow: hidden; display: flex; box-shadow: 0 0 0 1px rgba(127,127,127,0.25)">
+              <div style="flex: 1; display: flex; background: #FFFFFF"><div style="width: 20px; background: #F5F5F5; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #0A0A0A"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #0A0A0A"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #DADADA"></span></div></div>
+              <div style="flex: 1; display: flex; background: #0E0E0E"><div style="width: 20px; background: #131313; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #F2F2F2"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #F2F2F2"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #2A2A2A"></span></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 0 2px"><span style="flex: 1; font-size: 13px; font-weight: 500">Monocrom</span></div>
+          </button>
+          <button aria-pressed="false" style="font: inherit; color: #111111; text-align: left; padding: 8px; border: 0; border-radius: 10px; background: #FFFFFF; box-shadow: 0 0 0 1px #E4E4E4; display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 88px; border-radius: 6px; overflow: hidden; display: flex; box-shadow: 0 0 0 1px rgba(127,127,127,0.25)">
+              <div style="flex: 1; display: flex; background: #FAFAF8"><div style="width: 20px; background: #ECEDE9; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #E10600"></span><span style="height: 4px; border-radius: 2px; background: #D5D6D1"></span><span style="height: 4px; border-radius: 2px; background: #D5D6D1"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #E10600"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #D5D6D1"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #D5D6D1"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #D5D6D1"></span></div></div>
+              <div style="flex: 1; display: flex; background: #121211"><div style="width: 20px; background: #181816; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #FF3B28"></span><span style="height: 4px; border-radius: 2px; background: #2E2E2A"></span><span style="height: 4px; border-radius: 2px; background: #2E2E2A"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #FF3B28"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #2E2E2A"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #2E2E2A"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #2E2E2A"></span></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 0 2px"><span style="flex: 1; font-size: 13px; font-weight: 500">Formigó i vermell</span></div>
+          </button>
+        </div>
+        <div style="font-size: 12px; color: #6B6B6B; margin: 2px 2px 0">Cada tema té versió clara i fosca. La previsualització mostra totes dues.</div>
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B; margin-top: 14px">Mode</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Aparença</div><div style="font-size: 12px; color: #6B6B6B">Segueix el sistema o fixa el mode clar o fosc.</div></div>
+          <div style="display: flex; background: rgba(0,0,0,0.06); border-radius: 7px; padding: 2px">
+            <button style="font: inherit; font-size: 12px; font-weight: 600; border: 0; padding: 4px 12px; border-radius: 5px; background: #FFFFFF; color: #111111; box-shadow: 0 1px 2px rgba(0,0,0,0.2)">Sistema</button>
+            <button style="font: inherit; font-size: 12px; border: 0; padding: 4px 12px; border-radius: 5px; background: transparent; color: #6B6B6B">Clar</button>
+            <button style="font: inherit; font-size: 12px; border: 0; padding: 4px 12px; border-radius: 5px; background: transparent; color: #6B6B6B">Fosc</button>
+          </div>
+        </div>
+      
+
+      
+
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Aparença · Mode fosc</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #0E0E0E; color: #F2F2F2; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #141414; border-bottom: 1px solid #262626; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #222222; color: #F2F2F2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A">Tema</div>
+        <div role="radiogroup" aria-label="Tema" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+          <button aria-pressed="true" style="font: inherit; color: #F2F2F2; text-align: left; padding: 8px; border: 0; border-radius: 10px; background: #141414; box-shadow: 0 0 0 2px #F2F2F2; display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 88px; border-radius: 6px; overflow: hidden; display: flex; box-shadow: 0 0 0 1px rgba(127,127,127,0.25)">
+              <div style="flex: 1; display: flex; background: #FFFFFF"><div style="width: 20px; background: #F4F4F4; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #0B0B0B"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #D4FF3A"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #DADADA"></span></div></div>
+              <div style="flex: 1; display: flex; background: #0E0E0E"><div style="width: 20px; background: #131313; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #D4FF3A"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #D4FF3A"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #2A2A2A"></span></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 0 2px"><span style="flex: 1; font-size: 13px; font-weight: 500">Negre i àcid</span><span style="width: 16px; height: 16px; border-radius: 50%; background: #F2F2F2; color: #141414; display: grid; place-items: center; font-size: 10px; font-weight: 700">✓</span></div>
+          </button>
+          <button aria-pressed="false" style="font: inherit; color: #F2F2F2; text-align: left; padding: 8px; border: 0; border-radius: 10px; background: #141414; box-shadow: 0 0 0 1px #262626; display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 88px; border-radius: 6px; overflow: hidden; display: flex; box-shadow: 0 0 0 1px rgba(127,127,127,0.25)">
+              <div style="flex: 1; display: flex; background: #FFFFFF"><div style="width: 20px; background: #F5F5F5; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #0A0A0A"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; border-radius: 2px; background: #DADADA"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #0A0A0A"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #DADADA"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #DADADA"></span></div></div>
+              <div style="flex: 1; display: flex; background: #0E0E0E"><div style="width: 20px; background: #131313; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #F2F2F2"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; border-radius: 2px; background: #2A2A2A"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #F2F2F2"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #2A2A2A"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #2A2A2A"></span></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 0 2px"><span style="flex: 1; font-size: 13px; font-weight: 500">Monocrom</span></div>
+          </button>
+          <button aria-pressed="false" style="font: inherit; color: #F2F2F2; text-align: left; padding: 8px; border: 0; border-radius: 10px; background: #141414; box-shadow: 0 0 0 1px #262626; display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 88px; border-radius: 6px; overflow: hidden; display: flex; box-shadow: 0 0 0 1px rgba(127,127,127,0.25)">
+              <div style="flex: 1; display: flex; background: #FAFAF8"><div style="width: 20px; background: #ECEDE9; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #E10600"></span><span style="height: 4px; border-radius: 2px; background: #D5D6D1"></span><span style="height: 4px; border-radius: 2px; background: #D5D6D1"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #E10600"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #D5D6D1"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #D5D6D1"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #D5D6D1"></span></div></div>
+              <div style="flex: 1; display: flex; background: #121211"><div style="width: 20px; background: #181816; padding: 8px 3px; display: flex; flex-direction: column; gap: 4px"><span style="height: 4px; border-radius: 2px; background: #FF3B28"></span><span style="height: 4px; border-radius: 2px; background: #2E2E2A"></span><span style="height: 4px; border-radius: 2px; background: #2E2E2A"></span></div><div style="flex: 1; padding: 8px 6px; display: flex; flex-direction: column; gap: 5px"><span style="align-self: flex-end; width: 16px; height: 6px; border-radius: 3px; background: #FF3B28"></span><span style="height: 4px; width: 80%; border-radius: 2px; background: #2E2E2A"></span><span style="height: 4px; width: 60%; border-radius: 2px; background: #2E2E2A"></span><span style="height: 4px; width: 70%; border-radius: 2px; background: #2E2E2A"></span></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 0 2px"><span style="flex: 1; font-size: 13px; font-weight: 500">Formigó i vermell</span></div>
+          </button>
+        </div>
+        <div style="font-size: 12px; color: #9A9A9A; margin: 2px 2px 0">Cada tema té versió clara i fosca. La previsualització mostra totes dues.</div>
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A; margin-top: 14px">Mode</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Aparença</div><div style="font-size: 12px; color: #9A9A9A">Segueix el sistema o fixa el mode clar o fosc.</div></div>
+          <div style="display: flex; background: rgba(255,255,255,0.08); border-radius: 7px; padding: 2px">
+            <button style="font: inherit; font-size: 12px; font-weight: 600; border: 0; padding: 4px 12px; border-radius: 5px; background: #2C2C2C; color: #F2F2F2; box-shadow: 0 1px 2px rgba(0,0,0,0.2)">Sistema</button>
+            <button style="font: inherit; font-size: 12px; border: 0; padding: 4px 12px; border-radius: 5px; background: transparent; color: #9A9A9A">Clar</button>
+            <button style="font: inherit; font-size: 12px; border: 0; padding: 4px 12px; border-radius: 5px; background: transparent; color: #9A9A9A">Fosc</button>
+          </div>
+        </div>
+      
+
+      
+
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Àudio · Mode clar</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #F6F6F6; color: #111111; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #FFFFFF; border-bottom: 1px solid #E4E4E4; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #ECECEC; color: #111111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B">Fonts d'àudio</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E4E4E4">
+            <div style="flex: 1"><div style="font-size: 14px">Micròfon</div><div style="font-size: 12px; color: #6B6B6B">La teva veu i la de la sala. En una trucada, apareix com a «Tu».</div></div>
+            <span role="switch" aria-checked="true" aria-label="Micròfon" style="width: 40px; height: 24px; border-radius: 12px; background: #0B0B0B; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E4E4E4">
+            <div style="flex: 1; font-size: 14px">Dispositiu</div>
+            <button style="font: inherit; height: 28px; padding: 0 10px 0 12px; border-radius: 7px; border: 1px solid #E4E4E4; background: #FFFFFF; color: #111111; display: inline-flex; align-items: center; gap: 10px">El del sistema<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E4E4E4">
+            <div style="flex: 1"><div style="font-size: 14px">Nivell d'entrada</div><div style="font-size: 12px; color: #6B6B6B">Parla per comprovar que el micròfon funciona.</div></div>
+            <div role="img" aria-label="Nivell d'entrada" style="display: flex; gap: 3px">
+              <span style="width: 9px; height: 22px; border-radius: 3px; background: #0B0B0B"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #0B0B0B"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #0B0B0B"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #0B0B0B"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #0B0B0B"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #E5E5E5"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #E5E5E5"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #E5E5E5"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #E5E5E5"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #E5E5E5"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #E5E5E5"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #E5E5E5"></span>
+            </div>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Àudio del sistema</div><div style="font-size: 12px; color: #6B6B6B">Zoom, Meet, Teams… Es transcriu a part del micròfon i se n'elimina l'eco, també amb altaveus. Cal permís de «Gravació de pantalla i àudio del sistema».</div></div>
+            <span role="switch" aria-checked="true" aria-label="Àudio del sistema" style="width: 40px; height: 24px; border-radius: 12px; background: #0B0B0B; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B; margin-top: 12px">Gravació</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E4E4E4">
+            <div style="flex: 1"><div style="font-size: 14px">Desa l'àudio de les reunions</div><div style="font-size: 12px; color: #6B6B6B">Comprimit en Opus, un canal per font (uns 11 MB per hora).</div></div>
+            <span role="switch" aria-checked="false" aria-label="Desa l'àudio de les reunions" style="width: 40px; height: 24px; border-radius: 12px; background: #D9D9DC; position: relative; flex: none"><span style="position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Carpeta</div><div style="font-size: 12px; color: #6B6B6B">La carpeta de dades de l'app</div></div>
+            <button disabled style="font: inherit; height: 28px; padding: 0 14px; border-radius: 7px; border: 1px solid #E4E4E4; background: #FFFFFF; color: #9A9A9A">Tria…</button>
+          </div>
+        </div>
+      
+
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Àudio · Mode fosc</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #0E0E0E; color: #F2F2F2; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #141414; border-bottom: 1px solid #262626; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #222222; color: #F2F2F2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A">Fonts d'àudio</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #262626">
+            <div style="flex: 1"><div style="font-size: 14px">Micròfon</div><div style="font-size: 12px; color: #9A9A9A">La teva veu i la de la sala. En una trucada, apareix com a «Tu».</div></div>
+            <span role="switch" aria-checked="true" aria-label="Micròfon" style="width: 40px; height: 24px; border-radius: 12px; background: #D4FF3A; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #0B0B0B; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #262626">
+            <div style="flex: 1; font-size: 14px">Dispositiu</div>
+            <button style="font: inherit; height: 28px; padding: 0 10px 0 12px; border-radius: 7px; border: 1px solid #262626; background: #1A1A1A; color: #F2F2F2; display: inline-flex; align-items: center; gap: 10px">El del sistema<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #262626">
+            <div style="flex: 1"><div style="font-size: 14px">Nivell d'entrada</div><div style="font-size: 12px; color: #9A9A9A">Parla per comprovar que el micròfon funciona.</div></div>
+            <div role="img" aria-label="Nivell d'entrada" style="display: flex; gap: 3px">
+              <span style="width: 9px; height: 22px; border-radius: 3px; background: #D4FF3A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #D4FF3A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #D4FF3A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #D4FF3A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #D4FF3A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #2A2A2A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #2A2A2A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #2A2A2A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #2A2A2A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #2A2A2A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #2A2A2A"></span><span style="width: 9px; height: 22px; border-radius: 3px; background: #2A2A2A"></span>
+            </div>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Àudio del sistema</div><div style="font-size: 12px; color: #9A9A9A">Zoom, Meet, Teams… Es transcriu a part del micròfon i se n'elimina l'eco, també amb altaveus. Cal permís de «Gravació de pantalla i àudio del sistema».</div></div>
+            <span role="switch" aria-checked="true" aria-label="Àudio del sistema" style="width: 40px; height: 24px; border-radius: 12px; background: #D4FF3A; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #0B0B0B; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A; margin-top: 12px">Gravació</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #262626">
+            <div style="flex: 1"><div style="font-size: 14px">Desa l'àudio de les reunions</div><div style="font-size: 12px; color: #9A9A9A">Comprimit en Opus, un canal per font (uns 11 MB per hora).</div></div>
+            <span role="switch" aria-checked="false" aria-label="Desa l'àudio de les reunions" style="width: 40px; height: 24px; border-radius: 12px; background: #3A3A3C; position: relative; flex: none"><span style="position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Carpeta</div><div style="font-size: 12px; color: #9A9A9A">La carpeta de dades de l'app</div></div>
+            <button disabled style="font: inherit; height: 28px; padding: 0 14px; border-radius: 7px; border: 1px solid #262626; background: #1A1A1A; color: #6E6E6E">Tria…</button>
+          </div>
+        </div>
+      
+
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Transcripció · Mode clar</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #F6F6F6; color: #111111; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #FFFFFF; border-bottom: 1px solid #E4E4E4; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #ECECEC; color: #111111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B">Parlants en directe</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E4E4E4">
+            <label for="spk-Tra0" style="flex: 1; font-size: 14px">Nombre màxim de parlants</label>
+            <input id="spk-Tra0" value="5" style="font: inherit; font-size: 14px; width: 72px; height: 28px; box-sizing: border-box; text-align: center; border-radius: 7px; border: 1px solid #E4E4E4; background: #FFFFFF; color: #111111">
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Separació de veus</div><div style="font-size: 12px; color: #6B6B6B">Més alt separa més les veus; més baix les agrupa.</div></div>
+            <div role="img" aria-label="Separació de veus 0,65" style="width: 180px; height: 6px; border-radius: 3px; background: #E5E5E5; position: relative">
+              <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 65%; border-radius: 3px; background: #0B0B0B"></span>
+              <span style="position: absolute; left: calc(65% - 10px); top: -7px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.06)"></span>
+            </div>
+            <span style="font-variant-numeric: tabular-nums; color: #6B6B6B; width: 34px">0,65</span>
+            <a href="#" style="color: #4E6300; text-decoration: none; font-weight: 500">Restableix</a>
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B; margin-top: 12px">En acabar la gravació</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Verificació de parlants</div><div style="font-size: 12px; color: #6B6B6B">Torna a analitzar tota la reunió per separar millor les veus. Pot trigar uns minuts (uns 7 per hora de reunió), però pots continuar treballant mentrestant.</div></div>
+          <span role="switch" aria-checked="true" aria-label="Verificació de parlants" style="width: 40px; height: 24px; border-radius: 12px; background: #0B0B0B; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+        </div>
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Transcripció · Mode fosc</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #0E0E0E; color: #F2F2F2; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #141414; border-bottom: 1px solid #262626; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #222222; color: #F2F2F2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A">Parlants en directe</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #262626">
+            <label for="spk-Tra1" style="flex: 1; font-size: 14px">Nombre màxim de parlants</label>
+            <input id="spk-Tra1" value="5" style="font: inherit; font-size: 14px; width: 72px; height: 28px; box-sizing: border-box; text-align: center; border-radius: 7px; border: 1px solid #262626; background: #1A1A1A; color: #F2F2F2">
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Separació de veus</div><div style="font-size: 12px; color: #9A9A9A">Més alt separa més les veus; més baix les agrupa.</div></div>
+            <div role="img" aria-label="Separació de veus 0,65" style="width: 180px; height: 6px; border-radius: 3px; background: #2A2A2A; position: relative">
+              <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 65%; border-radius: 3px; background: #D4FF3A"></span>
+              <span style="position: absolute; left: calc(65% - 10px); top: -7px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.06)"></span>
+            </div>
+            <span style="font-variant-numeric: tabular-nums; color: #9A9A9A; width: 34px">0,65</span>
+            <a href="#" style="color: #D4FF3A; text-decoration: none; font-weight: 500">Restableix</a>
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A; margin-top: 12px">En acabar la gravació</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+          <div style="flex: 1"><div style="font-size: 14px">Verificació de parlants</div><div style="font-size: 12px; color: #9A9A9A">Torna a analitzar tota la reunió per separar millor les veus. Pot trigar uns minuts (uns 7 per hora de reunió), però pots continuar treballant mentrestant.</div></div>
+          <span role="switch" aria-checked="true" aria-label="Verificació de parlants" style="width: 40px; height: 24px; border-radius: 12px; background: #D4FF3A; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #0B0B0B; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+        </div>
+      
+
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Intel·ligència · Mode clar</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #F6F6F6; color: #111111; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #FFFFFF; border-bottom: 1px solid #E4E4E4; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #DCDCDC"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #6B6B6B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #ECECEC; color: #111111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+
+      
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B">En acabar la gravació</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #E4E4E4">
+            <div style="flex: 1"><div style="font-size: 14px">Puntuació i majúscules</div><div style="font-size: 12px; color: #6B6B6B">Posa punts, comes i majúscules a tota la transcripció. Triga uns segons.</div></div>
+            <span role="switch" aria-checked="true" aria-label="Puntuació i majúscules" style="width: 40px; height: 24px; border-radius: 12px; background: #0B0B0B; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Portada</div><div style="font-size: 12px; color: #6B6B6B">Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions, les tasques i les parts. Uns 2–3 minuts per hora de reunió.</div></div>
+            <span role="switch" aria-checked="false" aria-label="Portada" style="width: 40px; height: 24px; border-radius: 12px; background: #D9D9DC; position: relative; flex: none"><span style="position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: flex-start; margin: 4px 2px 0; font-size: 12px; color: #6B6B6B">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: none; margin-top: 2px"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          <span>Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis.</span>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #6B6B6B; margin-top: 12px">Prompts de la portada</div>
+        <div style="background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px">
+          <div style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Instruccions generals
+          </div>
+          <div style="padding: 0 14px 12px 36px">
+            <div style="border: 1px solid #E4E4E4; border-radius: 8px; background: #FFFFFF; padding: 10px 12px; font-size: 13px; line-height: 1.55">Ets un assistent que treballa amb transcripcions de reunions en català. La transcripció s'ha fet automàticament: pot tenir paraules mal reconegudes (sobretot noms i marques) i fragments en castellà. Cada línia comença amb el minut entre claudàtors i el nom de qui parla. Respon sempre en català correcte i natural, sense castellanismes. No t'inventis res que no surti a la transcripció.</div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px">
+              <button disabled style="font: inherit; height: 28px; padding: 0 12px; border-radius: 7px; border: 1px solid #E4E4E4; background: #FFFFFF; color: #9A9A9A">Prova amb aquesta reunió</button>
+              <span style="font-size: 12px; color: #6B6B6B">Primer descarrega el model de llenguatge.</span>
+            </div>
+          </div>
+          <div style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; border-top: 1px solid #E4E4E4">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>Títol i entradeta
+          </div>
+          <div style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; border-top: 1px solid #E4E4E4">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>To
+          </div>
+        </div>
+      
+    </div>
+  </section>
+</div>
+
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #3A3A3A">Intel·ligència · Mode fosc</div>
+  <section aria-label="Configuració" style="width: 720px; height: 760px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #0E0E0E; color: #F2F2F2; box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.12)">
+    <div style="background: #141414; border-bottom: 1px solid #262626; padding: 12px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; flex: none">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; gap: 8px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3A3A3A"></span>
+      </div>
+      <div style="font-weight: 600; font-size: 14px">Configuració</div>
+      <div role="tablist" style="display: flex; gap: 4px">
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>General</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"></path></svg>Aparença</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>Àudio</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: transparent; color: #9A9A9A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"></path></svg>Transcripció</button>
+        <button role="tab" style="font: inherit; width: 104px; height: 56px; border: 0; border-radius: 8px; background: #222222; color: #F2F2F2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.8 4.7 4.7 1.8-4.7 1.8L11 17l-1.8-4.7L4.5 10.5l4.7-1.8z"></path><path d="M18 3v4M16 5h4"></path><circle cx="18.5" cy="18.5" r="1.5"></circle></svg>Intel·ligència</button>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 28px; display: flex; flex-direction: column; gap: 8px">
+
+      
+
+      
+
+      
+
+      
+
+      
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A">En acabar la gravació</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px">
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #262626">
+            <div style="flex: 1"><div style="font-size: 14px">Puntuació i majúscules</div><div style="font-size: 12px; color: #9A9A9A">Posa punts, comes i majúscules a tota la transcripció. Triga uns segons.</div></div>
+            <span role="switch" aria-checked="true" aria-label="Puntuació i majúscules" style="width: 40px; height: 24px; border-radius: 12px; background: #D4FF3A; position: relative; flex: none"><span style="position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #0B0B0B; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+          <div style="padding: 12px 16px; display: flex; align-items: center; gap: 16px">
+            <div style="flex: 1"><div style="font-size: 14px">Portada</div><div style="font-size: 12px; color: #9A9A9A">Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions, les tasques i les parts. Uns 2–3 minuts per hora de reunió.</div></div>
+            <span role="switch" aria-checked="false" aria-label="Portada" style="width: 40px; height: 24px; border-radius: 12px; background: #3A3A3C; position: relative; flex: none"><span style="position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.3)"></span></span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: flex-start; margin: 4px 2px 0; font-size: 12px; color: #9A9A9A">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: none; margin-top: 2px"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          <span>Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis.</span>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #9A9A9A; margin-top: 12px">Prompts de la portada</div>
+        <div style="background: #141414; border: 1px solid #262626; border-radius: 10px">
+          <div style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Instruccions generals
+          </div>
+          <div style="padding: 0 14px 12px 36px">
+            <div style="border: 1px solid #262626; border-radius: 8px; background: #1A1A1A; padding: 10px 12px; font-size: 13px; line-height: 1.55">Ets un assistent que treballa amb transcripcions de reunions en català. La transcripció s'ha fet automàticament: pot tenir paraules mal reconegudes (sobretot noms i marques) i fragments en castellà. Cada línia comença amb el minut entre claudàtors i el nom de qui parla. Respon sempre en català correcte i natural, sense castellanismes. No t'inventis res que no surti a la transcripció.</div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px">
+              <button disabled style="font: inherit; height: 28px; padding: 0 12px; border-radius: 7px; border: 1px solid #262626; background: #1A1A1A; color: #6E6E6E">Prova amb aquesta reunió</button>
+              <span style="font-size: 12px; color: #9A9A9A">Primer descarrega el model de llenguatge.</span>
+            </div>
+          </div>
+          <div style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; border-top: 1px solid #262626">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>Títol i entradeta
+          </div>
+          <div style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; border-top: 1px solid #262626">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>To
+          </div>
+        </div>
+      
+    </div>
+  </section>
+</div>
+
+</div>
+</body>
+</html>

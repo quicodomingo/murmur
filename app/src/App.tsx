@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { ChevronDown, Copy, FileDown, FileText, FolderOpen, Mic, PanelLeft, PanelRight, Share, Square, Trash2 } from "lucide-react";
+import { ChevronDown, Copy, FileDown, FileText, FolderOpen, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AboutDialog } from "@/components/AboutDialog";
+import { LogoIcon } from "@/components/Logo";
 import { Cover } from "@/components/Cover";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
@@ -11,7 +13,6 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/Sidebar";
 import { Transcript } from "@/components/Transcript";
-import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as backend from "@/lib/backend";
@@ -102,6 +103,7 @@ export default function App() {
   const [state, dispatch, forget] = useMeetings();
   const [settings, updateSettings] = useSettings();
   const [showSettings, setShowSettings] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [notes, setNotes] = useStoredState("transcriptor.notesLayout.v1", {
     visible: true,
@@ -158,18 +160,33 @@ export default function App() {
     return () => void unlisten.then((u) => u());
   }, [dispatch, post.speakersStarted, post.speakersDone]);
 
-  // "Configuració…" in the app menu.
+  // "Configuració…" and "Quant a Murmur" in the app menu; start/stop from the menu bar or an alert.
+  const stopRef = useRef<() => void>(() => {});
   useEffect(() => {
     if (!backend.isTauri()) return;
-    const unlisten = backend.onOpenSettings(() => setShowSettings(true));
-    return () => void unlisten.then((u) => u());
+    const unlisten = [
+      backend.onOpenSettings(() => setShowSettings(true)),
+      backend.onOpenAbout(() => setShowAbout(true)),
+      backend.onRecordRequest((start) => (start ? startRef.current() : stopRef.current())),
+    ];
+    return () => unlisten.forEach((u) => void u.then((f) => f()));
   }, []);
 
+  useEffect(() => {
+    if (backend.isTauri()) backend.setMeetingDetection(settings.detectMeetings).catch(() => {});
+  }, [settings.detectMeetings]);
+
+  // ⌘N: new meeting (the sidebar button shows the shortcut).
+  const startRef = useRef<() => void>(() => {});
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ",") {
         e.preventDefault();
         setShowSettings(true);
+      }
+      if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        startRef.current();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -184,7 +201,7 @@ export default function App() {
 
   const start = useCallback(async () => {
     if (!backend.isTauri()) {
-      toast.error("Obre Transcriptor com a app (npm run tauri dev) per gravar.");
+      toast.error("Obre Murmur com a app (npm run tauri dev) per gravar.");
       return;
     }
     setBusy(true);
@@ -212,6 +229,9 @@ export default function App() {
       setBusy(false);
     }
   }, [dispatch, settings, post.planRecording]);
+  startRef.current = () => {
+    if (!recording && !busy) start();
+  };
 
   const stop = useCallback(async () => {
     setBusy(true);
@@ -225,6 +245,10 @@ export default function App() {
       setLevel(0);
     }
   }, [dispatch]);
+
+  stopRef.current = () => {
+    if (recording && !busy) stop();
+  };
 
   const doExport = (m: Meeting, format: ExportFormat) =>
     exportMeeting(m, format)
@@ -340,7 +364,7 @@ export default function App() {
             </ToolbarButton>
             {meeting && (
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[13px] font-semibold hover:bg-black/5 dark:hover:bg-white/10">
+                <DropdownMenuTrigger className="ml-1 flex items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[14px] font-semibold hover:bg-black/5 dark:hover:bg-white/10">
                   {meeting.title}
                   <ChevronDown className="size-3.5 text-muted-foreground" />
                 </DropdownMenuTrigger>
@@ -362,7 +386,7 @@ export default function App() {
               </DropdownMenu>
             )}
             {coverAvailable && (
-              <div role="radiogroup" aria-label="Vista" className="ml-1 flex shrink-0 rounded-[7px] bg-black/[0.06] p-0.5 dark:bg-white/10">
+              <div role="radiogroup" aria-label="Vista" className="ml-1 flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
                 {[
                   { cover: true, label: "Portada" },
                   { cover: false, label: "Transcripció" },
@@ -375,7 +399,7 @@ export default function App() {
                     onClick={() => setView({ cover: o.cover })}
                     className={cn(
                       "h-[22px] rounded-[5px] px-3 text-[12px]",
-                      view.cover === o.cover ? "bg-background font-medium shadow-[0_1px_2px_rgb(0_0_0/0.15)]" : "text-muted-foreground",
+                      view.cover === o.cover ? "bg-mm-segmented-selected font-medium shadow-[0_1px_2px_rgb(0_0_0/0.15)]" : "text-muted-foreground",
                     )}
                   >
                     {o.label}
@@ -386,13 +410,19 @@ export default function App() {
             <div data-tauri-drag-region className="flex-1" />
 
             {recording ? (
-              <div className="flex items-center gap-1 rounded-full bg-muted py-1 pl-3 pr-1">
-                <span
-                  className="size-2 rounded-full bg-record transition-transform"
-                  style={{ transform: `scale(${1 + Math.min(level * 12, 0.8)})` }}
-                  aria-hidden
-                />
-                <span className="ml-1.5 mr-1 text-[13px] font-medium tabular-nums" aria-label="Temps de gravació">
+              <div className="flex h-[30px] items-center gap-2.5 rounded-[15px] bg-mm-recording-pill pl-3 pr-1.5 text-mm-on-recording-pill shadow-[0_0_0_1px_var(--mm-recording-pill-border)]">
+                {/* Two level bars, half a cycle apart; they only move while there's sound. */}
+                <span className="flex h-3.5 items-center gap-[3px]" aria-hidden>
+                  {[0, 1].map((i) => (
+                    <span
+                      key={i}
+                      className={cn("h-3.5 w-1 rounded-[2px] bg-mm-recording-level", level > 0.003 && "mm-bar", i === 1 && "mm-bar-2")}
+                      style={level > 0.003 ? undefined : { transform: "scaleY(0.45)" }}
+                    />
+                  ))}
+                </span>
+                <span className="text-[13px] font-medium">Gravant</span>
+                <span className="text-[13px] tabular-nums opacity-70" aria-label="Temps de gravació">
                   {clock(recording.duration)}
                 </span>
                 <Tooltip>
@@ -402,9 +432,9 @@ export default function App() {
                       onClick={stop}
                       disabled={busy}
                       aria-label="Atura la gravació"
-                      className="grid size-6 place-items-center rounded-full text-record hover:bg-black/5 disabled:opacity-40"
+                      className="grid size-[22px] place-items-center rounded-full bg-white/[0.14] hover:bg-white/25 disabled:opacity-40"
                     >
-                      <Square className="size-3 fill-current" />
+                      <span className="size-2 rounded-[2px] bg-current" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>Atura</TooltipContent>
@@ -416,9 +446,12 @@ export default function App() {
                   <span className="text-[13px] text-text-secondary">Durada {duration(meeting.duration)}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="sm" className="h-6 rounded-md px-2.5 text-[13px]">
-                        Exporta <Share className="size-3.5" />
-                      </Button>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 items-center gap-1.5 rounded-[7px] bg-mm-accent px-3 text-[13px] font-semibold text-mm-on-accent transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        Exporta <Share className="size-[13px]" strokeWidth={2} />
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="min-w-52">
                       <DropdownMenuItem onSelect={() => doExport(meeting, "docx")}>
@@ -484,6 +517,7 @@ export default function App() {
         recording={!!recording}
         meeting={meeting && meeting.status === "done" && meeting.utterances.length ? meeting : null}
       />
+      <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
       <Toaster position="bottom-center" />
     </TooltipProvider>
   );
@@ -492,14 +526,20 @@ export default function App() {
 function Welcome({ onStart, busy }: { onStart: () => void; busy: boolean }) {
   return (
     <div className="grid h-full place-items-center">
-      <div className="max-w-sm text-center">
-        <h1 className="text-[22px] font-bold">Cap reunió encara</h1>
+      <div className="flex max-w-sm flex-col items-center text-center">
+        <LogoIcon size={56} />
+        <h1 className="mt-4 text-[22px] font-bold">Cap reunió encara</h1>
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-          Grava una reunió i la transcripció apareixerà en directe, separada per parlants. Tot es processa en aquest ordinador.
+          Grava una reunió i la transcripció apareixerà en directe, separada per parlants. Tot es processa en aquest Mac: local vol dir privat.
         </p>
-        <Button className="mt-5 h-7 rounded-md px-3 text-[13px]" onClick={onStart} disabled={busy}>
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={busy}
+          className="mt-5 flex h-8 items-center gap-2 rounded-lg bg-mm-new-meeting px-3 text-[13px] font-semibold text-mm-on-new-meeting hover:opacity-90 disabled:opacity-40"
+        >
           <Mic className="size-3.5" /> Comença a gravar
-        </Button>
+        </button>
         <p className="mt-3 text-[12px] text-text-secondary">Recorda demanar el consentiment dels participants.</p>
       </div>
     </div>

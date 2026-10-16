@@ -55,8 +55,17 @@ export const deleteMeeting = (id: string, audioPath: string | null) =>
 export const startMicMonitor = (device: string | null) => invoke<void>("start_mic_monitor", { device });
 export const stopMicMonitor = () => invoke<void>("stop_mic_monitor");
 export const onMicLevel = (fn: (rms: number) => void) => listen<{ rms: number }>("mic-level", (e) => fn(e.payload.rms));
-/** "Configuració…" in the app menu (⌘,). */
+/** "Configuració…" in the app menu (⌘,) or the menu bar icon. */
 export const onOpenSettings = (fn: () => void) => listen("open-settings", () => fn());
+/** "Quant a Murmur" in the app menu. */
+export const onOpenAbout = (fn: () => void) => listen("open-about", () => fn());
+/** The menu bar icon or the floating alert asks to start or stop recording. */
+export const onRecordRequest = (fn: (start: boolean) => void) =>
+  Promise.all([listen("start-recording", () => fn(true)), listen("stop-recording", () => fn(false))]).then(
+    (u) => () => u.forEach((f) => f()),
+  );
+/** "Reunió detectada": offer to record when another app starts using the microphone. */
+export const setMeetingDetection = (enabled: boolean) => invoke<void>("set_meeting_detection", { enabled });
 export const listMicrophones = () => invoke<string[]>("list_microphones");
 export const writeExport = (path: string, contents: Uint8Array) =>
   invoke<void>("write_export", { path, contents: Array.from(contents) });

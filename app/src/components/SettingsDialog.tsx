@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
-import { AudioLines, CalendarDays, ChevronRight, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
+import { AudioLines, CalendarDays, Check, ChevronRight, Contrast, Lock, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { THEMES, type Theme } from "@/lib/appearance";
 import * as backend from "@/lib/backend";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
@@ -25,6 +26,7 @@ type Props = {
 
 const TABS = [
   { id: "general", label: "General", icon: SlidersHorizontal },
+  { id: "appearance", label: "Aparença", icon: Contrast },
   { id: "audio", label: "Àudio", icon: Mic },
   { id: "transcription", label: "Transcripció", icon: AudioLines },
   { id: "intelligence", label: "Intel·ligència", icon: Sparkles },
@@ -56,7 +58,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
                 role="tab"
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
-                className={cn("flex w-24 flex-col items-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground", tab === id && "bg-black/[0.06] text-foreground dark:bg-white/10")}
+                className={cn("flex w-24 flex-col items-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground", tab === id && "bg-mm-tab-selected text-foreground")}
               >
                 <Icon className="size-5" strokeWidth={1.5} />
                 {label}
@@ -65,9 +67,10 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
           </div>
         </div>
 
-        <div className="h-[min(62vh,520px)] overflow-y-auto bg-[#f5f5f7] px-8 py-5 dark:bg-[#232325]">
-          {recording && tab !== "general" && <p className="mb-3 text-[12px] text-muted-foreground">Els canvis s'aplicaran a la propera gravació.</p>}
+        <div className="h-[min(62vh,520px)] overflow-y-auto bg-mm-settings-background px-8 py-5">
+          {recording && !["general", "appearance"].includes(tab) && <p className="mb-3 text-[12px] text-muted-foreground">Els canvis s'aplicaran a la propera gravació.</p>}
           {tab === "general" && <GeneralTab settings={settings} onChange={onChange} />}
+          {tab === "appearance" && <AppearanceTab settings={settings} onChange={onChange} />}
           {tab === "audio" && <AudioTab open={open} settings={settings} onChange={onChange} recording={recording} />}
           {tab === "transcription" && <TranscriptionTab settings={settings} onChange={onChange} />}
           {tab === "intelligence" && <IntelligenceTab settings={settings} onChange={onChange} meeting={meeting} onLlmLoaded={() => (llmLoaded.current = true)} />}
@@ -95,8 +98,13 @@ function GeneralTab({ settings, onChange }: { settings: Settings; onChange: Prop
   return (
     <>
       <Group title="Inici">
-        <Row label="Obre Transcriptor en iniciar la sessió" hint="L'app s'obrirà sola quan engeguis l'ordinador.">
+        <Row label="Obre Murmur en iniciar la sessió" hint="L'app s'obrirà sola quan engeguis l'ordinador.">
           <Switch checked={!!autostart} disabled={autostart === null} onCheckedChange={toggleAutostart} />
+        </Row>
+      </Group>
+      <Group title="Avisos">
+        <Row label="Reunió detectada" hint="Quan una altra app (Zoom, Meet, Teams…) comença a fer servir el micròfon, Murmur et proposa gravar.">
+          <Switch checked={settings.detectMeetings} onCheckedChange={(detectMeetings) => onChange({ detectMeetings })} />
         </Row>
       </Group>
       <Group title="Interfície">
@@ -132,6 +140,81 @@ function CalendarRow({ name }: { name: string }) {
         </button>
       </span>
     </Row>
+  );
+}
+
+// --- Aparença ------------------------------------------------------------------------------
+
+function AppearanceTab({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
+  return (
+    <>
+      <h3 className="mb-1.5 px-1 text-[12px] font-semibold text-muted-foreground">Tema</h3>
+      <div role="radiogroup" aria-label="Tema" className="grid grid-cols-3 gap-3">
+        {THEMES.map((t) => {
+          const selected = settings.theme === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange({ theme: t.id })}
+              className={cn(
+                "flex flex-col gap-2 rounded-[10px] bg-background p-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                selected ? "shadow-[0_0_0_2px_var(--mm-text-primary)]" : "shadow-[0_0_0_1px_var(--mm-separator)] hover:shadow-[0_0_0_1px_var(--mm-text-tertiary)]",
+              )}
+            >
+              <div className="flex h-[88px] overflow-hidden rounded-md shadow-[0_0_0_1px_rgb(127_127_127/0.25)]">
+                <ThemePreview theme={t.id} mode="light" />
+                <ThemePreview theme={t.id} mode="dark" />
+              </div>
+              <div className="flex items-center gap-1.5 px-0.5">
+                <span className="flex-1 text-[13px] font-medium">{t.label}</span>
+                {selected && (
+                  <span className="grid size-4 place-items-center rounded-full bg-foreground text-background" aria-hidden>
+                    <Check className="size-2.5" strokeWidth={3.5} />
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mb-5 mt-1.5 px-1 text-[11px] leading-snug text-muted-foreground">Cada tema té versió clara i fosca. La previsualització mostra totes dues.</p>
+      <Group title="Mode">
+        <Row label="Aparença" hint="Segueix el sistema o fixa el mode clar o fosc.">
+          <Segmented
+            value={settings.mode}
+            options={[
+              { value: "system", label: "Sistema" },
+              { value: "light", label: "Clar" },
+              { value: "dark", label: "Fosc" },
+            ]}
+            onChange={(mode) => onChange({ mode })}
+          />
+        </Row>
+      </Group>
+    </>
+  );
+}
+
+/** Half of a theme card: a tiny window drawn with that theme's own tokens. */
+function ThemePreview({ theme, mode }: { theme: Theme; mode: "light" | "dark" }) {
+  const line = mode === "light" ? "bg-black/[0.12]" : "bg-white/[0.12]";
+  return (
+    <div data-theme={theme} data-mode={mode} className="flex flex-1 bg-mm-background">
+      <div className="flex w-5 flex-col gap-1 bg-mm-sidebar px-[3px] py-2">
+        <span className="h-1 rounded-[2px] bg-mm-sidebar-selection-bar" />
+        <span className={cn("h-1 rounded-[2px]", line)} />
+        <span className={cn("h-1 rounded-[2px]", line)} />
+      </div>
+      <div className="flex flex-1 flex-col gap-[5px] px-1.5 py-2">
+        <span className="h-1.5 w-4 self-end rounded-[3px] bg-mm-accent" />
+        <span className={cn("h-1 w-4/5 rounded-[2px]", line)} />
+        <span className={cn("h-1 w-3/5 rounded-[2px]", line)} />
+        <span className={cn("h-1 w-[70%] rounded-[2px]", line)} />
+      </div>
+    </div>
   );
 }
 
@@ -233,7 +316,7 @@ function InputLevel({ device }: { device: string | null }) {
   return (
     <div className="flex items-center gap-[3px]" role="meter" aria-label="Nivell d'entrada" aria-valuemin={0} aria-valuemax={12} aria-valuenow={lit}>
       {Array.from({ length: 12 }, (_, i) => (
-        <span key={i} className={cn("h-3.5 w-[7px] rounded-[2px] transition-colors duration-75", i < lit ? (i < 9 ? "bg-[#34c759]" : i < 11 ? "bg-[#ffcc00]" : "bg-[#ff3b30]") : "bg-black/10 dark:bg-white/15")} />
+        <span key={i} className={cn("h-3.5 w-[7px] rounded-[2px] transition-colors duration-75", i < lit ? (i < 11 ? "bg-mm-toggle-on" : "bg-mm-recording-dot") : "bg-mm-meter-off")} />
       ))}
     </div>
   );
@@ -274,7 +357,7 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
               onClick={() => onChange({ threshold: DEFAULT_SETTINGS.threshold })}
               disabled={settings.threshold === DEFAULT_SETTINGS.threshold}
               title={`Torna al valor per defecte (${DEFAULT_SETTINGS.threshold.toFixed(2).replace(".", ",")})`}
-              className="h-6 rounded-md px-2 text-[12px] text-primary hover:bg-black/5 disabled:invisible dark:hover:bg-white/10"
+              className="h-6 rounded-md px-2 text-[12px] text-mm-link hover:bg-black/5 disabled:invisible dark:hover:bg-white/10"
             >
               Restableix
             </button>
@@ -328,8 +411,9 @@ function IntelligenceTab({
         </Row>
         <ModelRow id="llm" name="Gemma 4 E4B, de Google" enabled={settings.summarize} onDisable={() => onChange({ summarize: false })} />
       </Group>
-      <p className="-mt-3 mb-5 px-1 text-[11px] leading-snug text-muted-foreground">
-        Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis.
+      <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
+        <Lock className="mt-px size-3 shrink-0" aria-hidden />
+        <span>Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis.</span>
       </p>
       <PromptsEditor settings={settings} onChange={onChange} meeting={meeting} llmReady={!!models.status.llm?.installed} onLlmLoaded={onLlmLoaded} />
     </>
@@ -394,7 +478,7 @@ function ModelRow({ id, name, enabled, onDisable }: { id: ModelId; name: string;
         <div className="text-[12px]">{name}</div>
         <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">{text}</div>
         {downloading && (
-          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10" role="progressbar" aria-label={`Descàrrega de ${name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor((downloading.done / (downloading.total || 1)) * 100)}>
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-mm-meter-off" role="progressbar" aria-label={`Descàrrega de ${name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor((downloading.done / (downloading.total || 1)) * 100)}>
             <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${(downloading.done / (downloading.total || 1)) * 100}%` }} />
           </div>
         )}
@@ -436,7 +520,7 @@ function PromptsEditor({
               >
                 <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", expanded && "rotate-90")} aria-hidden />
                 <span className="flex-1">{p.label}</span>
-                {edited && <span className="rounded bg-primary/10 px-1.5 py-px text-[11px] text-primary">Modificat</span>}
+                {edited && <span className="rounded bg-mm-fill-subtle px-1.5 py-px text-[11px] font-medium text-foreground">Modificat</span>}
               </button>
               {expanded && <PromptEditor id={p.id} settings={settings} onChange={onChange} meeting={meeting} llmReady={llmReady} onLlmLoaded={onLlmLoaded} />}
             </div>
@@ -544,7 +628,7 @@ function PromptEditor({
           type="button"
           onClick={() => set(def.text)}
           disabled={value === def.text}
-          className="h-6 rounded-md px-2 text-[12px] text-primary hover:bg-black/5 disabled:invisible dark:hover:bg-white/10"
+          className="h-6 rounded-md px-2 text-[12px] text-mm-link hover:bg-black/5 disabled:invisible dark:hover:bg-white/10"
         >
           Restableix
         </button>
@@ -571,7 +655,7 @@ function PromptEditor({
 
 function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <div role="radiogroup" className="flex shrink-0 rounded-[7px] bg-black/[0.06] p-0.5 dark:bg-white/10">
+    <div role="radiogroup" className="flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -579,7 +663,7 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cn("h-6 rounded-[5px] px-3 text-[12px]", value === o.value ? "bg-background font-medium shadow-[0_1px_2px_rgb(0_0_0/0.15)]" : "text-muted-foreground")}
+          className={cn("h-6 rounded-[5px] px-3 text-[12px]", value === o.value ? "bg-mm-segmented-selected font-medium shadow-[0_1px_2px_rgb(0_0_0/0.15)]" : "text-muted-foreground")}
         >
           {o.label}
         </button>

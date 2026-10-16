@@ -1,6 +1,6 @@
-# Meeting Transcript — transcriptor de reunions en català
+# Murmur: transcriptor de reunions en català
 
-Aplicació d'escriptori (Mac primer, després Windows; més endavant iOS/Android) que transcriu reunions en **català** en directe, identifica qui parla i genera un resum amb acords. **Tot funciona en local per defecte**: l'àudio no surt de l'ordinador si l'usuari no ho decideix.
+L'app es diu **Murmur** (abans «Transcriptor»; el codi, el crate i l'identificador `cat.transcriptor.app` mantenen el nom antic perquè no es perdin les dades). Aplicació d'escriptori (Mac primer, després Windows; més endavant iOS/Android) que transcriu reunions en **català** en directe, identifica qui parla i genera un resum amb acords. **Tot funciona en local per defecte**: l'àudio no surt de l'ordinador si l'usuari no ho decideix.
 
 ## Fases del projecte
 
@@ -52,6 +52,15 @@ La passada final substitueix la transcripció en directe i en corregeix els parl
 - Validat amb l'MVP (16/10/2026). Per a l'app cal: **editar parlants inline** (al mateix text, no en un panell), **corregir la transcripció inline**, i la **configuració en un espai que no es vegi sempre** (p. ex. un panell desplegable o una finestra de preferències).
 - Elements bàsics: botó de gravar, text en directe amb parlants (editables: "Parlant 1" → nom real), estat de la passada final, resum i acords, llista de reunions, exportació.
 - La mateixa interfície web ha de servir per a l'MVP i per a Tauri: res que depengui de FastAPI dins dels components.
+
+## Disseny
+
+- Per a qualsevol canvi d'interfície, segueix `docs/design/DESIGN.md`. És la font de veritat (pensat per a SwiftUI; a l'app web, els tokens equivalents són les variables CSS).
+- Colors: només a través dels tokens `--mm-*` (`app/src/murmur-theme.css`, còpia de `docs/design/tokens/murmur-theme.css`) i de les utilitats Tailwind `*-mm-*` o dels tokens de shadcn que hi apunten (`index.css`). Mai hexadecimals escrits a mà.
+- Tema i mode: `data-theme` (`acid`, `mono`, `formigo`) i `data-mode` a `<html>` + classe `dark` (`lib/appearance.ts`), triats a Configuració › Aparença.
+- Referències visuals: `docs/design/screens/<tema>/`. Mides i textos exactes: `docs/design/mockups/<tema>/`.
+- L'àcid (#D4FF3A) mai és text ni línia sobre fons clar.
+- Textos en català, sense guions llargs.
 
 ## Convencions
 
@@ -132,7 +141,7 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
     - Migració automàtica: fitxers JSON antics (`meetings/` → `meetings-json-backup/`) i `localStorage` del webview. En un navegador sense Tauri es fa servir `localStorage` (desenvolupament d'interfície).
   - **Exportació** (`lib/export.ts`): Markdown i Word (`docx`, carregat a demanda), notes primer i després la transcripció. Diàleg natiu de desar (plugin dialog) + ordre `write_export`.
   - **Eliminar** una reunió (menú del títol, confirmació nativa) esborra també el seu àudio.
-- Disseny de referència a Superdesign (`.superdesign/design-system.md`, `.superdesign/resume.json`).
+- Disseny: `docs/design/` (vegeu la secció Disseny).
 
 ## Passada final: verificació de parlants (`diarize.rs`, `final_pass` a `lib.rs`)
 

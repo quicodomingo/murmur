@@ -1,6 +1,6 @@
-# Full de ruta — Transcriptor
+# Full de ruta de Murmur
 
-Estat a 16 d'octubre de 2026. Ja funciona: transcripció en directe en català (Conformer ca-es amb sherpa-onnx, motor en Rust), parlants en directe, àudio del sistema amb canals separats i cancel·lació d'eco, notes riques amb marca de temps, configuració i àudio desat en Opus.
+Estat a 16 d'octubre de 2026. L'app es diu **Murmur** (abans Transcriptor). Ja funciona: transcripció en directe en català (Conformer ca-es amb sherpa-onnx, motor en Rust), parlants en directe, àudio del sistema amb canals separats i cancel·lació d'eco, notes riques amb marca de temps, configuració i àudio desat en Opus.
 
 Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 
@@ -36,16 +36,16 @@ En aturar la gravació, reprocessar l'àudio desat:
 ### Usos del LLM (propostes a analitzar i prioritzar)
 
 Sobre la transcripció:
-- [ ] Puntuació, majúscules i paràgrafs (la tasca més segura: no inventa res).
+- [x] Puntuació i majúscules en acabar: model de Softcatalà (ONNX int8, 126 MB, ~5 s per 20 min). Opcional i esborrable. Paràgrafs: pendent.
 - [ ] Corregir noms i marques pel context (worpress → WordPress), amb el vocabulari personalitzat i els convidats del calendari.
 - [ ] Versió «neta» per llegir (sense «eh», «o sigui», repeticions), conservant l'original.
 - [ ] Suggerir el nom dels parlants pel context («com deia el Guillem»), sempre com a proposta, mai automàtic.
 
 Sobre el contingut:
-- [ ] Resum.
-- [ ] Acords i tasques amb responsable i data (si se'n parla).
-- [ ] Títol automàtic de la reunió.
-- [ ] Temes i capítols amb el minut d'inici, per saltar-hi des de la transcripció.
+- [x] Resum (portada).
+- [x] Decisions i tasques amb responsable, data i minut (portada; les tasques es poden marcar com a fetes).
+- [x] Títol automàtic (només si l'usuari no l'ha canviat) i entradeta.
+- [x] Parts de la reunió amb minut d'inici (clicable) i 1–3 punts per part. També el to general i «Qui ha parlat» (sense LLM).
 - [ ] Preguntes obertes i decisions pendents.
 - [ ] Esborrany de correu de seguiment per als assistents.
 - Cada acord o tasca porta el minut d'on surt, per comprovar-ho amb un clic (els models petits poden inventar).
@@ -57,8 +57,11 @@ Durant la reunió:
 Entre reunions (bloc 5):
 - [ ] Preguntes a totes les reunions («Què vam decidir dels preus?»): cerca a SQLite + LLM.
 
-- [ ] Integrar el model triat amb llama.cpp al nucli Rust, carregant els models per torns (directe → alliberar → passada final → alliberar → LLM).
-- [ ] Mostrar l'estat de la passada final a la interfície i el panell Resum · Acords · Tasques (disseny ja fet a Superdesign).
+- [x] Gemma 4 E4B dins el nucli Rust (`llm.rs`, llama-cpp-2 + Metal): llegeix la transcripció un cop i respon cada part en JSON amb gramàtica. S'allibera en acabar. ~2,5 min per 20 min de reunió a l'M4.
+- [x] Portada (Portada | Transcripció) amb els passos del processament i «Genera la portada» per a reunions antigues.
+- [x] Configuració › Intel·ligència: activar, descarregar (reprenible), esborrar models, i editar i provar els prompts de cada part.
+- [ ] Publicar el model de puntuació convertit perquè l'app el pugui descarregar (i aclarir-ne la llicència amb Softcatalà).
+- [ ] Correcció ortogràfica del text que escriu el LLM (castellanismes de l'E4B).
 
 ## 3. Instal·lable per a altres persones
 
@@ -73,7 +76,7 @@ Entre reunions (bloc 5):
 
 ## 4. Configuració pendent (ja dissenyada)
 
-- [ ] Calendaris: Google Calendar i Apple Calendar → títol de la reunió, noms dels parlants a partir dels convidats, avís per gravar quan comença una reunió.
+- [ ] Calendaris: Google Calendar i Apple Calendar → títol de la reunió, noms dels parlants a partir dels convidats, avís «Comença d'aquí a 2 minuts» (la finestra d'avisos ja existeix).
 - [ ] Intel·ligència: model local o clau pròpia d'OpenAI / Anthropic, desada al clauer del sistema. Només s'envia text, mai àudio.
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
 
@@ -84,7 +87,9 @@ Entre reunions (bloc 5):
 
 - [ ] Transcripció de referència a mà (5–10 min de `data/reunio.m4a`) per calcular el WER i decidir models amb números.
 - [ ] Reduir CPU en directe (ara ~37–47% d'un fil a l'M4, sobretot pels textos provisionals). Provar en un M1 de 8 GB.
-- [ ] Revisar el mode fosc amb cura.
+- [x] Identitat de Murmur (`docs/design/`): tres temes (Negre i àcid, Monocrom, Formigó i vermell) amb mode clar i fosc, Configuració › Aparença, barra lateral, píndola de gravació, etiquetes de parlant, Quant a, icona de l'app.
+- [x] Icona a la barra de menús (repòs, reunió a prop, gravant) i avís flotant «Reunió detectada» quan una altra app comença a fer servir el micròfon (CoreAudio, macOS 14.2+).
+- [ ] Icona del Dock segons el tema (opcional al disseny).
 - [ ] Afinar la separació de parlants en directe (llindar per defecte 0,65).
 
 ## 6. Més endavant

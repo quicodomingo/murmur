@@ -96,7 +96,7 @@ export async function toDocx(meeting: Meeting): Promise<ArrayBuffer> {
   );
   const notes = notesParagraphs(d, notesDoc(meeting));
   const doc = new Document({
-    creator: "Transcriptor",
+    creator: "Murmur",
     title: meeting.title,
     styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
     sections: [

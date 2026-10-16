@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Copy, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
-import { Flag, SpeakerFlag } from "@/components/SpeakerFlag";
+import { Flag, isYou, SpeakerFlag } from "@/components/SpeakerFlag";
 import { clock, longDate, speakerIds, speakerName } from "@/lib/format";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
 import type { Jump, State } from "@/lib/store";
@@ -38,7 +38,7 @@ function noteAnchors(meeting: Meeting): Map<string, string[]> {
 export function Transcript(props: Props) {
   const { meeting, partial } = props;
   const live = (Object.entries(partial) as [Channel, string][]).filter(([, text]) => text);
-  const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id) }));
+  const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id), you: isYou(meeting, id) }));
   const anchors = noteAnchors(meeting);
   const bottom = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -121,10 +121,10 @@ export function Transcript(props: Props) {
             const speaker = channel === "mic" ? 0 : SYSTEM_SPEAKER_BASE;
             return (
               <div key={channel} className="mt-3 px-3">
-                <Flag speaker={speaker} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
-                <p className="mt-1 text-[15px] leading-relaxed text-text-secondary" aria-live="off">
+                <Flag speaker={speaker} you={channel === "mic" && isYou(meeting, 0)} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
+                <p className="mt-1 text-[16px] leading-[1.65] text-muted-foreground" aria-live="off">
                   {text}
-                  <span className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[3px] animate-pulse bg-text-secondary" />
+                  <span className="mm-caret ml-0.5 inline-block h-[18px] w-[2px] translate-y-[3px] bg-mm-caret" />
                 </p>
               </div>
             );
@@ -163,7 +163,7 @@ export function TitleInput({ title, onChange, compact }: { title: string; onChan
       }}
       className={cn(
         "block w-full resize-none overflow-hidden bg-transparent font-bold leading-tight tracking-[-0.01em] outline-none",
-        compact ? "text-[17px]" : "text-[28px]",
+        compact ? "text-[17px]" : "text-[30px] tracking-[-0.015em]",
       )}
     />
   );
@@ -193,9 +193,9 @@ function UtteranceRow({ utterance: u, flash, showFlag, notes, hoveredNote, onHov
     <div
       data-utterance-id={u.id}
       className={cn(
-        "group relative rounded-lg px-3 py-1.5 transition-colors duration-700 hover:bg-[#f7f7f8] dark:hover:bg-white/5",
+        "group relative rounded-lg px-3 py-1.5 transition-colors duration-700 hover:bg-mm-fill-subtle",
         showFlag && "mt-3",
-        linked && "bg-[#f7f7f8] dark:bg-white/5",
+        linked && "bg-mm-fill-subtle",
         flash && "bg-yellow-100 duration-150 dark:bg-yellow-500/20",
       )}
     >
@@ -205,7 +205,7 @@ function UtteranceRow({ utterance: u, flash, showFlag, notes, hoveredNote, onHov
           aria-label="Nota associada"
           onMouseEnter={() => onHoverNote(notes[0])}
           onMouseLeave={() => onHoverNote(null)}
-          className={cn("absolute -left-6 top-2 text-primary transition-transform", linked && "scale-125")}
+          className={cn("absolute -left-6 top-2 text-mm-timestamp transition-transform", linked && "scale-125")}
         >
           <StickyNote className="size-3.5" />
         </button>
@@ -213,14 +213,14 @@ function UtteranceRow({ utterance: u, flash, showFlag, notes, hoveredNote, onHov
       {showFlag && (
         <div className="mb-1 flex items-center gap-2">
           {flag}
-          <span className="text-[12px] tabular-nums text-text-secondary">{clock(u.start)}</span>
+          <span className="text-[12px] tabular-nums text-mm-timestamp">{clock(u.start)}</span>
           {u.edited && <span className="text-[11px] text-text-secondary">editat</span>}
         </div>
       )}
       {editing ? (
         <EditBox text={u.text} onDone={finish} />
       ) : (
-        <p onClick={() => setEditing(true)} className="selectable -mx-1.5 cursor-text rounded-md px-1.5 text-[15px] leading-relaxed">
+        <p onClick={() => setEditing(true)} className="selectable -mx-1.5 cursor-text rounded-md px-1.5 text-[16px] leading-[1.65]">
           {u.text}
         </p>
       )}
@@ -274,7 +274,7 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
         }
         if (e.key === "Escape") finish(false);
       }}
-      className="-mx-1.5 block w-[calc(100%+12px)] resize-none overflow-hidden rounded-md bg-transparent px-1.5 text-[15px] leading-relaxed outline-none ring-2 ring-ring"
+      className="-mx-1.5 block w-[calc(100%+12px)] resize-none overflow-hidden rounded-md bg-transparent px-1.5 text-[16px] leading-[1.65] outline-none ring-2 ring-ring"
     />
   );
 }
@@ -307,7 +307,7 @@ function FinalPassBanner({ stage, estimateSeconds, startedAt }: { stage: PostSta
         <span className="text-muted-foreground">{remaining}</span>
       </div>
       <p className="mt-1 text-[12px] text-muted-foreground">{BANNER[stage].hint}</p>
-      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10">
+      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-mm-meter-off">
         <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
       </div>
     </div>

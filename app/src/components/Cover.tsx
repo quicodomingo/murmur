@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { AlignLeft, Check, Cpu, RefreshCw, Sparkles } from "lucide-react";
+import { AlignLeft, Check, RefreshCw, Sparkles } from "lucide-react";
 
-import { Flag, speakerColor } from "@/components/SpeakerFlag";
+import { LogoMark } from "@/components/Logo";
+
+import { Flag, isYou, speakerTone } from "@/components/SpeakerFlag";
 import { TitleInput } from "@/components/Transcript";
 import { Button } from "@/components/ui/button";
 import * as backend from "@/lib/backend";
@@ -58,7 +60,7 @@ function TimeLink({ t, onJump }: { t: number; onJump: (t: number) => void }) {
       type="button"
       onClick={() => onJump(t)}
       aria-label={`Ves al minut ${clock(t)} de la transcripció`}
-      className="rounded-sm text-primary tabular-nums hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+      className="rounded-sm text-mm-timestamp tabular-nums hover:underline focus-visible:outline-2 focus-visible:outline-ring"
     >
       {clock(t)}
     </button>
@@ -75,15 +77,6 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 
 // --- Ready ---------------------------------------------------------------------------------
 
-const TONE_COLORS: Record<string, string> = {
-  Constructiu: "var(--spk-4)",
-  Distès: "var(--spk-4)",
-  Neutre: "var(--text-secondary)",
-  Formal: "var(--spk-1)",
-  Tens: "var(--spk-3)",
-  Conflictiu: "var(--destructive)",
-};
-
 function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggleTask }: Props) {
   const cover = meeting.cover!;
   const talk = talkTime(meeting);
@@ -97,17 +90,17 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
   return (
     <>
       {cover.excerpt && <p className="mt-3.5 max-w-[64ch] text-[18px] leading-[1.55]">{cover.excerpt}</p>}
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-text-secondary">
+      <div className="mt-3 flex items-center gap-x-3 text-[12px] text-text-secondary">
         <span className="flex items-center gap-1.5">
-          <Cpu className="size-3.5" aria-hidden />
-          Generat en aquest ordinador · Pot tenir errors: cada punt enllaça al moment d'on surt
+          <LogoMark size={13} />
+          Generat en aquest ordinador. Cada punt enllaça al moment de la reunió d'on surt.
         </span>
         <button
           type="button"
           onClick={onGenerate}
           disabled={!!blocked}
           title={blocked ?? undefined}
-          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-primary hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10"
+          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-mm-link hover:bg-mm-fill-subtle disabled:opacity-40"
         >
           <RefreshCw className="size-3" aria-hidden /> Torna a generar
         </button>
@@ -118,7 +111,8 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
           <section aria-labelledby="tone-h" className="rounded-[10px] border border-border px-4 py-3.5">
             <SectionTitle id="tone-h">To</SectionTitle>
             <div className="flex items-center gap-1.5 text-[15px] font-semibold">
-              <i className="block size-2 rounded-full" style={{ background: TONE_COLORS[cover.tone.label] ?? "var(--text-secondary)" }} aria-hidden />
+              {/* DESIGN.md: the text colour in light mode, the accent in dark. */}
+              <i className="block size-2 rounded-full bg-foreground dark:bg-mm-accent" aria-hidden />
               {cover.tone.label}
             </div>
             {cover.tone.reason && <p className="mt-1.5 text-[13px] text-muted-foreground">{cover.tone.reason}</p>}
@@ -133,13 +127,13 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
               aria-label={talk.map((s) => `${s.name} ${s.share < 0.01 ? "menys de l'1" : Math.round(s.share * 100)}%`).join(", ")}
             >
               {talk.map((s) => (
-                <span key={s.speaker} className="h-full" style={{ width: `${s.share * 100}%`, background: speakerColor(s.speaker) }} />
+                <span key={s.speaker} className="h-full" style={{ width: `${s.share * 100}%`, background: speakerTone(s.speaker, isYou(meeting, s.speaker)).solid }} />
               ))}
             </div>
             <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
               {talk.map((s) => (
                 <li key={s.speaker} className="flex items-center gap-2 text-[13px]">
-                  <i className="block size-2 shrink-0 rounded-[2px]" style={{ background: speakerColor(s.speaker) }} aria-hidden />
+                  <i className="block size-2 shrink-0 rounded-[2px]" style={{ background: speakerTone(s.speaker, isYou(meeting, s.speaker)).solid }} aria-hidden />
                   <span className="min-w-0 flex-1 truncate font-medium">{s.name}</span>
                   <small className="text-[12px] tabular-nums text-muted-foreground">
                     {s.share < 0.01 ? "<1" : Math.round(s.share * 100)}% · {minutes(s.seconds)}
@@ -201,7 +195,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
                       aria-label={`Fet: ${task.text}`}
                       onClick={() => onToggleTask(i, !task.done)}
                       className={cn(
-                        "mt-0.5 grid size-4 place-items-center rounded-full border-[1.5px] border-[#c7c7cc] transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+                        "mt-0.5 grid size-4 place-items-center rounded-full border-[1.5px] border-mm-text-tertiary transition-colors focus-visible:outline-2 focus-visible:outline-ring",
                         task.done && "border-primary bg-primary text-primary-foreground",
                       )}
                     >
@@ -212,9 +206,9 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
                         {task.owner &&
                           (owner !== undefined ? (
-                            <Flag speaker={owner} name={task.owner} />
+                            <Flag speaker={owner} you={isYou(meeting, owner)} name={task.owner} />
                           ) : (
-                            <span className="inline-flex h-[18px] items-center rounded-[4px] bg-muted px-1.5 text-[11px] font-semibold text-foreground">{task.owner}</span>
+                            <span className="inline-flex h-5 items-center rounded-[5px] bg-mm-fill-subtle px-1.5 text-[12px] font-semibold text-foreground">{task.owner}</span>
                           ))}
                         {task.when && <span>{task.when}</span>}
                         {task.t !== null && <TimeLink t={task.t} onJump={onJump} />}
@@ -356,13 +350,13 @@ function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProce
           <li key={row.label} className={cn("border-b border-border last:border-b-0", row.state === "active" && "pb-3")}>
             <div className="flex items-center gap-2.5 px-3.5 py-[11px] text-[14px]" aria-current={row.state === "active" ? "step" : undefined}>
               {row.state === "done" ? (
-                <span className="grid size-4 place-items-center rounded-full bg-[#34c759] text-white" aria-label="Fet">
+                <span className="grid size-4 place-items-center rounded-full bg-primary text-primary-foreground" aria-label="Fet">
                   <Check className="size-2.5" strokeWidth={3} />
                 </span>
               ) : row.state === "active" ? (
                 <span className="size-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
               ) : (
-                <span className="size-4 rounded-full border-[1.5px] border-dashed border-[#c7c7cc]" aria-hidden />
+                <span className="size-4 rounded-full border-[1.5px] border-dashed border-mm-text-tertiary" aria-hidden />
               )}
               <span className="min-w-0 flex-1">
                 {row.label}
@@ -371,7 +365,7 @@ function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProce
               <small className="text-[12px] tabular-nums text-muted-foreground">{row.note}</small>
             </div>
             {row.state === "active" && i > 0 && (
-              <div className="ml-10 mr-3.5 h-[3px] overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10">
+              <div className="ml-10 mr-3.5 h-[3px] overflow-hidden rounded-full bg-mm-meter-off">
                 <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
               </div>
             )}

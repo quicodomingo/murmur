@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
+import { applyAppearance, type Mode, type Theme } from "./appearance";
+
 export type Settings = {
+  /** Aparença: colour theme and light/dark mode ("system" follows macOS). */
+  theme: Theme;
+  mode: Mode;
   mic: boolean;
   /** Input device name; null = the system default. */
   micDevice: string | null;
@@ -20,9 +25,13 @@ export type Settings = {
   summarize: boolean;
   /** Edited prompts, by id (lib/cover.ts PROMPTS); missing ones use the default text. */
   prompts: Record<string, string>;
+  /** Offer to record when another app starts using the microphone (meeting detection). */
+  detectMeetings: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
+  theme: "acid",
+  mode: "system",
   mic: true,
   micDevice: null,
   system: true,
@@ -37,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   punctuate: false,
   summarize: false,
   prompts: {},
+  detectMeetings: true,
 };
 
 const KEY = "transcriptor.settings.v1";
@@ -62,6 +72,7 @@ export function useSettings() {
       return DEFAULT_SETTINGS;
     }
   });
+  useEffect(() => applyAppearance(settings.theme, settings.mode), [settings.theme, settings.mode]);
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(settings));
