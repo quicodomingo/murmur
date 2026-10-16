@@ -3,6 +3,7 @@ pub mod audio;
 pub mod db;
 pub mod diarize;
 pub mod engine;
+pub mod llm;
 pub mod pipeline;
 pub mod recorder;
 pub mod storage;

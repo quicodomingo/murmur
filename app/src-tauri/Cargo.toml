@@ -33,6 +33,7 @@ ogg = "0.9"
 tauri-plugin-dialog = "2"
 rusqlite = { version = "0.40", features = ["bundled"] }
 tauri-plugin-autostart = "2"
+llama-cpp-2 = { version = "0.1.160", features = ["metal"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 screencapturekit = "0.3.6"
