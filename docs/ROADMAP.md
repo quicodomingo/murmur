@@ -6,13 +6,13 @@ Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 
 ---
 
-## 1. Fer-la servir cada dia *(en curs)*
+## 1. Fer-la servir cada dia *(només falta la prova real)*
 
 - [ ] Provar en reunions reals amb altaveus (cal el permís «Gravació de pantalla i àudio del sistema»). Validar l'eco residual.
-- [ ] Desar les reunions des de Rust (fitxers a la carpeta de dades de l'app), no a `localStorage`.
-- [ ] Exportar a fitxer: Markdown i .docx.
-- [ ] Selector de micròfon a la configuració.
-- [ ] Primer commit al repositori.
+- [x] Desar les reunions des de Rust (fitxers a la carpeta de dades de l'app), no a `localStorage`.
+- [x] Exportar a fitxer: Markdown i .docx.
+- [x] Selector de micròfon a la configuració.
+- [x] Primer commit al repositori.
 
 ## 2. Passada final (el salt de qualitat)
 

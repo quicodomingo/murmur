@@ -123,7 +123,9 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - Panell de notes: amaga/mostra des de la barra d'eines (únic botó), **redimensionable** arrossegant la vora esquerra (doble clic restableix; fletxes del teclat), i **mode complet** que amaga la transcripció. Es recorda a `localStorage` (`transcriptor.notesLayout.v1`).
   - En producció es bloqueja el menú contextual del web fora del text editable; l'inspector només existeix en builds `dev`.
   - Edició inline amb `<textarea>` que creix, **no** `contentEditable` (amb React duplicava text).
-  - Persistència provisional a `localStorage` del webview (`transcriptor.meetings.v1`). Passarà a fitxers/SQLite gestionats per Rust.
+  - **Persistència**: una reunió = un JSON a `<app_data_dir>/meetings/<id>.json` (`storage.rs`, escriptura atòmica). La UI desa amb retard d'1,5 s (immediat en canvis d'estat). Les reunions antigues de `localStorage` es migren soles; en un navegador sense Tauri es fa servir `localStorage`.
+  - **Exportació** (`lib/export.ts`): Markdown i Word (`docx`, carregat a demanda), notes primer i després la transcripció. Diàleg natiu de desar (plugin dialog) + ordre `write_export`.
+  - **Eliminar** una reunió (menú del títol, confirmació nativa) esborra també el seu àudio.
 - Disseny de referència a Superdesign (`.superdesign/design-system.md`, `.superdesign/resume.json`).
 
 ## Resultats de la primera reunió real (20 min, 5 parlants)
