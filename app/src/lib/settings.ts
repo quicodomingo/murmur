@@ -14,6 +14,12 @@ export type Settings = {
   verifySpeakers: boolean;
   /** What takes the main area; the other one goes in the side panel. */
   primaryPanel: "transcript" | "notes";
+  /** After a recording: punctuation and capitals (optional model, models.rs PUNCTUATION). */
+  punctuate: boolean;
+  /** After a recording: the cover, written by the local language model (models.rs LLM). */
+  summarize: boolean;
+  /** Edited prompts, by id (lib/cover.ts PROMPTS); missing ones use the default text. */
+  prompts: Record<string, string>;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +33,10 @@ export const DEFAULT_SETTINGS: Settings = {
   threshold: 0.7,
   verifySpeakers: true,
   primaryPanel: "transcript",
+  // Both need a download, so they're off until the user turns them on.
+  punctuate: false,
+  summarize: false,
+  prompts: {},
 };
 
 const KEY = "transcriptor.settings.v1";

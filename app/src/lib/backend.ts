@@ -4,12 +4,18 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { JSONContent } from "@tiptap/core";
 
 import type {
+  Cover,
   EngineEvent,
   FinalPassDone,
   FinalPassSpeakers,
   FinalPassStarted,
+  LlmProgress,
+  LlmResult,
+  LlmTask,
   Meeting,
   MeetingSummary,
+  ModelId,
+  ModelStatus,
   SearchHit,
   Utterance,
 } from "./types";
@@ -34,7 +40,7 @@ export const stopRecording = () => invoke<void>("stop_recording");
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null; cover?: Cover | null };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };
@@ -54,6 +60,24 @@ export const onOpenSettings = (fn: () => void) => listen("open-settings", () => 
 export const listMicrophones = () => invoke<string[]>("list_microphones");
 export const writeExport = (path: string, contents: Uint8Array) =>
   invoke<void>("write_export", { path, contents: Array.from(contents) });
+
+export const modelStatus = () => invoke<ModelStatus[]>("model_status");
+export const downloadModel = (id: ModelId) => invoke<void>("download_model", { id });
+export const cancelModelDownload = (id: ModelId) => invoke<void>("cancel_model_download", { id });
+export const deleteModel = (id: ModelId) => invoke<void>("delete_model", { id });
+export const onModelDownload = (fn: (e: { id: ModelId; done: number; total: number }) => void) =>
+  listen<{ id: ModelId; done: number; total: number }>("model-download", (e) => fn(e.payload));
+export const onModelDownloadDone = (fn: (e: { id: ModelId; error: string | null; cancelled: boolean }) => void) =>
+  listen<{ id: ModelId; error: string | null; cancelled: boolean }>("model-download-done", (e) => fn(e.payload));
+
+/** Punctuation and capitals for consecutive utterances; returns their new texts. */
+export const punctuate = (texts: string[], speakers: number[]) => invoke<string[]>("punctuate", { texts, speakers });
+
+/** Reads `document` once with the local language model and answers each task about it. */
+export const runLlm = (opts: { job: string; system: string; document: string; tasks: LlmTask[]; keepLoaded: boolean }) =>
+  invoke<LlmResult[]>("run_llm", opts);
+export const releaseLlm = () => invoke<void>("release_llm");
+export const onLlmProgress = (fn: (e: LlmProgress) => void) => listen<LlmProgress>("llm-progress", (e) => fn(e.payload));
 
 export async function subscribe(handlers: {
   onEvent: (e: EngineEvent) => void;

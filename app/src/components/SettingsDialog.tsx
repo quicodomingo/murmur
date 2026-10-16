@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { AudioLines, CalendarDays, Mic, SlidersHorizontal } from "lucide-react";
+import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
+import { AudioLines, CalendarDays, ChevronRight, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import * as backend from "@/lib/backend";
+import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
+import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
+import type { LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -16,18 +19,29 @@ type Props = {
   settings: Settings;
   onChange: (patch: Partial<Settings>) => void;
   recording: boolean;
+  /** The open meeting, to try prompts on (only a finished one with a transcript). */
+  meeting: Meeting | null;
 };
 
 const TABS = [
   { id: "general", label: "General", icon: SlidersHorizontal },
   { id: "audio", label: "Àudio", icon: Mic },
   { id: "transcription", label: "Transcripció", icon: AudioLines },
+  { id: "intelligence", label: "Intel·ligència", icon: Sparkles },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
 /** Native-style Preferences window: icon tabs on top, grouped rows below. */
-export function SettingsDialog({ open, onOpenChange, settings, onChange, recording }: Props) {
+export function SettingsDialog({ open, onOpenChange, settings, onChange, recording, meeting }: Props) {
   const [tab, setTab] = useState<Tab>("general");
+  // Trying prompts keeps the language model loaded; free its memory when the window closes.
+  const llmLoaded = useRef(false);
+  useEffect(() => {
+    if (!open && llmLoaded.current) {
+      llmLoaded.current = false;
+      backend.releaseLlm().catch(() => {});
+    }
+  }, [open]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[620px]" showCloseButton={false}>
@@ -56,6 +70,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
           {tab === "general" && <GeneralTab settings={settings} onChange={onChange} />}
           {tab === "audio" && <AudioTab open={open} settings={settings} onChange={onChange} recording={recording} />}
           {tab === "transcription" && <TranscriptionTab settings={settings} onChange={onChange} />}
+          {tab === "intelligence" && <IntelligenceTab settings={settings} onChange={onChange} meeting={meeting} onLlmLoaded={() => (llmLoaded.current = true)} />}
         </div>
       </DialogContent>
     </Dialog>
@@ -274,8 +289,281 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
           <Switch checked={settings.verifySpeakers} onCheckedChange={(verifySpeakers) => onChange({ verifySpeakers })} />
         </Row>
       </Group>
-      <p className="px-1 text-[11px] leading-snug text-muted-foreground">Aviat: resum, acords i tasques amb un model local o la teva clau d'API.</p>
     </>
+  );
+}
+
+// --- Intel·ligència ------------------------------------------------------------------------
+
+function IntelligenceTab({
+  settings,
+  onChange,
+  meeting,
+  onLlmLoaded,
+}: {
+  settings: Settings;
+  onChange: Props["onChange"];
+  meeting: Meeting | null;
+  onLlmLoaded: () => void;
+}) {
+  const models = useModels();
+  // Turning a feature on fetches its model if it isn't there yet.
+  const toggle = (id: ModelId, key: "punctuate" | "summarize", on: boolean) => {
+    onChange({ [key]: on });
+    const status = models.status[id];
+    if (on && status && !status.installed && status.downloadable && !models.downloading[id]) downloadModel(id);
+  };
+  return (
+    <>
+      <Group title="En acabar la gravació">
+        <Row label="Puntuació i majúscules" hint="Posa punts, comes i majúscules a tota la transcripció. Triga uns segons.">
+          <Switch checked={settings.punctuate} onCheckedChange={(on) => toggle("punctuation", "punctuate", on)} />
+        </Row>
+        <ModelRow id="punctuation" name="Model de puntuació de Softcatalà" enabled={settings.punctuate} onDisable={() => onChange({ punctuate: false })} />
+        <Row
+          label="Portada"
+          hint="Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions, les tasques i les parts. Triga uns 2–3 minuts per a una reunió de 20 minuts; pots continuar treballant mentrestant."
+        >
+          <Switch checked={settings.summarize} onCheckedChange={(on) => toggle("llm", "summarize", on)} />
+        </Row>
+        <ModelRow id="llm" name="Gemma 4 E4B, de Google" enabled={settings.summarize} onDisable={() => onChange({ summarize: false })} />
+      </Group>
+      <p className="-mt-3 mb-5 px-1 text-[11px] leading-snug text-muted-foreground">
+        Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis.
+      </p>
+      <PromptsEditor settings={settings} onChange={onChange} meeting={meeting} llmReady={!!models.status.llm?.installed} onLlmLoaded={onLlmLoaded} />
+    </>
+  );
+}
+
+/** A model's state under its feature: size, download progress, download/stop/delete. */
+function ModelRow({ id, name, enabled, onDisable }: { id: ModelId; name: string; enabled: boolean; onDisable: () => void }) {
+  const { status: all, downloading: active } = useModels();
+  const status = all[id];
+  const downloading = active[id];
+  if (!status) return null;
+
+  const remove = async () => {
+    const message = `S'esborrarà ${name} (${bytes(status.bytes)}). El pots tornar a descarregar quan vulguis.`;
+    const confirmed = backend.isTauri()
+      ? await ask(message, { title: "Vols esborrar el model?", kind: "warning", okLabel: "Esborra", cancelLabel: "Cancel·la" })
+      : window.confirm(message);
+    if (!confirmed) return;
+    await deleteModel(id);
+    if (enabled) onDisable();
+  };
+
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
+  let text: string;
+  let action: React.ReactNode = null;
+  if (downloading) {
+    const share = downloading.total ? downloading.done / downloading.total : 0;
+    text = `Descarregant… ${Math.floor(share * 100)}% · ${bytes(downloading.done)} de ${bytes(downloading.total || status.bytes)}`;
+    action = (
+      <button type="button" className={button} onClick={() => backend.cancelModelDownload(id)}>
+        Atura
+      </button>
+    );
+  } else if (status.installed) {
+    text = `Descarregat · ${bytes(status.bytes)}`;
+    action = (
+      <button type="button" className={cn(button, "text-destructive")} onClick={remove}>
+        Esborra…
+      </button>
+    );
+  } else if (!status.downloadable) {
+    text = `Encara no es pot descarregar des de l'app · ${bytes(status.bytes)}`;
+  } else {
+    text = status.downloaded ? `Descàrrega aturada · ${bytes(status.downloaded)} de ${bytes(status.bytes)}` : `No descarregat · ${bytes(status.bytes)}`;
+    action = (
+      <span className="flex shrink-0 gap-1.5">
+        {status.downloaded > 0 && (
+          <button type="button" className="h-6 rounded-md px-2 text-[13px] text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10" onClick={remove}>
+            Esborra
+          </button>
+        )}
+        <button type="button" className={button} onClick={() => downloadModel(id)}>
+          {status.downloaded ? "Continua" : "Descarrega"}
+        </button>
+      </span>
+    );
+  }
+  return (
+    <div className="flex items-center gap-4 bg-black/[0.015] py-2 pl-6 pr-3 dark:bg-white/[0.02]">
+      <div className="min-w-0 flex-1">
+        <div className="text-[12px]">{name}</div>
+        <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">{text}</div>
+        {downloading && (
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10" role="progressbar" aria-label={`Descàrrega de ${name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor((downloading.done / (downloading.total || 1)) * 100)}>
+            <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${(downloading.done / (downloading.total || 1)) * 100}%` }} />
+          </div>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+/** Edit the prompt behind each part of the cover and try it on the open meeting. */
+function PromptsEditor({
+  settings,
+  onChange,
+  meeting,
+  llmReady,
+  onLlmLoaded,
+}: {
+  settings: Settings;
+  onChange: Props["onChange"];
+  meeting: Meeting | null;
+  llmReady: boolean;
+  onLlmLoaded: () => void;
+}) {
+  const [openId, setOpenId] = useState<PromptId | null>(null);
+  return (
+    <section className="mb-5">
+      <h3 className="mb-1.5 px-1 text-[12px] font-semibold text-muted-foreground">Prompts de la portada</h3>
+      <div className="divide-y divide-border rounded-[10px] border border-border bg-background">
+        {PROMPTS.map((p) => {
+          const edited = !!settings.prompts[p.id]?.trim() && settings.prompts[p.id] !== p.text;
+          const expanded = openId === p.id;
+          return (
+            <div key={p.id}>
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => setOpenId(expanded ? null : p.id)}
+                className="flex min-h-10 w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+              >
+                <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", expanded && "rotate-90")} aria-hidden />
+                <span className="flex-1">{p.label}</span>
+                {edited && <span className="rounded bg-primary/10 px-1.5 py-px text-[11px] text-primary">Modificat</span>}
+              </button>
+              {expanded && <PromptEditor id={p.id} settings={settings} onChange={onChange} meeting={meeting} llmReady={llmReady} onLlmLoaded={onLlmLoaded} />}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
+        Les respostes sempre segueixen el mateix format (JSON), així que pots canviar el text sense trencar la portada. Els canvis s'apliquen a les properes portades.
+      </p>
+    </section>
+  );
+}
+
+function PromptEditor({
+  id,
+  settings,
+  onChange,
+  meeting,
+  llmReady,
+  onLlmLoaded,
+}: {
+  id: PromptId;
+  settings: Settings;
+  onChange: Props["onChange"];
+  meeting: Meeting | null;
+  llmReady: boolean;
+  onLlmLoaded: () => void;
+}) {
+  const def = PROMPTS.find((p) => p.id === id)!;
+  const value = settings.prompts[id] ?? def.text;
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<LlmProgress | null>(null);
+  const [result, setResult] = useState<{ answer: LlmResult; readSeconds: number | null; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const set = (text: string) => {
+    const { [id]: _old, ...rest } = settings.prompts;
+    onChange({ prompts: text === def.text ? rest : { ...rest, [id]: text } });
+  };
+
+  const test = async () => {
+    if (!meeting) return;
+    setBusy(true);
+    setResult(null);
+    setError(null);
+    setProgress(null);
+    const job = `prompt-${crypto.randomUUID()}`;
+    const unlisten = await backend.onLlmProgress((e) => e.job === job && setProgress(e));
+    const started = Date.now();
+    try {
+      onLlmLoaded();
+      // The general instructions are tried with the title (the quickest part).
+      const [answer] = await backend.runLlm({
+        job,
+        system: promptText("system", settings.prompts),
+        document: coverDocument(meeting),
+        tasks: llmTasks(settings.prompts, [id === "system" ? "title" : id]),
+        keepLoaded: true,
+      });
+      setResult({ answer, readSeconds: null, total: (Date.now() - started) / 1000 });
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      unlisten();
+      setBusy(false);
+    }
+  };
+
+  const pretty = (text: string) => {
+    try {
+      return JSON.stringify(JSON.parse(text), null, 2);
+    } catch {
+      return text;
+    }
+  };
+  const status = !progress
+    ? "Preparant…"
+    : progress.step === "loading"
+      ? "Carregant el model…"
+      : progress.step === "reading"
+        ? "Llegint la transcripció…"
+        : "Escrivint la resposta…";
+  const blocked = !llmReady ? "Primer descarrega el model de llenguatge." : !meeting ? "Obre una reunió acabada per provar-hi el prompt." : null;
+
+  return (
+    <div className="px-3 pb-3">
+      <textarea
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        aria-label={`Prompt: ${def.label}`}
+        rows={id === "system" ? 5 : 4}
+        className="block w-full resize-y rounded-md border border-input bg-background px-2 py-1.5 text-[12px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={test}
+          disabled={busy || !!blocked}
+          title={blocked ?? undefined}
+          className="h-6 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50"
+        >
+          {busy ? status : "Prova amb aquesta reunió"}
+        </button>
+        <button
+          type="button"
+          onClick={() => set(def.text)}
+          disabled={value === def.text}
+          className="h-6 rounded-md px-2 text-[12px] text-primary hover:bg-black/5 disabled:invisible dark:hover:bg-white/10"
+        >
+          Restableix
+        </button>
+        {blocked && <span className="text-[11px] text-muted-foreground">{blocked}</span>}
+        {!blocked && meeting && !busy && !result && <span className="truncate text-[11px] text-muted-foreground">«{meeting.title}»</span>}
+      </div>
+      {error && <p className="mt-2 text-[12px] text-destructive">{error}</p>}
+      {result && (
+        <div className="mt-2">
+          <div className="mb-1 text-[11px] tabular-nums text-muted-foreground">
+            {result.answer.error ? "Error" : `Resposta en ${result.answer.seconds.toFixed(1).replace(".", ",")} s · ${result.answer.tokens} tokens`} · total{" "}
+            {result.total.toFixed(0)} s amb la lectura
+          </div>
+          <pre className="selectable max-h-60 overflow-auto whitespace-pre-wrap rounded-md bg-muted px-2 py-1.5 text-[11px] leading-relaxed">
+            {result.answer.error ?? pretty(result.answer.text ?? "")}
+          </pre>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -55,3 +55,8 @@ strip = true
 # All zip 2.x releases are yanked on crates.io, but sherpa-onnx-sys (build dep) still requires zip ^2.
 [patch.crates-io]
 zip = { git = "https://github.com/zip-rs/zip2", tag = "v2.6.1" }
+
+# llama.cpp is built by cmake, which follows the package's opt-level: unoptimised it's far too
+# slow to try the cover in `tauri dev`.
+[profile.dev.package.llama-cpp-sys-2]
+opt-level = 3

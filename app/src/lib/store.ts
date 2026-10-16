@@ -4,7 +4,16 @@ import type { JSONContent } from "@tiptap/core";
 
 import * as backend from "./backend";
 import { notesFromDoc } from "./notes";
-import { SYSTEM_SPEAKER_BASE, type Assignment, type Channel, type Meeting, type MeetingSummary, type Utterance } from "./types";
+import {
+  SYSTEM_SPEAKER_BASE,
+  type Assignment,
+  type Channel,
+  type Cover,
+  type Meeting,
+  type MeetingSummary,
+  type PostStage,
+  type Utterance,
+} from "./types";
 
 // In the app, meetings live in SQLite (db.rs): the sidebar loads summaries, a meeting's content
 // is loaded when opened, and edits are saved as small changes. In a plain browser (UI
@@ -22,8 +31,18 @@ export type State = {
   partial: Record<Channel, string>;
   loaded: boolean;
   jump: Jump | null;
-  /** Final passes in progress, by meeting id. */
-  finalPass: Record<string, { stage: "speakers"; estimateSeconds: number; startedAt: number }>;
+  /** What runs after a recording (speakers, punctuation, cover), by meeting id. */
+  finalPass: Record<string, PostProcess>;
+};
+
+export type PostProcess = {
+  stage: PostStage;
+  /** Every stage this run goes through, in order; the ones before `stage` are done. */
+  steps: PostStage[];
+  estimateSeconds: number;
+  startedAt: number;
+  /** How long each finished stage took, in seconds. */
+  took: Partial<Record<PostStage, number>>;
 };
 
 export type Action =
@@ -44,9 +63,13 @@ export type Action =
   | { type: "edit"; id: string; utteranceId: string; text: string }
   | { type: "notes"; id: string; doc: JSONContent }
   | { type: "audio"; id: string; path: string | null }
-  | { type: "finalPassStarted"; id: string; stage: "speakers"; estimateSeconds: number }
+  | { type: "postStage"; id: string; stage: PostStage; steps: PostStage[]; estimateSeconds: number }
   | { type: "speakersVerified"; id: string; base: number; assignments: Assignment[] }
-  | { type: "finalPassDone"; id: string };
+  /** Texts sent to the punctuation model (`from`) and what came back; edited meanwhile = skipped. */
+  | { type: "punctuated"; id: string; changes: { utteranceId: string; from: string; to: string }[] }
+  | { type: "cover"; id: string; cover: Cover | null; title: string | null }
+  | { type: "coverTask"; id: string; index: number; done: boolean }
+  | { type: "postDone"; id: string };
 
 const summaryOf = (m: Meeting): MeetingSummary => ({
   id: m.id,
@@ -127,15 +150,34 @@ export function reducer(state: State, action: Action): State {
         ? updateMeeting({ ...state, partial: NO_PARTIAL }, rec.id, (m) => ({ ...m, status: "done" }))
         : state;
     }
-    case "finalPassStarted":
-      return updateMeeting(
-        { ...state, finalPass: { ...state.finalPass, [action.id]: { stage: action.stage, estimateSeconds: action.estimateSeconds, startedAt: Date.now() } } },
-        action.id,
-        (m) => ({ ...m, status: "processing" }),
-      );
+    case "postStage": {
+      const previous = state.finalPass[action.id];
+      const took = { ...previous?.took };
+      if (previous && previous.stage !== action.stage) took[previous.stage] = (Date.now() - previous.startedAt) / 1000;
+      const run: PostProcess = { stage: action.stage, steps: action.steps, estimateSeconds: action.estimateSeconds, startedAt: Date.now(), took };
+      return updateMeeting({ ...state, finalPass: { ...state.finalPass, [action.id]: run } }, action.id, (m) => ({ ...m, status: "processing" }));
+    }
     case "speakersVerified":
       return updateMeeting(state, action.id, (m) => relabel(m, action.base, action.assignments));
-    case "finalPassDone": {
+    case "punctuated": {
+      const byId = new Map(action.changes.map((c) => [c.utteranceId, c]));
+      return updateMeeting(state, action.id, (m) => ({
+        ...m,
+        utterances: m.utterances.map((u) => {
+          const c = byId.get(u.id);
+          return c && !u.edited && u.text === c.from && c.to !== u.text ? { ...u, text: c.to } : u;
+        }),
+      }));
+    }
+    case "cover":
+      return updateMeeting(state, action.id, (m) => ({ ...m, cover: action.cover, title: action.title ?? m.title }));
+    case "coverTask":
+      return updateMeeting(state, action.id, (m) =>
+        m.cover?.tasks
+          ? { ...m, cover: { ...m.cover, tasks: m.cover.tasks.map((t, i) => (i === action.index ? { ...t, done: action.done } : t)) } }
+          : m,
+      );
+    case "postDone": {
       const { [action.id]: _done, ...finalPass } = state.finalPass;
       return updateMeeting({ ...state, finalPass }, action.id, (m) =>
         m.status === "processing" ? { ...m, status: "done" } : m,
@@ -247,6 +289,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.speakerNames !== next.speakerNames) meta.speakerNames = next.speakerNames;
   if (saved.sources !== next.sources) meta.sources = next.sources;
   if (saved.audioPath !== next.audioPath) meta.audioPath = next.audioPath ?? null;
+  if (saved.cover !== next.cover) meta.cover = next.cover ?? null;
   if (Object.keys(meta).length) changes.meta = meta;
   if (saved.utterances !== next.utterances) {
     const before = new Map(saved.utterances.map((u) => [u.id, u]));

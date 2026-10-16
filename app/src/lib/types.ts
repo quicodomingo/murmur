@@ -40,6 +40,21 @@ export type Meeting = {
   speakerRemap?: Record<number, number>;
   /** Which inputs were recorded; decides default speaker names ("Tu" for the mic in a call). */
   sources?: { mic: boolean; system: boolean };
+  /** Written by the local language model after the recording (lib/cover.ts). */
+  cover?: Cover | null;
+};
+
+/** The meeting's cover. Times are seconds into the meeting (null: the model gave none or a bad one). */
+export type Cover = {
+  generatedAt: number;
+  excerpt?: string;
+  tone?: { label: string; reason: string };
+  summary?: string[];
+  decisions?: { text: string; t: number | null }[];
+  tasks?: { text: string; owner: string | null; when: string | null; t: number | null; done?: boolean }[];
+  parts?: { t: number; title: string; points: string[] }[];
+  /** Parts that could not be generated, by prompt id. */
+  errors?: Record<string, string>;
 };
 
 /** What the sidebar shows; the full meeting is loaded when opened. */
@@ -66,8 +81,20 @@ export type EngineEvent =
   | { type: "partial"; channel: Channel; text: string }
   | { type: "final"; id: number; channel: Channel; start: number; end: number; speaker: number; text: string };
 
+/** What runs after a recording, in this order. */
+export type PostStage = "speakers" | "punctuation" | "cover";
+
 /** Final pass events (lib.rs final_pass). */
 export type FinalPassStarted = { meetingId: string; stage: "speakers"; estimateSeconds: number };
 export type Assignment = { start: number; speaker: number };
 export type FinalPassSpeakers = { meetingId: string; base: number; assignments: Assignment[] };
 export type FinalPassDone = { meetingId: string; error: string | null };
+
+/** Optional models (models.rs). */
+export type ModelId = "punctuation" | "llm";
+export type ModelStatus = { id: ModelId; installed: boolean; bytes: number; downloaded: number; downloadable: boolean };
+
+/** What the local language model is doing (lib.rs run_llm). */
+export type LlmProgress = { job: string; step: string; done: number; total: number; readSeconds: number | null };
+export type LlmTask = { id: string; prompt: string; maxTokens: number; schema: string | null };
+export type LlmResult = { id: string; text: string | null; error: string | null; seconds: number; tokens: number };

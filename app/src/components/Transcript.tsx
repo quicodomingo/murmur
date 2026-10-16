@@ -6,7 +6,7 @@ import { Flag, SpeakerFlag } from "@/components/SpeakerFlag";
 import { clock, longDate, speakerIds, speakerName } from "@/lib/format";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
 import type { Jump, State } from "@/lib/store";
-import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type Utterance } from "@/lib/types";
+import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type PostStage, type Utterance } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -136,17 +136,35 @@ export function Transcript(props: Props) {
   );
 }
 
-function TitleInput({ title, onChange, compact }: { title: string; onChange: (t: string) => void; compact?: boolean }) {
+/** The meeting's title, editable in place. Long titles wrap (a textarea that grows, one paragraph). */
+export function TitleInput({ title, onChange, compact }: { title: string; onChange: (t: string) => void; compact?: boolean }) {
   const [value, setValue] = useState(title);
+  const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => setValue(title), [title]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value, compact]);
   return (
-    <input
+    <textarea
+      ref={ref}
+      rows={1}
       value={value}
       aria-label="Títol de la reunió"
-      onChange={(e) => setValue(e.target.value)}
+      onChange={(e) => setValue(e.target.value.replace(/\n/g, " "))}
       onBlur={() => onChange(value.trim() || title)}
-      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={cn("w-full bg-transparent font-bold tracking-[-0.01em] outline-none", compact ? "text-[17px]" : "text-[28px]")}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+      }}
+      className={cn(
+        "block w-full resize-none overflow-hidden bg-transparent font-bold leading-tight tracking-[-0.01em] outline-none",
+        compact ? "text-[17px]" : "text-[28px]",
+      )}
     />
   );
 }
@@ -261,11 +279,17 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
   );
 }
 
+const BANNER: Record<PostStage, { title: string; hint: string }> = {
+  speakers: { title: "Verificant parlants…", hint: "Es torna a analitzar tota la reunió per separar millor les veus. Pots continuar llegint i editant." },
+  punctuation: { title: "Posant puntuació…", hint: "Punts, comes i majúscules. Les frases que hagis corregit no es toquen." },
+  cover: { title: "Preparant la portada…", hint: "El model de llenguatge local llegeix la transcripció. Pots continuar llegint i editant." },
+};
+
 /**
- * Shown while the final pass re-checks speakers. The diarizer reports no progress, so the bar
- * follows the measured speed and waits at 95% until the pass really ends.
+ * Shown while the recording is processed (speakers, punctuation, cover). The stages report no
+ * progress, so the bar follows the measured speed and waits at 95% until the stage really ends.
  */
-function FinalPassBanner({ estimateSeconds, startedAt }: { estimateSeconds: number; startedAt: number }) {
+function FinalPassBanner({ stage, estimateSeconds, startedAt }: { stage: PostStage; estimateSeconds: number; startedAt: number }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -279,12 +303,10 @@ function FinalPassBanner({ estimateSeconds, startedAt }: { estimateSeconds: numb
     <div role="status" className="mt-5 rounded-lg bg-muted px-3.5 py-3">
       <div className="flex items-center gap-2 text-[13px]">
         <span className="size-3.5 animate-spin rounded-full border-2 border-text-secondary/30 border-t-text-secondary" aria-hidden />
-        <span className="font-medium">Verificant parlants…</span>
+        <span className="font-medium">{BANNER[stage].title}</span>
         <span className="text-muted-foreground">{remaining}</span>
       </div>
-      <p className="mt-1 text-[12px] text-muted-foreground">
-        Es torna a analitzar tota la reunió per separar millor les veus. Pots continuar llegint i editant.
-      </p>
+      <p className="mt-1 text-[12px] text-muted-foreground">{BANNER[stage].hint}</p>
       <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10">
         <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
       </div>

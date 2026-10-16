@@ -4,6 +4,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { ChevronDown, Copy, FileDown, FileText, FolderOpen, Mic, PanelLeft, PanelRight, Share, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Cover } from "@/components/Cover";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
 import { SettingsDialog } from "@/components/SettingsDialog";
@@ -16,6 +17,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import * as backend from "@/lib/backend";
 import { clock, duration, toMarkdown } from "@/lib/format";
 import { exportMeeting, type ExportFormat } from "@/lib/export";
+import { useModels } from "@/lib/models";
+import { usePostProcess } from "@/lib/postprocess";
 import { useSettings } from "@/lib/settings";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
@@ -107,6 +110,10 @@ export default function App() {
   });
   const showNotes = notes.visible;
   const [hoveredNote, setHoveredNote] = useState<string | null>(null);
+  // Cover or transcript in the main area (the cover only exists after a recording).
+  const [view, setView] = useStoredState("transcriptor.view.v1", { cover: true });
+  const models = useModels();
+  const post = usePostProcess(state, dispatch, settings);
   const [level, setLevel] = useState(0);
   const [busy, setBusy] = useState(false);
   const startedAt = useRef(0);
@@ -138,18 +145,18 @@ export default function App() {
       onLevel: setLevel,
       onDone: () => dispatch({ type: "stopped" }),
       onError: (message) => toast.error(message),
-      onFinalPass: (e) => dispatch({ type: "finalPassStarted", id: e.meetingId, stage: e.stage, estimateSeconds: e.estimateSeconds }),
+      onFinalPass: (e) => post.speakersStarted(e.meetingId, e.estimateSeconds),
       onFinalPassSpeakers: (e) => {
         dispatch({ type: "speakersVerified", id: e.meetingId, base: e.base, assignments: e.assignments });
         toast("Parlants verificats");
       },
       onFinalPassDone: (e) => {
-        dispatch({ type: "finalPassDone", id: e.meetingId });
         if (e.error) toast.error(`No s'han pogut verificar els parlants: ${e.error}`);
+        post.speakersDone(e.meetingId);
       },
     });
     return () => void unlisten.then((u) => u());
-  }, [dispatch]);
+  }, [dispatch, post.speakersStarted, post.speakersDone]);
 
   // "Configuració…" in the app menu.
   useEffect(() => {
@@ -183,6 +190,7 @@ export default function App() {
     setBusy(true);
     const m = newMeeting({ mic: settings.mic, system: settings.system });
     dispatch({ type: "new", meeting: m });
+    post.planRecording(m.id, settings.verifySpeakers);
     startedAt.current = Date.now();
     try {
       const path = await backend.startRecording({
@@ -203,7 +211,7 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  }, [dispatch, settings]);
+  }, [dispatch, settings, post.planRecording]);
 
   const stop = useCallback(async () => {
     setBusy(true);
@@ -245,6 +253,36 @@ export default function App() {
 
   // Settings › General › Panell principal: the other panel goes on the right.
   const notesPrimary = settings.primaryPanel === "notes";
+
+  const run = meeting ? (state.finalPass[meeting.id] ?? null) : null;
+  const coverAvailable =
+    !!meeting && meeting.status !== "recording" && (!!meeting.cover || !!run?.steps.includes("cover") || settings.summarize);
+  const showCover = coverAvailable && view.cover;
+  const coverBlocked = !models.status.llm?.installed
+    ? "Activa la portada a Configuració › Intel·ligència i descarrega el model."
+    : recording
+      ? "Es podrà generar quan acabi la gravació."
+      : meeting?.status === "processing"
+        ? "Espera que acabi el processament."
+        : null;
+  const jumpTo = (t: number) => {
+    if (!meeting) return;
+    setView({ cover: false });
+    dispatch({ type: "jump", meetingId: meeting.id, t });
+  };
+  const renderCover = () =>
+    meeting && (
+      <Cover
+        meeting={meeting}
+        run={run}
+        blocked={coverBlocked}
+        onGenerate={() => post.generateCover(meeting.id)}
+        onJump={jumpTo}
+        onShowTranscript={() => setView({ cover: false })}
+        onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
+        onToggleTask={(index, done) => dispatch({ type: "coverTask", id: meeting.id, index, done })}
+      />
+    );
   const renderTranscript = (compact: boolean) =>
     meeting && (
       <Transcript
@@ -323,6 +361,28 @@ export default function App() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            {coverAvailable && (
+              <div role="radiogroup" aria-label="Vista" className="ml-1 flex shrink-0 rounded-[7px] bg-black/[0.06] p-0.5 dark:bg-white/10">
+                {[
+                  { cover: true, label: "Portada" },
+                  { cover: false, label: "Transcripció" },
+                ].map((o) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={view.cover === o.cover}
+                    onClick={() => setView({ cover: o.cover })}
+                    className={cn(
+                      "h-[22px] rounded-[5px] px-3 text-[12px]",
+                      view.cover === o.cover ? "bg-background font-medium shadow-[0_1px_2px_rgb(0_0_0/0.15)]" : "text-muted-foreground",
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div data-tauri-drag-region className="flex-1" />
 
             {recording ? (
@@ -386,6 +446,18 @@ export default function App() {
           <div className="flex min-h-0 flex-1">
             {!meeting ? (
               <main className="min-w-0 flex-1">{state.loaded && <Welcome onStart={start} busy={busy} />}</main>
+            ) : showCover ? (
+              <>
+                <main className="min-w-0 flex-1">{renderCover()}</main>
+                {showNotes &&
+                  (notesPrimary ? (
+                    <SidePanel width={notes.width} onResize={(width) => setNotes((n) => ({ ...n, width }))}>
+                      {renderTranscript(true)}
+                    </SidePanel>
+                  ) : (
+                    renderNotes("side")
+                  ))}
+              </>
             ) : notesPrimary ? (
               <>
                 {renderNotes("full")}
@@ -404,7 +476,14 @@ export default function App() {
           </div>
         </div>
       </div>
-      <SettingsDialog open={showSettings} onOpenChange={setShowSettings} settings={settings} onChange={updateSettings} recording={!!recording} />
+      <SettingsDialog
+        open={showSettings}
+        onOpenChange={setShowSettings}
+        settings={settings}
+        onChange={updateSettings}
+        recording={!!recording}
+        meeting={meeting && meeting.status === "done" && meeting.utterances.length ? meeting : null}
+      />
       <Toaster position="bottom-center" />
     </TooltipProvider>
   );
