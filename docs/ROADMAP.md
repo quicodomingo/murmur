@@ -65,12 +65,13 @@ Entre reunions (bloc 5):
 
 ## 3. Instal·lable per a altres persones
 
-- [ ] Pantalles de primera obertura:
-  - [ ] Benvinguda (tot es processa en local).
-  - [ ] **Permisos**: micròfon i «Gravació de pantalla i àudio del sistema», amb l'estat de cada un i un botó que obre la secció de Configuració del Sistema.
-  - [ ] Descàrrega de models amb progrés, mida, comprovació d'espai, represa i verificació (model de transcripció obligatori ~500 MB o 142 MB en int8; LLM opcional: «ara», «més tard» o «faré servir la meva clau»).
-  - [ ] Calendaris (opcional).
-- [ ] Models a la carpeta de dades de l'app (ara es llegeixen del repositori en dev).
+- [x] Pantalles de primera obertura (`Onboarding.tsx`, disseny a `docs/design`): benvinguda, quatre passos amb il·lustracions reals, i descàrrega dels models amb progrés, represa i «Continua en segon pla». Surten el primer cop i sempre que falti el model de transcripció.
+- [x] **Permisos**: Murmur els demana com les altres apps (diàleg del micròfon, avís de macOS per a l'àudio del sistema) i Configuració › Àudio › Permisos en mostra l'estat.
+- [x] Models a la carpeta de dades de l'app (`<app data>/models`) quan no hi ha la carpeta `models/` del projecte.
+- [ ] **Publicar els models convertits** (Conformer per a sherpa-onnx, ~500 MB, CC BY 4.0 d'AINA; puntuació de Softcatalà, llicència per aclarir). Fins llavors, en un Mac nou el model de transcripció no es pot descarregar.
+- [ ] Decidir si es baixa el Conformer en int8 (228 MB en total en lloc de 585 MB): mesurar-ne la qualitat amb la referència manual.
+- [ ] Comprovació d'espai lliure abans de descarregar, i verificació (hash) dels fitxers.
+- [ ] Calendaris a la primera obertura (opcional).
 - [ ] Empaquetar, signar i notaritzar (compte d'Apple Developer, 99 $/any). Els permisos passen a ser de l'app.
 - [ ] Actualitzacions automàtiques (plugin updater de Tauri).
 

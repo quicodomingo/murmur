@@ -91,8 +91,8 @@ export type FinalPassSpeakers = { meetingId: string; base: number; assignments: 
 export type FinalPassDone = { meetingId: string; error: string | null };
 
 /** Optional models (models.rs). */
-export type ModelId = "punctuation" | "llm";
-export type ModelStatus = { id: ModelId; installed: boolean; bytes: number; downloaded: number; downloadable: boolean };
+export type ModelId = "transcription" | "punctuation" | "llm";
+export type ModelStatus = { id: ModelId; installed: boolean; bytes: number; downloaded: number; downloadable: boolean; required: boolean };
 
 /** What the local language model is doing (lib.rs run_llm). */
 export type LlmProgress = { job: string; step: string; done: number; total: number; readSeconds: number | null };

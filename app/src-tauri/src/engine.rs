@@ -31,12 +31,24 @@ pub fn embedding_model() -> String {
     std::env::var("TRANSCRIPTOR_EMBEDDING").unwrap_or_else(|_| "nemo_en_titanet_small.onnx".into())
 }
 
-/// Where the model files live. Dev builds read the repo's `models/` folder.
+static APP_MODELS: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+/// Set at startup: `<app data>/models`, where downloaded models go.
+pub fn set_app_models_dir(dir: PathBuf) {
+    let _ = APP_MODELS.set(dir);
+}
+
+/// Where the model files live: `TRANSCRIPTOR_MODELS`, else the repo's `models/` folder when the
+/// app was built on this Mac (development), else the app's data folder.
 pub fn models_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("TRANSCRIPTOR_MODELS") {
         return PathBuf::from(dir);
     }
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../models")
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../models");
+    if repo.is_dir() {
+        return repo;
+    }
+    APP_MODELS.get().cloned().unwrap_or(repo)
 }
 
 fn path_str(p: PathBuf) -> Result<String> {

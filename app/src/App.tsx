@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AboutDialog } from "@/components/AboutDialog";
 import { LogoIcon } from "@/components/Logo";
+import { Onboarding } from "@/components/Onboarding";
 import { Cover } from "@/components/Cover";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
@@ -26,6 +27,8 @@ import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
 import type { Meeting, SearchHit } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const ONBOARDED_KEY = "murmur.onboarded.v1";
 
 /** useState that survives restarts (per-viewer UI preferences only). */
 function useStoredState<T>(key: string, initial: T) {
@@ -105,6 +108,8 @@ export default function App() {
   const [settings, updateSettings] = useSettings();
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  // First-run screens: once, and whenever the transcription model is missing.
+  const [onboarding, setOnboarding] = useState<{ open: boolean; atModels: boolean }>({ open: false, atModels: false });
   const [showSidebar, setShowSidebar] = useState(true);
   const [notes, setNotes] = useStoredState("transcriptor.notesLayout.v1", {
     visible: true,
@@ -116,6 +121,28 @@ export default function App() {
   // Cover or transcript in the main area (the cover only exists after a recording).
   const [view, setView] = useStoredState("transcriptor.view.v1", { cover: true });
   const models = useModels();
+  // Until the status is read, assume it's there (no flash of "Falta el model").
+  const transcriptionReady = !backend.isTauri() || !models.loaded || !!models.status.transcription?.installed;
+  useEffect(() => {
+    if (!models.loaded || !backend.isTauri()) return;
+    let onboarded = false;
+    try {
+      onboarded = localStorage.getItem(ONBOARDED_KEY) === "1";
+    } catch {
+      /* show it */
+    }
+    if (!onboarded || !models.status.transcription?.installed) setOnboarding({ open: true, atModels: onboarded });
+    // Only on start-up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [models.loaded]);
+  const closeOnboarding = () => {
+    try {
+      localStorage.setItem(ONBOARDED_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setOnboarding({ open: false, atModels: false });
+  };
   const post = usePostProcess(state, dispatch, settings);
   const [level, setLevel] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -135,7 +162,6 @@ export default function App() {
 
   useEffect(() => {
     if (!backend.isTauri()) return;
-    backend.prepare().catch((e) => toast.error(String(e)));
     const unlisten = backend.subscribe({
       onEvent: (e) => {
         if (e.type === "partial") dispatch({ type: "partial", channel: e.channel, text: e.text });
@@ -177,6 +203,11 @@ export default function App() {
     if (backend.isTauri()) backend.setMeetingDetection(settings.detectMeetings).catch(() => {});
   }, [settings.detectMeetings]);
 
+  // Load the live models ahead of time (once they're on disk) so recording starts at once.
+  useEffect(() => {
+    if (backend.isTauri() && models.status.transcription?.installed) backend.prepare().catch((e) => toast.error(String(e)));
+  }, [models.status.transcription?.installed]);
+
   // ⌘N: new meeting (the sidebar button shows the shortcut).
   const startRef = useRef<() => void>(() => {});
   useEffect(() => {
@@ -203,6 +234,10 @@ export default function App() {
   const start = useCallback(async () => {
     if (!backend.isTauri()) {
       toast.error("Obre Murmur com a app (npm run tauri dev) per gravar.");
+      return;
+    }
+    if (!transcriptionReady) {
+      setOnboarding({ open: true, atModels: true });
       return;
     }
     setBusy(true);
@@ -235,7 +270,7 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  }, [dispatch, settings, post.planRecording]);
+  }, [dispatch, settings, post.planRecording, transcriptionReady]);
   startRef.current = () => {
     if (!recording && !busy) start();
   };
@@ -485,7 +520,17 @@ export default function App() {
 
           <div className="flex min-h-0 flex-1">
             {!meeting ? (
-              <main className="min-w-0 flex-1">{state.loaded && <Welcome onStart={start} busy={busy} />}</main>
+              <main className="min-w-0 flex-1">
+                {state.loaded && (
+                  <Welcome
+                    onStart={start}
+                    busy={busy}
+                    missingModel={!transcriptionReady}
+                    downloading={models.downloading.transcription}
+                    onDownload={() => setOnboarding({ open: true, atModels: true })}
+                  />
+                )}
+              </main>
             ) : showCover ? (
               <>
                 <main className="min-w-0 flex-1">{renderCover()}</main>
@@ -525,12 +570,55 @@ export default function App() {
         meeting={meeting && meeting.status === "done" && meeting.utterances.length ? meeting : null}
       />
       <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
+      {onboarding.open && <Onboarding open onClose={closeOnboarding} onChange={updateSettings} startAtModels={onboarding.atModels} />}
       <Toaster position="bottom-center" />
     </TooltipProvider>
   );
 }
 
-function Welcome({ onStart, busy }: { onStart: () => void; busy: boolean }) {
+function Welcome({
+  onStart,
+  busy,
+  missingModel,
+  downloading,
+  onDownload,
+}: {
+  onStart: () => void;
+  busy: boolean;
+  missingModel: boolean;
+  downloading?: { done: number; total: number };
+  onDownload: () => void;
+}) {
+  if (missingModel) {
+    const share = downloading ? downloading.done / (downloading.total || 1) : 0;
+    return (
+      <div className="grid h-full place-items-center">
+        <div className="flex w-80 flex-col items-center text-center">
+          <LogoIcon size={56} />
+          <h1 className="mt-4 text-[22px] font-bold">{downloading ? "Descarregant el model" : "Falta el model de transcripció"}</h1>
+          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            Murmur transcriu amb un model que funciona en aquest Mac. Només cal descarregar-lo un cop.
+          </p>
+          {downloading ? (
+            <div className="mt-5 flex w-full items-center gap-3">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-[3px] bg-mm-separator">
+                <div className="h-full rounded-[3px] bg-mm-toggle-on transition-[width] duration-300" style={{ width: `${share * 100}%` }} />
+              </div>
+              <span className="text-[12px] tabular-nums text-muted-foreground">{Math.floor(share * 100)} %</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onDownload}
+              className="mt-5 flex h-8 items-center gap-2 rounded-lg bg-mm-new-meeting px-3 text-[13px] font-semibold text-mm-on-new-meeting hover:opacity-90"
+            >
+              Descarrega el model
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="grid h-full place-items-center">
       <div className="flex max-w-sm flex-col items-center text-center">

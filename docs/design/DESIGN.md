@@ -15,7 +15,7 @@ Murmur és una app de macOS per transcriure reunions en directe, **en local i am
 | `icons/menubar/` | Icona de la barra de menús, 18 pt @1x i @2x, tres estats | `NSStatusItem` |
 | `icons/logo/` | Marca monocroma i icona petita en SVG | Barra lateral, About |
 
-Pantalles: `1-reunio-en-directe`, `2-portada`, `3-configuracio` (les cinc pestanyes), `4-quant-a`, `5-barra-de-menus-i-avisos`. Temes: `negre-i-acid` (per defecte), `monocrom`, `formigo-i-vermell`.
+Pantalles: `1-reunio-en-directe`, `2-portada`, `3-configuracio` (les cinc pestanyes), `4-quant-a`, `5-barra-de-menus-i-avisos`, `6-onboarding`. Temes: `negre-i-acid` (per defecte), `monocrom`, `formigo-i-vermell`.
 
 ## Marca
 
@@ -101,6 +101,21 @@ Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16,
 - **Reunió detectada:** punt vermell amb halo, "*App* fa servir el micròfon".
 - Un sol botó, sempre **Comença a gravar**, amb la icona petita, `accent` / `onAccent`. Sense desplegable.
 - A sota, una barra de compte enrere de 3 pt (`toastProgress` sobre `toastBorder`); quan s'acaba, l'avís desapareix sol.
+
+### Onboarding
+Finestra de 720×540 que surt el primer cop que s'obre l'app. Peu fix de 68 pt amb els punts de progrés a l'esquerra (el pas actual és una píndola de 18 pt en `textPrimary`; la resta, punts de 6 pt en `separator`) i els botons a la dreta: secundari de text en `textSecondary`, principal en `accent` / `onAccent`.
+
+1. **Benvinguda:** icona de 112 pt, logotip, "Transcriu les teves reunions en directe, amb el català al centre." i "Privat, perquè és local." Botó: Comença.
+2. **Transcripció en directe:** "Veus el text mentre parleu". Il·lustració: píndola de gravació i una intervenció que s'està escrivint.
+3. **Parlants i notes:** "Qui parla i què hi apuntes". Il·lustració: gràfic de qui ha parlat i notes amb el minut.
+4. **Portada:** "La reunió, resumida". Il·lustració: títol, decisions i tasques.
+5. **Avisos:** "Cap reunió sense gravar". Il·lustració: barra de menús i avís "Reunió detectada".
+6. **Models** (tres estats de la mateixa pantalla):
+   - *Triar:* "Descarrega els models". Dues files: **Model de transcripció** (Necessari, sempre inclòs, no es pot desmarcar) i **Eines de resum i portada** (Opcional, interruptor activat per defecte). Cada fila mostra la mida de descàrrega. A sota, la nota de privadesa amb cadenat. Botó: Descarrega i comença.
+   - *Descarregant:* una barra de progrés per model (6 pt, `toggleOn` sobre `separator`), percentatge a la dreta. Primer el model de transcripció; les eines esperen ("En espera"). Si l'interruptor de les eines és apagat, només hi ha una barra. Botó principal desactivat ("Descarregant…") i secundari "Continua en segon pla": la descàrrega segueix si es tanca la finestra.
+   - *A punt:* barres plenes, "Fet". Botó: Tanca.
+
+Les il·lustracions dels passos 2 a 5 són fragments reals de la interfície amb els tokens del tema actiu, dins una caixa de 236 pt d'alçada amb fons `fillSubtle`. Les mides dels models estan pendents (a les maquetes surten com a [mida]).
 
 ## Accessibilitat i moviment
 - Contrast mínim 4,5:1 per al text (3:1 a partir de 24 pt). Per això l'àcid mai és text sobre clar.

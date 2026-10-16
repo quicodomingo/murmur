@@ -5,9 +5,9 @@
   --mm-settings-background: #F6F6F6;
   --mm-text-primary: #111111;
   --mm-text-secondary: #6B6B6B;
-  --mm-text-tertiary: #9A9A9A;
-  --mm-separator: #E4E4E4;
-  --mm-fill-subtle: #F6F6F6;
+  --mm-text-tertiary: #8F8F8F;
+  --mm-separator: #E8E8E8;
+  --mm-fill-subtle: #F2F2F2;
   --mm-search-field: #0000000D;
   --mm-field: #FFFFFF;
   --mm-sidebar-selection: #E6E6E6;
@@ -62,8 +62,8 @@
   --mm-text-primary: #F2F2F2;
   --mm-text-secondary: #9A9A9A;
   --mm-text-tertiary: #6E6E6E;
-  --mm-separator: #262626;
-  --mm-fill-subtle: #141414;
+  --mm-separator: #242424;
+  --mm-fill-subtle: #1C1C1C;
   --mm-search-field: #FFFFFF12;
   --mm-field: #1A1A1A;
   --mm-sidebar-selection: #D4FF3A1A;

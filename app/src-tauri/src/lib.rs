@@ -390,6 +390,9 @@ async fn cancel_model_download(state: State<'_, AppState>, id: String) -> Result
 #[tauri::command]
 async fn delete_model(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let model = models::find(&id).map_err(|e| e.to_string())?;
+    if model.required {
+        return Err("Murmur necessita aquest model per transcriure".into());
+    }
     if state.downloads.lock().unwrap().contains_key(&id) {
         return Err("Primer atura la descàrrega".into());
     }
@@ -701,6 +704,9 @@ pub fn run() {
                 }
                 _ => {}
             });
+            if let Ok(data) = app.path().app_data_dir() {
+                engine::set_app_models_dir(data.join("models"));
+            }
             shell::setup(app)?;
             Ok(())
         })
