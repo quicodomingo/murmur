@@ -9,7 +9,7 @@ Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 ## 1. Fer-la servir cada dia *(només falta la prova real)*
 
 - [ ] Provar en reunions reals amb altaveus (cal el permís «Gravació de pantalla i àudio del sistema»). Validar l'eco residual.
-- [x] Desar les reunions des de Rust (fitxers a la carpeta de dades de l'app), no a `localStorage`.
+- [x] Desar les reunions des de Rust: **SQLite** amb cerca de text completa (FTS5) a totes les reunions.
 - [x] Exportar a fitxer: Markdown i .docx.
 - [x] Selector de micròfon a la configuració.
 - [x] Primer commit al repositori.
@@ -47,6 +47,8 @@ En aturar la gravació, reprocessar l'àudio desat:
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
 
 ## 5. Qualitat i rendiment
+
+- [ ] Cerca semàntica entre reunions (`sqlite-vec` + embeddings) per a «pregunta a les teves reunions».
 
 - [ ] Transcripció de referència a mà (5–10 min de `data/reunio.m4a`) per calcular el WER i decidir models amb números.
 - [ ] Reduir CPU en directe (ara ~37–47% d'un fil a l'M4, sobretot pels textos provisionals). Provar en un M1 de 8 GB.

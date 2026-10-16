@@ -1,5 +1,6 @@
 pub mod aec;
 pub mod audio;
+pub mod db;
 pub mod engine;
 pub mod pipeline;
 pub mod recorder;
@@ -21,6 +22,7 @@ use pipeline::Pipeline;
 struct AppState {
     models: Mutex<Option<Arc<Models>>>,
     recording: Mutex<Option<Recording>>,
+    db: Mutex<Option<db::Db>>,
 }
 
 struct Recording {
@@ -194,25 +196,58 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
-fn meetings_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
-    Ok(storage::meetings_dir(
-        &app.path().app_data_dir().map_err(|e| e.to_string())?,
-    ))
+/// Opens the database on first use, importing the JSON files of earlier versions.
+fn with_db<T>(
+    app: &AppHandle,
+    f: impl FnOnce(&mut db::Db) -> anyhow::Result<T>,
+) -> Result<T, String> {
+    let state = app.state::<AppState>();
+    let mut slot = state.db.lock().unwrap();
+    if slot.is_none() {
+        let data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+        let mut database =
+            db::Db::open(&data.join("transcriptor.sqlite3")).map_err(|e| format!("{e:#}"))?;
+        if database.is_empty().map_err(|e| format!("{e:#}"))? {
+            match db::migrate_json(&mut database, &storage::meetings_dir(&data)) {
+                Ok(0) => {}
+                Ok(n) => log::info!("imported {n} meetings from JSON files"),
+                Err(e) => log::error!("JSON import failed: {e:#}"),
+            }
+        }
+        *slot = Some(database);
+    }
+    f(slot.as_mut().unwrap()).map_err(|e| format!("{e:#}"))
 }
 
 #[tauri::command]
-async fn list_meetings(app: AppHandle) -> Result<Vec<serde_json::Value>, String> {
-    storage::list(&meetings_dir(&app)?).map_err(|e| format!("{e:#}"))
+async fn list_meetings(app: AppHandle) -> Result<Vec<db::Summary>, String> {
+    with_db(&app, |db| db.list())
 }
 
 #[tauri::command]
-async fn save_meeting(app: AppHandle, meeting: serde_json::Value) -> Result<(), String> {
-    storage::save(&meetings_dir(&app)?, &meeting).map_err(|e| format!("{e:#}"))
+async fn get_meeting(app: AppHandle, id: String) -> Result<Option<serde_json::Value>, String> {
+    with_db(&app, |db| db.get(&id))
+}
+
+/// Creates or fully replaces a meeting (new recordings, migration from the webview's storage).
+#[tauri::command]
+async fn put_meeting(app: AppHandle, meeting: serde_json::Value) -> Result<(), String> {
+    with_db(&app, |db| db.put(&meeting))
+}
+
+#[tauri::command]
+async fn apply_changes(app: AppHandle, id: String, changes: db::Changes) -> Result<(), String> {
+    with_db(&app, |db| db.apply(&id, changes))
+}
+
+#[tauri::command]
+async fn search_meetings(app: AppHandle, query: String) -> Result<Vec<db::Hit>, String> {
+    with_db(&app, |db| db.search(&query, 60))
 }
 
 #[tauri::command]
 async fn delete_meeting(app: AppHandle, id: String) -> Result<(), String> {
-    storage::delete(&meetings_dir(&app)?, &id).map_err(|e| format!("{e:#}"))?;
+    with_db(&app, |db| db.delete(&id))?;
     // Its recording too, if one was saved (same id → same file name, see start_recording).
     let audio = app
         .path()
@@ -248,7 +283,10 @@ pub fn run() {
             start_recording,
             stop_recording,
             list_meetings,
-            save_meeting,
+            get_meeting,
+            put_meeting,
+            apply_changes,
+            search_meetings,
             delete_meeting,
             list_microphones,
             write_export

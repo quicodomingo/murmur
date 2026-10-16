@@ -123,7 +123,10 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - Panell de notes: amaga/mostra des de la barra d'eines (únic botó), **redimensionable** arrossegant la vora esquerra (doble clic restableix; fletxes del teclat), i **mode complet** que amaga la transcripció. Es recorda a `localStorage` (`transcriptor.notesLayout.v1`).
   - En producció es bloqueja el menú contextual del web fora del text editable; l'inspector només existeix en builds `dev`.
   - Edició inline amb `<textarea>` que creix, **no** `contentEditable` (amb React duplicava text).
-  - **Persistència**: una reunió = un JSON a `<app_data_dir>/meetings/<id>.json` (`storage.rs`, escriptura atòmica). La UI desa amb retard d'1,5 s (immediat en canvis d'estat). Les reunions antigues de `localStorage` es migren soles; en un navegador sense Tauri es fa servir `localStorage`.
+  - **Persistència: SQLite** (`db.rs`, `rusqlite` amb SQLite inclòs) a `<app_data_dir>/transcriptor.sqlite3`. Taules `meetings` i `utterances` (una fila per frase) + índex **FTS5** (`search`, `unicode61 remove_diacritics 2`: ignora accents) sobre títols, frases (mantingut amb triggers) i blocs de notes (els envia la UI amb `notesFromDoc`).
+    - La barra lateral carrega resums (`list_meetings`); el contingut es carrega en obrir la reunió (`get_meeting`). Les edicions es desen com a canvis petits (`apply_changes`: metadades, frases canviades, notes) amb retard d'1,5 s; els canvis d'estat, a l'instant.
+    - Cerca: `search_meetings` → cada paraula com a prefix, totes obligatòries, consulta neutralitzada; fragments amb `\u0002…\u0003` (mai HTML). Clicar un resultat obre la reunió i salta a la frase.
+    - Migració automàtica: fitxers JSON antics (`meetings/` → `meetings-json-backup/`) i `localStorage` del webview. En un navegador sense Tauri es fa servir `localStorage` (desenvolupament d'interfície).
   - **Exportació** (`lib/export.ts`): Markdown i Word (`docx`, carregat a demanda), notes primer i després la transcripció. Diàleg natiu de desar (plugin dialog) + ordre `write_export`.
   - **Eliminar** una reunió (menú del títol, confirmació nativa) esborra també el seu àudio.
 - Disseny de referència a Superdesign (`.superdesign/design-system.md`, `.superdesign/resume.json`).

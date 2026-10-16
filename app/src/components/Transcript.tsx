@@ -5,11 +5,14 @@ import { toast } from "sonner";
 import { Flag, SpeakerFlag } from "@/components/SpeakerFlag";
 import { clock, longDate, speakerIds, speakerName } from "@/lib/format";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
+import type { Jump } from "@/lib/store";
 import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type Utterance } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
   meeting: Meeting;
+  /** Scroll to (and briefly highlight) a search result. */
+  jump: Jump | null;
   partial: Record<Channel, string>;
   hoveredNote: string | null;
   onHoverNote: (id: string | null) => void;
@@ -38,6 +41,27 @@ export function Transcript(props: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const following = useRef(true);
   const recording = meeting.status === "recording";
+  const [flash, setFlash] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!props.jump) return;
+    const { utteranceId, t } = props.jump;
+    // Note hits carry only a time: go to what was being said then.
+    const target =
+      meeting.utterances.find((u) => u.id === utteranceId) ??
+      [...meeting.utterances].reverse().find((u) => u.start <= t) ??
+      meeting.utterances[0];
+    if (!target) return;
+    following.current = false;
+    requestAnimationFrame(() =>
+      scroller.current?.querySelector(`[data-utterance-id="${target.id}"]`)?.scrollIntoView({ block: "center" }),
+    );
+    setFlash(target.id);
+    const timer = setTimeout(() => setFlash(null), 1800);
+    return () => clearTimeout(timer);
+    // Re-run for every new jump (nonce) and once the meeting's content has loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.jump?.nonce, meeting.utterances.length > 0]);
 
   useEffect(() => {
     if (recording && following.current) bottom.current?.scrollIntoView({ block: "end" });
@@ -70,6 +94,7 @@ export function Transcript(props: Props) {
             <UtteranceRow
               key={u.id}
               utterance={u}
+              flash={flash === u.id}
               showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker}
               notes={anchors.get(u.id) ?? []}
               hoveredNote={props.hoveredNote}
@@ -122,6 +147,7 @@ function TitleInput({ title, onChange }: { title: string; onChange: (t: string) 
 
 type RowProps = {
   utterance: Utterance;
+  flash: boolean;
   showFlag: boolean;
   notes: string[];
   hoveredNote: string | null;
@@ -130,7 +156,7 @@ type RowProps = {
   onEdit: (text: string) => void;
 };
 
-function UtteranceRow({ utterance: u, showFlag, notes, hoveredNote, onHoverNote, flag, onEdit }: RowProps) {
+function UtteranceRow({ utterance: u, flash, showFlag, notes, hoveredNote, onHoverNote, flag, onEdit }: RowProps) {
   const [editing, setEditing] = useState(false);
   const linked = notes.includes(hoveredNote ?? "");
 
@@ -140,7 +166,15 @@ function UtteranceRow({ utterance: u, showFlag, notes, hoveredNote, onHoverNote,
   };
 
   return (
-    <div className={cn("group relative rounded-lg px-3 py-1.5 hover:bg-[#f7f7f8] dark:hover:bg-white/5", showFlag && "mt-3", linked && "bg-[#f7f7f8] dark:bg-white/5")}>
+    <div
+      data-utterance-id={u.id}
+      className={cn(
+        "group relative rounded-lg px-3 py-1.5 transition-colors duration-700 hover:bg-[#f7f7f8] dark:hover:bg-white/5",
+        showFlag && "mt-3",
+        linked && "bg-[#f7f7f8] dark:bg-white/5",
+        flash && "bg-yellow-100 duration-150 dark:bg-yellow-500/20",
+      )}
+    >
       {notes.length > 0 && (
         <button
           type="button"

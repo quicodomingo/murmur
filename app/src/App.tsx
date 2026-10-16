@@ -18,7 +18,7 @@ import { exportMeeting, type ExportFormat } from "@/lib/export";
 import { useSettings } from "@/lib/settings";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
-import type { Meeting } from "@/lib/types";
+import type { Meeting, SearchHit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** useState that survives restarts (per-viewer UI preferences only). */
@@ -38,6 +38,25 @@ function useStoredState<T>(key: string, initial: T) {
     }
   }, [key, value]);
   return [value, setValue] as const;
+}
+
+/** Browser-only fallback for UI development: accent-insensitive substring search. */
+function localSearch(meetings: Meeting[], query: string): SearchHit[] {
+  const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  const q = fold(query.trim());
+  const mark = (text: string) => {
+    const i = fold(text).indexOf(q);
+    return i < 0 ? text : `${text.slice(0, i)}\u0002${text.slice(i, i + q.length)}\u0003${text.slice(i + q.length)}`;
+  };
+  return meetings.flatMap((m) => {
+    const base = { meetingId: m.id, title: m.title, createdAt: m.createdAt };
+    const hits: SearchHit[] = [];
+    if (fold(m.title).includes(q)) hits.push({ ...base, kind: "title", ref: m.id, t: 0, snippet: mark(m.title) });
+    for (const u of m.utterances) {
+      if (fold(u.text).includes(q)) hits.push({ ...base, kind: "utterance", ref: u.id, t: u.start, snippet: mark(u.text) });
+    }
+    return hits;
+  });
 }
 
 function newMeeting(sources: { mic: boolean; system: boolean }): Meeting {
@@ -76,7 +95,7 @@ function ToolbarButton({ label, onClick, active, children }: { label: string; on
 }
 
 export default function App() {
-  const [state, dispatch] = useMeetings();
+  const [state, dispatch, forget] = useMeetings();
   const [settings, updateSettings] = useSettings();
   const [showSettings, setShowSettings] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -91,8 +110,17 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const startedAt = useRef(0);
 
-  const meeting = state.meetings.find((m) => m.id === state.selectedId) ?? null;
-  const recording = state.meetings.find((m) => m.status === "recording") ?? null;
+  const meeting = (state.selectedId && state.open[state.selectedId]) || null;
+  const recording = Object.values(state.open).find((m) => m.status === "recording") ?? null;
+
+  // Full-text search in SQLite; in a plain browser (UI work) a simple scan of what's loaded.
+  const openRef = useRef(state.open);
+  openRef.current = state.open;
+  const search = useCallback(
+    (query: string): Promise<SearchHit[]> =>
+      backend.isTauri() ? backend.searchMeetings(query) : Promise.resolve(localSearch(Object.values(openRef.current), query)),
+    [],
+  );
 
   useEffect(() => {
     if (!backend.isTauri()) return;
@@ -181,6 +209,7 @@ export default function App() {
     if (!confirmed) return;
     try {
       if (backend.isTauri()) await backend.deleteMeeting(m.id);
+      forget(m.id);
       dispatch({ type: "delete", id: m.id });
     } catch (e) {
       toast.error(String(e));
@@ -194,10 +223,14 @@ export default function App() {
       <div className="flex h-screen overflow-hidden">
         {showSidebar && (
           <Sidebar
-            meetings={state.meetings}
+            meetings={state.summaries}
             selectedId={state.selectedId}
             canCreate={!recording && !busy}
+            search={search}
             onSelect={(id) => dispatch({ type: "select", id })}
+            onOpenHit={(hit) =>
+              dispatch({ type: "jump", meetingId: hit.meetingId, utteranceId: hit.kind === "utterance" ? hit.ref : undefined, t: hit.t })
+            }
             onNew={start}
             onSettings={() => setShowSettings(true)}
           />
@@ -296,6 +329,7 @@ export default function App() {
               {meeting ? (
                 <Transcript
                   meeting={meeting}
+                  jump={state.jump?.meetingId === meeting.id ? state.jump : null}
                   partial={meeting.status === "recording" ? state.partial : { mic: "", system: "" }}
                   hoveredNote={hoveredNote}
                   onHoverNote={setHoveredNote}

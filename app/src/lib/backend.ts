@@ -1,7 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-import type { EngineEvent, Meeting } from "./types";
+import type { JSONContent } from "@tiptap/core";
+
+import type { EngineEvent, Meeting, MeetingSummary, SearchHit, Utterance } from "./types";
 
 export const isTauri = () => "__TAURI_INTERNALS__" in window;
 
@@ -19,8 +21,18 @@ export const startRecording = (opts: {
 
 export const stopRecording = () => invoke<void>("stop_recording");
 
-export const listMeetings = () => invoke<Meeting[]>("list_meetings");
-export const saveMeeting = (meeting: Meeting) => invoke<void>("save_meeting", { meeting });
+/** One batch of edits to a meeting (db.rs `Changes`). */
+export type Changes = {
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null };
+  utterances?: Utterance[];
+  notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
+};
+
+export const listMeetings = () => invoke<MeetingSummary[]>("list_meetings");
+export const getMeeting = (id: string) => invoke<Meeting | null>("get_meeting", { id });
+export const putMeeting = (meeting: Meeting) => invoke<void>("put_meeting", { meeting });
+export const applyChanges = (id: string, changes: Changes) => invoke<void>("apply_changes", { id, changes });
+export const searchMeetings = (query: string) => invoke<SearchHit[]>("search_meetings", { query });
 export const deleteMeeting = (id: string) => invoke<void>("delete_meeting", { id });
 export const listMicrophones = () => invoke<string[]>("list_microphones");
 export const writeExport = (path: string, contents: Uint8Array) =>

@@ -32,6 +32,20 @@ export type Meeting = {
   sources?: { mic: boolean; system: boolean };
 };
 
+/** What the sidebar shows; the full meeting is loaded when opened. */
+export type MeetingSummary = Pick<Meeting, "id" | "title" | "createdAt" | "duration" | "status">;
+
+/** A full-text search result (db.rs `Hit`). Matches are wrapped in \u0002 … \u0003. */
+export type SearchHit = {
+  meetingId: string;
+  title: string;
+  createdAt: number;
+  kind: "title" | "utterance" | "note";
+  ref: string;
+  t: number;
+  snippet: string;
+};
+
 /** Events emitted by the Rust engine on the "transcript" channel. */
 export type Channel = "mic" | "system";
 

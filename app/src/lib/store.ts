@@ -3,24 +3,34 @@ import { useEffect, useReducer, useRef } from "react";
 import type { JSONContent } from "@tiptap/core";
 
 import * as backend from "./backend";
-import type { Channel, Meeting, Utterance } from "./types";
+import { notesFromDoc } from "./notes";
+import type { Channel, Meeting, MeetingSummary, Utterance } from "./types";
 
-// In the app, meetings are JSON files written by Rust (storage.rs). In a plain browser (UI
-// development) and for migrating older data, the webview's localStorage is used.
+// In the app, meetings live in SQLite (db.rs): the sidebar loads summaries, a meeting's content
+// is loaded when opened, and edits are saved as small changes. In a plain browser (UI
+// development) everything lives in localStorage; that key is also migrated into SQLite once.
 const STORAGE_KEY = "transcriptor.meetings.v1";
 
+/** Where search results ask the transcript to scroll to. `nonce` re-triggers the same target. */
+export type Jump = { meetingId: string; utteranceId?: string; t: number; nonce: number };
+
 export type State = {
-  meetings: Meeting[];
+  summaries: MeetingSummary[];
+  /** Meetings whose content is loaded (the selected one, the one recording…). */
+  open: Record<string, Meeting>;
   selectedId: string | null;
   partial: Record<Channel, string>;
   loaded: boolean;
+  jump: Jump | null;
 };
 
 export type Action =
-  | { type: "loaded"; meetings: Meeting[] }
+  | { type: "loaded"; summaries: MeetingSummary[]; open?: Record<string, Meeting> }
+  | { type: "opened"; meeting: Meeting }
   | { type: "delete"; id: string }
   | { type: "new"; meeting: Meeting }
   | { type: "select"; id: string }
+  | { type: "jump"; meetingId: string; utteranceId?: string; t: number }
   | { type: "partial"; channel: Channel; text: string }
   | { type: "final"; utterance: Utterance }
   | { type: "tick"; duration: number }
@@ -32,28 +42,64 @@ export type Action =
   | { type: "notes"; id: string; doc: JSONContent }
   | { type: "audio"; id: string; path: string | null };
 
-const updateMeeting = (state: State, id: string, fn: (m: Meeting) => Meeting): State => ({
-  ...state,
-  meetings: state.meetings.map((m) => (m.id === id ? fn(m) : m)),
+const summaryOf = (m: Meeting): MeetingSummary => ({
+  id: m.id,
+  title: m.title,
+  createdAt: m.createdAt,
+  duration: m.duration,
+  status: m.status,
 });
+
+/** Applies `fn` to an open meeting and keeps its sidebar summary in sync. */
+const updateMeeting = (state: State, id: string, fn: (m: Meeting) => Meeting): State => {
+  const current = state.open[id];
+  if (!current) return state;
+  const next = fn(current);
+  const summary = summaryOf(next);
+  return {
+    ...state,
+    open: { ...state.open, [id]: next },
+    summaries: state.summaries.map((s) => (s.id === id ? summary : s)),
+  };
+};
 
 const NO_PARTIAL: Record<Channel, string> = { mic: "", system: "" };
 
-const recording = (state: State) => state.meetings.find((m) => m.status === "recording");
+const recording = (state: State) => Object.values(state.open).find((m) => m.status === "recording");
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "loaded":
-      return { ...state, meetings: action.meetings, selectedId: action.meetings[0]?.id ?? null, loaded: true };
+      return {
+        ...state,
+        summaries: action.summaries,
+        open: action.open ?? {},
+        selectedId: action.summaries[0]?.id ?? null,
+        loaded: true,
+      };
+    case "opened":
+      return { ...state, open: { ...state.open, [action.meeting.id]: action.meeting } };
     case "delete": {
-      const meetings = state.meetings.filter((m) => m.id !== action.id);
-      const selectedId = state.selectedId === action.id ? (meetings[0]?.id ?? null) : state.selectedId;
-      return { ...state, meetings, selectedId };
+      const summaries = state.summaries.filter((m) => m.id !== action.id);
+      const { [action.id]: _removed, ...open } = state.open;
+      const selectedId = state.selectedId === action.id ? (summaries[0]?.id ?? null) : state.selectedId;
+      return { ...state, summaries, open, selectedId };
     }
     case "new":
-      return { ...state, meetings: [action.meeting, ...state.meetings], selectedId: action.meeting.id };
+      return {
+        ...state,
+        summaries: [summaryOf(action.meeting), ...state.summaries],
+        open: { ...state.open, [action.meeting.id]: action.meeting },
+        selectedId: action.meeting.id,
+      };
     case "select":
       return { ...state, selectedId: action.id };
+    case "jump":
+      return {
+        ...state,
+        selectedId: action.meetingId,
+        jump: { meetingId: action.meetingId, utteranceId: action.utteranceId, t: action.t, nonce: (state.jump?.nonce ?? 0) + 1 },
+      };
     case "partial":
       return { ...state, partial: { ...state.partial, [action.channel]: action.text } };
     case "final": {
@@ -105,6 +151,28 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+/** The smallest set of changes that turns `saved` into `next` (objects are compared by identity). */
+function diff(saved: Meeting, next: Meeting): backend.Changes | null {
+  const changes: backend.Changes = {};
+  const meta: backend.Changes["meta"] = {};
+  if (saved.title !== next.title) meta.title = next.title;
+  if (saved.duration !== next.duration) meta.duration = next.duration;
+  if (saved.status !== next.status) meta.status = next.status;
+  if (saved.speakerNames !== next.speakerNames) meta.speakerNames = next.speakerNames;
+  if (saved.sources !== next.sources) meta.sources = next.sources;
+  if (saved.audioPath !== next.audioPath) meta.audioPath = next.audioPath ?? null;
+  if (Object.keys(meta).length) changes.meta = meta;
+  if (saved.utterances !== next.utterances) {
+    const before = new Map(saved.utterances.map((u) => [u.id, u]));
+    const changed = next.utterances.filter((u) => before.get(u.id) !== u);
+    if (changed.length) changes.utterances = changed;
+  }
+  if (saved.notesDoc !== next.notesDoc && next.notesDoc) {
+    changes.notes = { doc: next.notesDoc, blocks: notesFromDoc(next.notesDoc).map(({ t, text }) => ({ t, text })) };
+  }
+  return Object.keys(changes).length ? changes : null;
+}
+
 function loadLocal(): Meeting[] {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
@@ -113,65 +181,99 @@ function loadLocal(): Meeting[] {
   }
 }
 
-const EMPTY: State = { meetings: [], selectedId: null, partial: NO_PARTIAL, loaded: false };
-/** Recording state changes save right away; everything else is batched. */
+const EMPTY: State = { summaries: [], open: {}, selectedId: null, partial: NO_PARTIAL, loaded: false, jump: null };
+/** Status changes save right away; everything else (ticks, typing) is batched. */
 const SAVE_DELAY_MS = 1500;
 
 export function useMeetings() {
   const [state, dispatch] = useReducer(reducer, EMPTY);
+  /** Last version of each open meeting known to be in the database. */
   const saved = useRef(new Map<string, Meeting>());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const latest = useRef(state);
+  latest.current = state;
 
+  // Load summaries (or, in a plain browser, every meeting from localStorage).
   useEffect(() => {
     (async () => {
-      let meetings: Meeting[];
-      if (backend.isTauri()) {
-        meetings = await backend.listMeetings();
-        const legacy = loadLocal();
-        if (legacy.length) {
-          // One-time move from the webview's storage to files.
-          const known = new Set(meetings.map((m) => m.id));
-          for (const m of legacy.filter((m) => !known.has(m.id))) await backend.saveMeeting(m);
-          meetings = await backend.listMeetings();
-          localStorage.removeItem(STORAGE_KEY);
-        }
-      } else {
-        meetings = loadLocal();
+      if (!backend.isTauri()) {
+        const meetings = loadLocal().map((m) => ({ ...m, status: "done" as const }));
+        dispatch({ type: "loaded", summaries: meetings.map(summaryOf), open: Object.fromEntries(meetings.map((m) => [m.id, m])) });
+        return;
       }
-      // A recording can't survive an app restart.
-      meetings.forEach((m) => (m.status = "done"));
-      meetings.forEach((m) => saved.current.set(m.id, m));
-      dispatch({ type: "loaded", meetings });
+      const legacy = loadLocal();
+      if (legacy.length) {
+        // One-time move from the webview's storage into the database.
+        for (const m of legacy) await backend.putMeeting(m);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      const summaries = await backend.listMeetings();
+      // A recording can't survive an app restart (or a crash).
+      for (const s of summaries.filter((s) => s.status === "recording")) {
+        s.status = "done";
+        await backend.applyChanges(s.id, { meta: { status: "done" } });
+      }
+      dispatch({ type: "loaded", summaries });
     })().catch((e) => {
       console.error(e);
-      dispatch({ type: "loaded", meetings: [] });
+      dispatch({ type: "loaded", summaries: [] });
     });
   }, []);
 
+  // Open the selected meeting's content when needed.
+  useEffect(() => {
+    const id = state.selectedId;
+    if (!id || state.open[id] || !backend.isTauri()) return;
+    backend
+      .getMeeting(id)
+      .then((m) => {
+        if (!m) return;
+        saved.current.set(m.id, m);
+        dispatch({ type: "opened", meeting: m });
+      })
+      .catch((e) => console.error("open failed", e));
+  }, [state.selectedId, state.open]);
+
+  // Persist changes.
   useEffect(() => {
     if (!state.loaded) return;
     if (!backend.isTauri()) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.meetings));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.values(state.open)));
       } catch {
         /* storage full or unavailable: keep working in memory */
       }
       return;
     }
-    // The reducer only creates a new object for meetings that changed.
-    for (const m of state.meetings) {
-      const previous = saved.current.get(m.id);
-      if (previous === m) continue;
-      clearTimeout(timers.current.get(m.id));
-      const write = () => {
-        timers.current.delete(m.id);
+    const flush = (id: string) => {
+      timers.current.delete(id);
+      const next = latest.current.open[id];
+      const before = saved.current.get(id);
+      if (!next || !before) return;
+      const changes = diff(before, next);
+      saved.current.set(id, next);
+      if (changes) backend.applyChanges(id, changes).catch((e) => console.error("save failed", e));
+    };
+    for (const m of Object.values(state.open)) {
+      const before = saved.current.get(m.id);
+      if (before === m) continue;
+      if (!before) {
+        // A new meeting (just started recording): create it whole.
         saved.current.set(m.id, m);
-        backend.saveMeeting(m).catch((e) => console.error("save failed", e));
-      };
-      if (!previous || previous.status !== m.status) write();
-      else timers.current.set(m.id, setTimeout(write, SAVE_DELAY_MS));
+        backend.putMeeting(m).catch((e) => console.error("save failed", e));
+        continue;
+      }
+      clearTimeout(timers.current.get(m.id));
+      if (before.status !== m.status) flush(m.id);
+      else timers.current.set(m.id, setTimeout(() => flush(m.id), SAVE_DELAY_MS));
     }
-  }, [state.meetings, state.loaded]);
+  }, [state.open, state.loaded]);
 
-  return [state, dispatch] as const;
+  const forget = (id: string) => {
+    clearTimeout(timers.current.get(id));
+    timers.current.delete(id);
+    saved.current.delete(id);
+  };
+
+  return [state, dispatch, forget] as const;
 }
