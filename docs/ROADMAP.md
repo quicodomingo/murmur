@@ -21,11 +21,15 @@ En aturar la gravació, reprocessar l'àudio desat:
 - [x] Verificació de parlants en acabar (infraestructura, interfície i reassignació respectant noms i canvis manuals).
 - [ ] Ajustar la verificació amb l'etiquetatge manual (`data/qui-parla.html`) i activar-la per defecte.
 - [ ] Transcripció final: decidir entre el Conformer actual o Whisper AINA (cal convertir-lo a MLX / whisper.cpp; amb faster-whisper a CPU va massa lent).
-- [ ] **Prova de LLM local** sobre la transcripció de la reunió real (20 min ≈ 3.600 paraules): qualitat del català, temps i memòria (objectiu M1 8 GB):
-  - **Gemma 4 E2B** — candidat prioritari (128K de context: una reunió d'1–2 h cap sencera, sense trossejar; cal comprovar si la llegeix bé sencera).
-  - Gemma 3 4B, Qwen 3 4B, Salamandra 7B (BSC) com a comparació si l'E2B queda just.
-  - Un model de núvol de referència (clau pròpia) per saber on és el sostre.
-  - Mesurar: tokens reals per hora de reunió, temps de lectura (prefill) i de generació, memòria.
+- [x] **Prova de LLM local** (reunió real de 20 min = 6.426 tokens ≈ 19K tokens/hora; M4 base, llama.cpp + Metal). Resultats a `results/llm/`:
+  - Gemma 4 E2B: ràpid (lectura 345 t/s, escriptura 36 t/s) però català fluix i es deixa contingut.
+  - **Gemma 4 E4B: el millor equilibri** (lectura 180 t/s, escriptura 21 t/s, ~2–2,5 min per hora de reunió): cobreix tota la reunió, no s'inventa dates. Català millorable.
+  - Salamandra 7B (BSC): el català més natural, però lent (6–8 min/h), 6,6 GB de memòria i s'inventa dates.
+  - DeepSeek: sense model petit propi (els R1-Distill són Qwen/Llama reentrenats, de raonament).
+  - Gemma 4 té el raonament activat per defecte: cal `enable_thinking: false`.
+- [x] **Decisió:** les funcions de LLM (resum, acta, capítols, preguntes…) són **opcionals**. En activar-les, l'app descarrega **Gemma 4 E4B** (QAT q4_0 oficial, 5,15 GB, Apache 2.0).
+- [ ] Millorar el català de l'E4B: instruccions amb exemples, i revisió amb el corrector de Softcatalà (LanguageTool, local).
+- [ ] Provar l'E4B en un M1 de 8 GB (si no hi va, E2B com a alternativa per a equips petits).
 
 ### Usos del LLM (propostes a analitzar i prioritzar)
 

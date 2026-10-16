@@ -18,7 +18,7 @@ Fase actual: **3 — App Tauri amb motor Rust** (l'MVP Python queda com a refer�
 | Detecció de veu | Silero VAD | — |
 | Transcripció | Conformer-Transducer català d'NVIDIA via **sherpa-onnx** | **Whisper large-v3 català (Projecte AINA)** |
 | Diarització | diart o NVIDIA Streaming Sortformer (decidir al banc de proves) | pyannote |
-| Puntuació / resum | mínim | LLM local per defecte; opcionalment la clau API de l'usuari (OpenAI o Claude) |
+| Puntuació / resum | mínim | **Opcional**: Gemma 4 E4B local (es descarrega en activar-ho) o la clau API de l'usuari (OpenAI o Claude) |
 
 La passada final substitueix la transcripció en directe i en corregeix els parlants i els noms propis.
 
