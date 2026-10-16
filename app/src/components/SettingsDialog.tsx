@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import * as backend from "@/lib/backend";
-import type { Settings } from "@/lib/settings";
+import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -254,6 +254,15 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
               aria-label="Separació de veus"
             />
             <span className="w-8 text-right text-[12px] tabular-nums text-muted-foreground">{settings.threshold.toFixed(2).replace(".", ",")}</span>
+            <button
+              type="button"
+              onClick={() => onChange({ threshold: DEFAULT_SETTINGS.threshold })}
+              disabled={settings.threshold === DEFAULT_SETTINGS.threshold}
+              title={`Torna al valor per defecte (${DEFAULT_SETTINGS.threshold.toFixed(2).replace(".", ",")})`}
+              className="h-6 rounded-md px-2 text-[12px] text-primary hover:bg-black/5 disabled:invisible dark:hover:bg-white/10"
+            >
+              Restableix
+            </button>
           </div>
         </Row>
       </Group>
