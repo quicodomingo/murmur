@@ -48,6 +48,7 @@ En aturar la gravació, reprocessar l'àudio desat:
 
 ## 5. Qualitat i rendiment
 
+- [ ] Cerca difusa (índex FTS5 de trigrames): trobar «worpress» buscant «wordpress». Resultats exactes primer i «semblants» a part, amb llindar ~60% de trigrames compartits.
 - [ ] Cerca semàntica entre reunions (`sqlite-vec` + embeddings) per a «pregunta a les teves reunions».
 
 - [ ] Transcripció de referència a mà (5–10 min de `data/reunio.m4a`) per calcular el WER i decidir models amb números.
