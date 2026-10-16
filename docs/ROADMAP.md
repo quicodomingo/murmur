@@ -73,7 +73,8 @@ Entre reunions (bloc 5):
 - [ ] Decidir si es baixa el Conformer en int8 (228 MB en total en lloc de 585 MB): mesurar-ne la qualitat amb la referència manual.
 - [ ] Comprovació d'espai lliure abans de descarregar, i verificació (hash) dels fitxers.
 - [ ] Calendaris a la primera obertura (opcional).
-- [ ] Empaquetar, signar i notaritzar (compte d'Apple Developer, 99 $/any). Els permisos passen a ser de l'app.
+- [x] Empaquetar, signar (Developer ID de We Are Mortensen S.L.) i notaritzar: `app/scripts/release.sh` fa l'app i un `.dmg` acceptats per Gatekeeper. Identificador `com.quicodomingo.murmur`.
+- [ ] Signar amb un Developer ID propi si Murmur ha de sortir a nom de Quico Domingo.
 - [ ] Actualitzacions automàtiques (plugin updater de Tauri).
 
 ## 4. Configuració pendent (ja dissenyada)

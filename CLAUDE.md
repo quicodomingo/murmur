@@ -1,6 +1,6 @@
 # Murmur: transcriptor de reunions en català
 
-L'app es diu **Murmur** (abans «Transcriptor»; el codi, el crate i l'identificador `cat.transcriptor.app` mantenen el nom antic perquè no es perdin les dades). Aplicació d'escriptori (Mac primer, després Windows; més endavant iOS/Android) que transcriu reunions en **català** en directe, identifica qui parla i genera un resum amb acords. **Tot funciona en local per defecte**: l'àudio no surt de l'ordinador si l'usuari no ho decideix.
+L'app es diu **Murmur** (abans «Transcriptor»; el codi i el crate mantenen el nom antic). Identificador: `com.quicodomingo.murmur`. Aplicació d'escriptori (Mac primer, després Windows; més endavant iOS/Android) que transcriu reunions en **català** en directe, identifica qui parla i genera un resum amb acords. **Tot funciona en local per defecte**: l'àudio no surt de l'ordinador si l'usuari no ho decideix.
 
 ## Fases del projecte
 
@@ -130,6 +130,7 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - Transcripció: màxim de parlants, separació de veus, **verificació de parlants en acabar** (desactivada per defecte).
 - **Notes** (`NotesPanel.tsx`, `lib/notes.ts`): editor Tiptap 3 (títols 1–3, negreta, cursiva, subratllat, ratllat, llistes, tasques; dreceres Markdown en escriure). Es desa com a JSON de Tiptap (`meeting.notesDoc`) perquè **cada bloc porta `attrs.t`** (minut de la reunió en què s'hi va escriure; `keepOnSplit: false`). Exportació a Markdown pròpia (`docToMarkdown`). Les marques a la transcripció surten de `notesFromDoc`.
 - **Dependència**: totes les versions 2.x de `zip` estan retirades de crates.io; `Cargo.toml` fa `[patch.crates-io]` a l'etiqueta git v2.6.1 (la demana `sherpa-onnx-sys`).
+- **Publicar** (`app/scripts/release.sh`): compila i signa amb el Developer ID de `tauri.conf.json` (hardened runtime + `Entitlements.plist` amb `audio-input`, sense el qual el micròfon queda bloquejat), notaritza amb el perfil del clauer `murmur` (`xcrun notarytool store-credentials`), grapa i fa `Murmur-<versió>.dmg`, també notaritzat.
 - **Models en dev**: `models_dir()` llegeix `TRANSCRIPTOR_MODELS` o `../../models`. Pendent: directori de dades de l'app + pantalla de primera obertura amb descàrrega.
 - **Interfície** (`src/`): shadcn/ui (Radix, preset Nova) amb tokens natius de macOS a `src/index.css`; font del sistema; mode fosc segons el sistema. Finestra amb `titleBarStyle: Overlay` (semàfors sobre la barra lateral) i `data-tauri-drag-region` a la barra d'eines.
   - Panell de notes: amaga/mostra des de la barra d'eines (únic botó), **redimensionable** arrossegant la vora esquerra (doble clic restableix; fletxes del teclat), i **mode complet** que amaga la transcripció. Es recorda a `localStorage` (`transcriptor.notesLayout.v1`).
