@@ -14,6 +14,9 @@ FILES = {
     # Speaker embedding for diarization (language-independent)
     "3dspeaker_eres2net_base.onnx": f"{SHERPA_RELEASES}/speaker-recongition-models/"
     "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx",
+    # Live speaker clustering in the app (better than 3D-Speaker on a labelled meeting)
+    "nemo_en_titanet_small.onnx": f"{SHERPA_RELEASES}/speaker-recongition-models/"
+    "nemo_en_titanet_small.onnx",
 }
 TARBALLS = {
     "sherpa-onnx-pyannote-segmentation-3-0": f"{SHERPA_RELEASES}/speaker-segmentation-models/"

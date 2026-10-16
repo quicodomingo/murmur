@@ -24,6 +24,13 @@ const MAX_SPEECH_S: f32 = 15.0;
 /// Partials only re-decode the tail of the utterance, to bound CPU on long sentences.
 const PARTIAL_MAX_S: f32 = 8.0;
 
+/// Speaker-embedding model for live clustering. On hand-labelled lines of a real meeting, NeMo
+/// TitaNet-small at threshold 0.7 got 88% right vs 75% for 3D-Speaker (see bench/speakers_eval.py).
+/// `TRANSCRIPTOR_EMBEDDING` overrides it for experiments.
+pub fn embedding_model() -> String {
+    std::env::var("TRANSCRIPTOR_EMBEDDING").unwrap_or_else(|_| "nemo_en_titanet_small.onnx".into())
+}
+
 /// Where the model files live. Dev builds read the repo's `models/` folder.
 pub fn models_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("TRANSCRIPTOR_MODELS") {
@@ -63,7 +70,7 @@ impl Models {
             OfflineRecognizer::create(&config).context("No s'ha pogut carregar el model de veu")?;
 
         let embedder = SpeakerEmbeddingExtractor::create(&SpeakerEmbeddingExtractorConfig {
-            model: Some(path_str(dir.join("3dspeaker_eres2net_base.onnx"))?),
+            model: Some(path_str(dir.join(embedding_model()))?),
             num_threads: 2,
             ..Default::default()
         })
@@ -318,6 +325,10 @@ impl<'m> LiveSession<'m> {
     }
 
     fn partial(&mut self) -> Option<Event> {
+        // Experiments that only look at final utterances can skip this cost.
+        if std::env::var_os("TRANSCRIPTOR_NO_PARTIALS").is_some() {
+            return None;
+        }
         if !self.in_speech {
             if self.partial_shown {
                 self.partial_shown = false;

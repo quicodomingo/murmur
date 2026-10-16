@@ -31,9 +31,21 @@ pub struct Assignment {
     pub speaker: usize,
 }
 
-/// Clustering threshold for meetings. On a real 20-min, 5-speaker meeting: 1.0 → 8 speakers,
-/// 1.05 → 7, 1.1 → 5, 1.2 → 3 (see diarize_probe). Tuned on one meeting: revisit with more.
-pub const DEFAULT_THRESHOLD: f32 = 1.1;
+/// Final-pass settings, chosen on hand-labelled lines of a real 20-min, 4-speaker meeting
+/// (bench/speakers_eval.py; live clustering scored F1 0.62):
+///   window 0.1, threshold 0.9 → F1 0.85 (RTF 0.18) · window 0.2, threshold 0.9 → F1 0.91, 96% of
+///   lines right (RTF 0.12) · window 0.5 → F1 ≤ 0.71 at any threshold.
+/// Counting speakers is misleading: window 0.5 / threshold 1.1 found "5 speakers" but lumped
+/// most lines together. Tuned on one meeting: re-check with more labelled meetings.
+pub const DEFAULT_THRESHOLD: f32 = 0.9;
+pub const DEFAULT_WINDOW_SHIFT: f32 = 0.2;
+
+/// The final pass keeps 3D-Speaker: with TitaNet (better live) it scored F1 ≤ 0.72.
+/// `TRANSCRIPTOR_DIARIZE_EMBEDDING` overrides it for experiments.
+pub fn embedding_model() -> String {
+    std::env::var("TRANSCRIPTOR_DIARIZE_EMBEDDING")
+        .unwrap_or_else(|_| "3dspeaker_eres2net_base.onnx".into())
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Options {
@@ -55,10 +67,6 @@ impl Default for Options {
     }
 }
 
-/// Segmentation window step used by the app. 0.5 is ~6× faster than the library's 0.1
-/// (RTF 0.035 vs 0.19 on an M4) with the same speaker count (see diarize_probe).
-pub const DEFAULT_WINDOW_SHIFT: f32 = 0.5;
-
 pub fn diarize(models: &Path, samples: &[f32], opts: Options) -> Result<Vec<Turn>> {
     let path = |p: &str| -> Result<String> {
         let full = models.join(p);
@@ -78,7 +86,7 @@ pub fn diarize(models: &Path, samples: &[f32], opts: Options) -> Result<Vec<Turn
             ..Default::default()
         },
         embedding: SpeakerEmbeddingExtractorConfig {
-            model: Some(path("3dspeaker_eres2net_base.onnx")?),
+            model: Some(path(&embedding_model())?),
             num_threads: threads,
             ..Default::default()
         },

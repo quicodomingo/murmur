@@ -23,17 +23,31 @@ export const DEFAULT_SETTINGS: Settings = {
   saveAudio: false,
   recordingsDir: null,
   maxSpeakers: 5,
-  threshold: 0.65,
-  verifySpeakers: false,
+  // Tuned for TitaNet on a hand-labelled meeting (see engine.rs embedding_model).
+  threshold: 0.7,
+  verifySpeakers: true,
   primaryPanel: "transcript",
 };
 
 const KEY = "transcriptor.settings.v1";
 
+const VERSION = 2;
+
+/** Settings saved by older versions: move untouched old defaults to the new ones. */
+function migrate(s: Settings & { version?: number }): Settings {
+  if ((s.version ?? 1) < 2) {
+    // v2: live speakers use TitaNet (best at 0.7, was 0.65 with 3D-Speaker) and the final
+    // speaker check is tuned, so it's on by default.
+    if (s.threshold === 0.65) s.threshold = DEFAULT_SETTINGS.threshold;
+    s.verifySpeakers = true;
+  }
+  return { ...s, version: VERSION } as Settings;
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(() => {
     try {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
+      return migrate({ ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") });
     } catch {
       return DEFAULT_SETTINGS;
     }

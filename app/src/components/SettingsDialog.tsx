@@ -269,7 +269,7 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
       <Group title="En acabar la gravació">
         <Row
           label="Verificació de parlants"
-          hint="Torna a analitzar tota la reunió per separar millor les veus. Pot trigar uns minuts (unes 2–4 per hora de reunió), però pots continuar treballant mentrestant. Encara l'estem ajustant."
+          hint="Torna a analitzar tota la reunió per separar millor les veus. Pot trigar uns minuts (uns 7 per hora de reunió), però pots continuar treballant mentrestant."
         >
           <Switch checked={settings.verifySpeakers} onCheckedChange={(verifySpeakers) => onChange({ verifySpeakers })} />
         </Row>

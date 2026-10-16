@@ -19,7 +19,9 @@ Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 En aturar la gravació, reprocessar l'àudio desat:
 
 - [x] Verificació de parlants en acabar (infraestructura, interfície i reassignació respectant noms i canvis manuals).
-- [ ] Ajustar la verificació amb l'etiquetatge manual (`data/qui-parla.html`) i activar-la per defecte.
+- [x] Ajustar la verificació amb l'etiquetatge manual: directe amb TitaNet (75% → 88% d'encerts), verificació 96%. Activada per defecte.
+- [ ] Validar els parlants amb una segona reunió etiquetada.
+- [ ] Partir les frases que barregen parlants als canvis de torn de la verificació (10 de 34 frases ho fan).
 - [ ] Transcripció final: decidir entre el Conformer actual o Whisper AINA (cal convertir-lo a MLX / whisper.cpp; amb faster-whisper a CPU va massa lent).
 - [x] **Prova de LLM local** (reunió real de 20 min = 6.426 tokens ≈ 19K tokens/hora; M4 base, llama.cpp + Metal). Resultats a `results/llm/`:
   - Gemma 4 E2B: ràpid (lectura 345 t/s, escriptura 36 t/s) però català fluix i es deixa contingut.

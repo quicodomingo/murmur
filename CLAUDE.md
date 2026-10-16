@@ -138,7 +138,18 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
 
 - Durant la gravació, el canal dels altres (sistema en una trucada, micròfon si no n'hi ha) es desa en PCM 16 bits a `<app_cache_dir>/final-pass/` (només si la verificació està activada).
 - En aturar, en un fil a part: diarització sherpa-onnx (segmentació pyannote 3.0 + 3D-Speaker), cada frase en directe rep el parlant que més s'hi solapa, i la UI (`relabel` a `store.ts`) reassigna: els noms i les frases fixades a mà (`speakerLocked`) segueixen la persona. Esdeveniments `final-pass`, `final-pass-speakers`, `final-pass-done`; estat de reunió `processing` amb l'avís «Verificant parlants…» (progrés estimat: la llibreria no en dona).
-- `window_shift` 0,5 és ~6× més ràpid que 0,1 (RTF 0,035 a l'M4). **El llindar encara no està ajustat**: comptar parlants enganya (1,1 donava 5 parlants a la reunió de 20 min però ajuntava gairebé tot en 3 min). Cal l'etiquetatge manual (`data/qui-parla.html` → JSON amb el parlant real de les 34 frases dels primers 6 min) per triar-lo.
+- **Avaluació amb etiquetes manuals** (`data/qui-parla.json`: 34 frases dels primers 6 min, 24 d'una sola persona; `bench/speakers_eval.py`, mètrica F1 per parelles + encerts amb la millor correspondència):
+  | | Model de veus | Configuració | Encerts | F1 |
+  |---|---|---|---|---|
+  | Directe (abans) | 3D-Speaker | llindar 0,65 | 75% | 0,62 |
+  | **Directe (ara)** | **NeMo TitaNet-small** | llindar 0,7 | 88% | 0,77 |
+  | **Verificació (ara)** | **3D-Speaker** | finestra 0,2, llindar 0,9 | 96% | 0,91 |
+  - TitaNet a la verificació: F1 ≤ 0,72. wespeaker i CAM++ (VoxCeleb): pitjors. Finestra 0,5: F1 ≤ 0,71 amb qualsevol llindar. Forçar el nombre de parlants no funciona (tot en 2 grups).
+  - **Comptar parlants enganya**: finestra 0,5 / llindar 1,1 donava «5 parlants» però ajuntava gairebé tot.
+  - 10 de 34 frases són «Diverses persones»: el VAD talla per silencis, no per canvis de parlant. Pendent: partir frases als canvis de torn de la verificació.
+  - Una sola reunió: tornar a validar amb més reunions etiquetades (`examples/label_dump` + `data/qui-parla.html`).
+- Temps: RTF 0,116 a l'M4 base (~7 min per hora de reunió). Verificació **activada per defecte** (migració de la configuració v2).
+- Experiments: `TRANSCRIPTOR_EMBEDDING` (directe), `TRANSCRIPTOR_DIARIZE_EMBEDDING` (verificació), `TRANSCRIPTOR_NO_PARTIALS`.
 
 ## Resultats de la primera reunió real (20 min, 5 parlants)
 

@@ -230,9 +230,9 @@ fn safe_id(id: &str) -> String {
         .collect()
 }
 
-/// ~0.035 measured on an M4 (see diarize_probe), with margin for slower Macs. Only drives the
-/// estimate shown in the UI.
-const DIARIZE_RTF_ESTIMATE: f32 = 0.06;
+/// 0.116 measured on an M4 base (window 0.2, see diarize_probe), with margin for slower Macs.
+/// Only drives the estimate shown in the UI.
+const DIARIZE_RTF_ESTIMATE: f32 = 0.15;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
