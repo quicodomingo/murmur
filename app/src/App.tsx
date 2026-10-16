@@ -210,11 +210,18 @@ export default function App() {
 
   // ⌘N: new meeting (the sidebar button shows the shortcut).
   const startRef = useRef<() => void>(() => {});
+  const removeRef = useRef<() => void>(() => {});
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === ",") {
         e.preventDefault();
         setShowSettings(true);
+      }
+      // ⌘⌫: delete the selected meeting (not while typing).
+      const typing = (e.target as HTMLElement | null)?.closest("input, textarea, [contenteditable='true']");
+      if (e.metaKey && e.key === "Backspace" && !typing) {
+        e.preventDefault();
+        removeRef.current();
       }
       if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
@@ -299,6 +306,15 @@ export default function App() {
 
   const copyMarkdown = (m: Meeting) =>
     navigator.clipboard.writeText(toMarkdown(m)).then(() => toast("Transcripció copiada en Markdown"));
+
+  /** From the sidebar (right click) or ⌘⌫: the meeting may not be loaded yet. */
+  const removeById = async (id: string) => {
+    const m = state.open[id] ?? (backend.isTauri() ? await backend.getMeeting(id).catch(() => null) : null);
+    if (m && m.status !== "recording") remove(m);
+  };
+  removeRef.current = () => {
+    if (state.selectedId) removeById(state.selectedId);
+  };
 
   const remove = async (m: Meeting) => {
     const message = m.audioPath
@@ -396,6 +412,7 @@ export default function App() {
             }
             onNew={start}
             onSettings={() => setShowSettings(true)}
+            onDelete={removeById}
           />
         )}
 
@@ -423,6 +440,7 @@ export default function App() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" disabled={meeting.status === "recording"} onSelect={() => remove(meeting)}>
                     <Trash2 className="size-3.5" /> Elimina la reunió…
+                    <span className="ml-auto pl-4 text-[11px] opacity-60">⌘⌫</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

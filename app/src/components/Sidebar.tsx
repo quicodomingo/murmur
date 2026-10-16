@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Settings, X } from "lucide-react";
+import { Plus, Search, Settings, Trash2, X } from "lucide-react";
+import { Menu, MenuItem } from "@tauri-apps/api/menu";
+import { ContextMenu } from "radix-ui";
 
 import { clock, dayGroup, duration } from "@/lib/format";
 import type { MeetingSummary, SearchHit } from "@/lib/types";
 import { LogoIcon } from "@/components/Logo";
+import { isTauri } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -15,12 +18,22 @@ type Props = {
   onOpenHit: (hit: SearchHit) => void;
   onNew: () => void;
   onSettings: () => void;
+  /** Right click › Elimina la reunió… (asks for confirmation). */
+  onDelete: (id: string) => void;
 };
 
 const GROUPS = ["Avui", "Ahir", "Aquesta setmana", "Anteriors"];
+
+/** Right click on a meeting in the app: a native menu, like Finder or Notes. */
+async function showRowMenu(m: MeetingSummary, onDelete: (id: string) => void) {
+  const menu = await Menu.new({
+    items: [await MenuItem.new({ text: "Elimina la reunió…", enabled: m.status !== "recording", action: () => onDelete(m.id) })],
+  });
+  await menu.popup();
+}
 const HITS_PER_MEETING = 3;
 
-export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onOpenHit, onNew, onSettings }: Props) {
+export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onOpenHit, onNew, onSettings, onDelete }: Props) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const searching = query.trim().length > 0;
@@ -91,30 +104,50 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
               <section key={group} className="mb-3">
                 <h3 className="px-2 pb-1 text-[11px] font-semibold text-text-secondary">{group}</h3>
                 {items.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => onSelect(m.id)}
-                    aria-current={m.id === selectedId ? "page" : undefined}
-                    className={cn(
-                      "relative flex h-[30px] w-full items-center gap-2 rounded-md pl-2.5 pr-2 text-left text-[13px]",
-                      m.id === selectedId ? "bg-mm-sidebar-selection font-medium" : "hover:bg-black/5 dark:hover:bg-white/5",
-                    )}
-                  >
-                    {/* The selected row's bar echoes the logo. */}
-                    {m.id === selectedId && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-[2px] bg-mm-sidebar-selection-bar" aria-hidden />}
-                    <span className="flex-1 truncate">{m.title}</span>
-                    {m.status === "recording" ? (
-                      <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label="Gravant">
-                        <span className="mm-rec size-2 rounded-full bg-mm-recording-dot" aria-hidden />
-                        REC
-                      </span>
-                    ) : m.status === "processing" ? (
-                      <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label="Verificant parlants" />
-                    ) : (
-                      <span className="text-[11px] tabular-nums text-text-secondary">{duration(m.duration)}</span>
-                    )}
-                  </button>
+                  <ContextMenu.Root key={m.id}>
+                    <ContextMenu.Trigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(m.id)}
+                        onContextMenu={(e) => {
+                          // In the app, the native macOS menu; the web one stays for the browser.
+                          if (!isTauri()) return;
+                          e.preventDefault();
+                          showRowMenu(m, onDelete);
+                        }}
+                        aria-current={m.id === selectedId ? "page" : undefined}
+                        className={cn(
+                          "relative flex h-[30px] w-full items-center gap-2 rounded-md pl-2.5 pr-2 text-left text-[13px]",
+                          m.id === selectedId ? "bg-mm-sidebar-selection font-medium" : "hover:bg-black/5 dark:hover:bg-white/5",
+                        )}
+                      >
+                        {/* The selected row's bar echoes the logo. */}
+                        {m.id === selectedId && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-[2px] bg-mm-sidebar-selection-bar" aria-hidden />}
+                        <span className="flex-1 truncate">{m.title}</span>
+                        {m.status === "recording" ? (
+                          <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label="Gravant">
+                            <span className="mm-rec size-2 rounded-full bg-mm-recording-dot" aria-hidden />
+                            REC
+                          </span>
+                        ) : m.status === "processing" ? (
+                          <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label="Verificant parlants" />
+                        ) : (
+                          <span className="text-[11px] tabular-nums text-text-secondary">{duration(m.duration)}</span>
+                        )}
+                      </button>
+                    </ContextMenu.Trigger>
+                    <ContextMenu.Portal>
+                      <ContextMenu.Content className="z-50 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+                        <ContextMenu.Item
+                          disabled={m.status === "recording"}
+                          onSelect={() => onDelete(m.id)}
+                          className="flex cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-destructive outline-hidden select-none focus:bg-destructive/10 data-disabled:opacity-50"
+                        >
+                          <Trash2 className="size-3.5" /> Elimina la reunió…
+                        </ContextMenu.Item>
+                      </ContextMenu.Content>
+                    </ContextMenu.Portal>
+                  </ContextMenu.Root>
                 ))}
               </section>
             );
