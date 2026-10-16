@@ -3,6 +3,8 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Transcriptor necessita el micròfon per transcriure la reunió. L'àudio es processa en aquest ordinador i no s'envia enlloc.</string>
+  <string>Murmur fa servir el micròfon per transcriure la reunió. L'àudio es processa en aquest Mac i no surt mai de l'ordinador.</string>
+  <key>NSAudioCaptureUsageDescription</key>
+  <string>Murmur escolta l'àudio de l'altra banda de la trucada (Zoom, Meet, Teams…) per transcriure-la. Tot es processa en aquest Mac.</string>
 </dict>
 </plist>
