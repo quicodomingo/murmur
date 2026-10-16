@@ -8,6 +8,7 @@ import { Bold, Heading1, Heading2, Heading3, Italic, List, ListChecks, ListOrder
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BlockTime } from "@/lib/notes";
+import { ResizeHandle } from "@/components/SidePanel";
 import { cn } from "@/lib/utils";
 
 /** Stamped blocks as rendered, in the same order as notesFromDoc(). */
@@ -24,10 +25,10 @@ type Props = {
   mode: "side" | "full";
   width: number;
   onResize: (width: number) => void;
-  onToggleFull: () => void;
+  /** Absent when the notes are the main panel (nothing to expand to). */
+  onToggleFull?: () => void;
 };
 
-export const NOTES_WIDTH = { default: 320, min: 260, maxRatio: 0.6 };
 
 export function NotesPanel(props: Props) {
   const { meetingId, doc, now, hoveredNote, onHoverNote, onChange, mode, width, onResize, onToggleFull } = props;
@@ -74,7 +75,7 @@ export function NotesPanel(props: Props) {
       <div className={cn("flex w-full flex-col", full && "mx-auto max-w-[760px]")}>
         <div className="flex h-11 items-center justify-between px-4">
           <h2 className="text-[13px] font-semibold">Notes</h2>
-          <Tooltip>
+          {onToggleFull && <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
@@ -86,7 +87,7 @@ export function NotesPanel(props: Props) {
               </button>
             </TooltipTrigger>
             <TooltipContent>{full ? "Mostra també la transcripció" : "Amplia les notes"}</TooltipContent>
-          </Tooltip>
+          </Tooltip>}
         </div>
         {editor && <Toolbar editor={editor} />}
       </div>
@@ -102,44 +103,6 @@ export function NotesPanel(props: Props) {
         </div>
       </div>
     </aside>
-  );
-}
-
-/** Drag the panel's left edge to resize it; double-click resets; arrow keys nudge. */
-function ResizeHandle({ width, onResize }: { width: number; onResize: (w: number) => void }) {
-  const clamp = (w: number) =>
-    Math.round(Math.min(Math.max(w, NOTES_WIDTH.min), window.innerWidth * NOTES_WIDTH.maxRatio));
-  const onPointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = width;
-    const move = (ev: PointerEvent) => onResize(clamp(startWidth + startX - ev.clientX));
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      document.body.style.cursor = "";
-    };
-    document.body.style.cursor = "col-resize";
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  };
-  return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Amplada de les notes"
-      aria-valuenow={width}
-      tabIndex={0}
-      onPointerDown={onPointerDown}
-      onDoubleClick={() => onResize(NOTES_WIDTH.default)}
-      onKeyDown={(e) => {
-        if (e.key === "ArrowLeft") onResize(clamp(width + 20));
-        if (e.key === "ArrowRight") onResize(clamp(width - 20));
-      }}
-      className="group absolute inset-y-0 -left-[3px] z-10 w-[6px] cursor-col-resize outline-none"
-    >
-      <div className="mx-auto h-full w-px bg-transparent transition-colors group-hover:bg-primary/60 group-focus-visible:bg-primary group-active:bg-primary" />
-    </div>
   );
 }
 

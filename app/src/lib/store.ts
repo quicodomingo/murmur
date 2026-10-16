@@ -4,7 +4,7 @@ import type { JSONContent } from "@tiptap/core";
 
 import * as backend from "./backend";
 import { notesFromDoc } from "./notes";
-import type { Channel, Meeting, MeetingSummary, Utterance } from "./types";
+import { SYSTEM_SPEAKER_BASE, type Assignment, type Channel, type Meeting, type MeetingSummary, type Utterance } from "./types";
 
 // In the app, meetings live in SQLite (db.rs): the sidebar loads summaries, a meeting's content
 // is loaded when opened, and edits are saved as small changes. In a plain browser (UI
@@ -22,6 +22,8 @@ export type State = {
   partial: Record<Channel, string>;
   loaded: boolean;
   jump: Jump | null;
+  /** Final passes in progress, by meeting id. */
+  finalPass: Record<string, { stage: "speakers"; estimateSeconds: number; startedAt: number }>;
 };
 
 export type Action =
@@ -40,7 +42,10 @@ export type Action =
   | { type: "reassign"; id: string; utteranceId: string; speaker: number }
   | { type: "edit"; id: string; utteranceId: string; text: string }
   | { type: "notes"; id: string; doc: JSONContent }
-  | { type: "audio"; id: string; path: string | null };
+  | { type: "audio"; id: string; path: string | null }
+  | { type: "finalPassStarted"; id: string; stage: "speakers"; estimateSeconds: number }
+  | { type: "speakersVerified"; id: string; base: number; assignments: Assignment[] }
+  | { type: "finalPassDone"; id: string };
 
 const summaryOf = (m: Meeting): MeetingSummary => ({
   id: m.id,
@@ -121,6 +126,20 @@ function reducer(state: State, action: Action): State {
         ? updateMeeting({ ...state, partial: NO_PARTIAL }, rec.id, (m) => ({ ...m, status: "done" }))
         : state;
     }
+    case "finalPassStarted":
+      return updateMeeting(
+        { ...state, finalPass: { ...state.finalPass, [action.id]: { stage: action.stage, estimateSeconds: action.estimateSeconds, startedAt: Date.now() } } },
+        action.id,
+        (m) => ({ ...m, status: "processing" }),
+      );
+    case "speakersVerified":
+      return updateMeeting(state, action.id, (m) => relabel(m, action.base, action.assignments));
+    case "finalPassDone": {
+      const { [action.id]: _done, ...finalPass } = state.finalPass;
+      return updateMeeting({ ...state, finalPass }, action.id, (m) =>
+        m.status === "processing" ? { ...m, status: "done" } : m,
+      );
+    }
     case "title":
       return updateMeeting(state, action.id, (m) => ({ ...m, title: action.title }));
     case "rename":
@@ -132,7 +151,7 @@ function reducer(state: State, action: Action): State {
       return updateMeeting(state, action.id, (m) => ({
         ...m,
         utterances: m.utterances.map((u) =>
-          u.id === action.utteranceId ? { ...u, speaker: action.speaker } : u,
+          u.id === action.utteranceId ? { ...u, speaker: action.speaker, speakerLocked: true } : u,
         ),
       }));
     case "edit":
@@ -149,6 +168,60 @@ function reducer(state: State, action: Action): State {
     case "notes":
       return updateMeeting(state, action.id, (m) => ({ ...m, notesDoc: action.doc }));
   }
+}
+
+/**
+ * Applies the final pass' speakers to the utterances of one channel (`base` 0 = mic,
+ * SYSTEM_SPEAKER_BASE = system). Every speaker of the meeting follows the verified speaker that
+ * took over most of their lines: their name moves with them, and so do the lines set by hand
+ * (`speakerLocked`), which otherwise keep their person.
+ */
+export function relabel(m: Meeting, base: number, assignments: Assignment[]): Meeting {
+  const inChannel = (speaker: number) => (base >= SYSTEM_SPEAKER_BASE ? speaker >= SYSTEM_SPEAKER_BASE : speaker < SYSTEM_SPEAKER_BASE);
+  const byStart = new Map(assignments.map((a) => [a.start.toFixed(2), a.speaker]));
+  const verified = (u: Utterance) => (!inChannel(u.speaker) || u.speakerLocked ? undefined : byStart.get(u.start.toFixed(2)));
+
+  // old speaker → new speaker → number of lines
+  const votes = new Map<number, Map<number, number>>();
+  for (const u of m.utterances) {
+    const next = verified(u);
+    if (next === undefined) continue;
+    const v = votes.get(u.speaker) ?? new Map<number, number>();
+    v.set(next, (v.get(next) ?? 0) + 1);
+    votes.set(u.speaker, v);
+  }
+  // Each old speaker maps to its majority new speaker (one old speaker per new one, strongest first).
+  const follow = new Map<number, number>();
+  const taken = new Set<number>();
+  const ranked = [...votes.entries()]
+    .flatMap(([old, v]) => [...v.entries()].map(([next, n]) => ({ old, next, n })))
+    .sort((a, b) => b.n - a.n);
+  for (const { old, next } of ranked) {
+    if (follow.has(old) || taken.has(next)) continue;
+    follow.set(old, next);
+    taken.add(next);
+  }
+  // Old speakers that lost every line (e.g. only hand-set lines left) get an unused id.
+  const ids = [...m.utterances.map((u) => u.speaker), ...assignments.map((a) => a.speaker)];
+  let fresh = Math.max(base, ...ids) + 1;
+  const verifiedIds = new Set(assignments.map((a) => a.speaker));
+  const target = (old: number) => {
+    if (!follow.has(old)) follow.set(old, taken.has(old) || verifiedIds.has(old) ? fresh++ : old);
+    taken.add(follow.get(old)!);
+    return follow.get(old)!;
+  };
+
+  const utterances = m.utterances.map((u) => {
+    if (!inChannel(u.speaker)) return u;
+    const next = u.speakerLocked ? target(u.speaker) : (verified(u) ?? target(u.speaker));
+    return next === u.speaker ? u : { ...u, speaker: next };
+  });
+  const speakerNames: Record<number, string> = {};
+  for (const [id, name] of Object.entries(m.speakerNames)) {
+    const old = Number(id);
+    speakerNames[inChannel(old) ? target(old) : old] = name;
+  }
+  return { ...m, utterances, speakerNames };
 }
 
 /** The smallest set of changes that turns `saved` into `next` (objects are compared by identity). */
@@ -181,7 +254,7 @@ function loadLocal(): Meeting[] {
   }
 }
 
-const EMPTY: State = { summaries: [], open: {}, selectedId: null, partial: NO_PARTIAL, loaded: false, jump: null };
+const EMPTY: State = { summaries: [], open: {}, selectedId: null, partial: NO_PARTIAL, loaded: false, jump: null, finalPass: {} };
 /** Status changes save right away; everything else (ticks, typing) is batched. */
 const SAVE_DELAY_MS = 1500;
 
@@ -208,8 +281,8 @@ export function useMeetings() {
         localStorage.removeItem(STORAGE_KEY);
       }
       const summaries = await backend.listMeetings();
-      // A recording can't survive an app restart (or a crash).
-      for (const s of summaries.filter((s) => s.status === "recording")) {
+      // A recording or final pass can't survive an app restart (or a crash).
+      for (const s of summaries.filter((s) => s.status !== "done")) {
         s.status = "done";
         await backend.applyChanges(s.id, { meta: { status: "done" } });
       }

@@ -6,8 +6,14 @@ export type Settings = {
   micDevice: string | null;
   system: boolean;
   saveAudio: boolean;
+  /** Folder for saved recordings; null = the app's data folder. */
+  recordingsDir: string | null;
   maxSpeakers: number;
   threshold: number;
+  /** Final pass: re-check speakers over the whole meeting after stopping (experimental). */
+  verifySpeakers: boolean;
+  /** What takes the main area; the other one goes in the side panel. */
+  primaryPanel: "transcript" | "notes";
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -15,8 +21,11 @@ export const DEFAULT_SETTINGS: Settings = {
   micDevice: null,
   system: true,
   saveAudio: false,
+  recordingsDir: null,
   maxSpeakers: 5,
   threshold: 0.65,
+  verifySpeakers: false,
+  primaryPanel: "transcript",
 };
 
 const KEY = "transcriptor.settings.v1";

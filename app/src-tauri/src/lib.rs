@@ -1,6 +1,7 @@
 pub mod aec;
 pub mod audio;
 pub mod db;
+pub mod diarize;
 pub mod engine;
 pub mod pipeline;
 pub mod recorder;
@@ -23,6 +24,8 @@ struct AppState {
     models: Mutex<Option<Arc<Models>>>,
     recording: Mutex<Option<Recording>>,
     db: Mutex<Option<db::Db>>,
+    /// Input level preview in the settings window.
+    monitor: Mutex<Option<Sender<()>>>,
 }
 
 struct Recording {
@@ -64,6 +67,8 @@ async fn start_recording(
     system: bool,
     meeting_id: String,
     save_audio: bool,
+    recordings_dir: Option<String>,
+    verify_speakers: bool,
 ) -> Result<Option<String>, String> {
     if state.recording.lock().unwrap().is_some() {
         return Err("Ja s'està gravant".into());
@@ -102,17 +107,16 @@ async fn start_recording(
     ready_rx.recv().map_err(|e| e.to_string())??;
 
     let audio_path = if save_audio {
-        let dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("recordings");
-        // The id comes from the UI: keep only safe characters for the file name.
-        let name: String = meeting_id
-            .chars()
-            .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
-            .collect();
-        Some(dir.join(format!("{name}.ogg")))
+        // The folder chosen in the settings, or the app's own data folder.
+        let dir = match recordings_dir.filter(|d| !d.is_empty()) {
+            Some(d) => std::path::PathBuf::from(d),
+            None => app
+                .path()
+                .app_data_dir()
+                .map_err(|e| e.to_string())?
+                .join("recordings"),
+        };
+        Some(dir.join(format!("{}.ogg", safe_id(&meeting_id))))
     } else {
         None
     };
@@ -123,18 +127,33 @@ async fn start_recording(
         ),
         None => None,
     };
+    // Audio of the channel whose speakers the final pass re-checks (only when it will run).
+    let tap_path = verify_speakers
+        .then(|| app.path().app_cache_dir().ok())
+        .flatten()
+        .map(|d| d.join("final-pass"))
+        .and_then(|d| std::fs::create_dir_all(&d).ok().map(|_| d))
+        .map(|d| d.join(format!("{}.pcm", safe_id(&meeting_id))));
     let stopped = Arc::new(AtomicBool::new(false));
     let stopped_worker = stopped.clone();
+    let final_pass_meeting = meeting_id.clone();
 
     let worker = std::thread::spawn(move || {
-        let mut pipeline =
-            match Pipeline::new(&models, mic, system, max_speakers, threshold, recorder) {
-                Ok(p) => p,
-                Err(e) => {
-                    let _ = app.emit("transcript-error", format!("{e:#}"));
-                    return;
-                }
-            };
+        let mut pipeline = match Pipeline::new(
+            &models,
+            mic,
+            system,
+            max_speakers,
+            threshold,
+            recorder,
+            tap_path,
+        ) {
+            Ok(p) => p,
+            Err(e) => {
+                let _ = app.emit("transcript-error", format!("{e:#}"));
+                return;
+            }
+        };
         let emit = |events: Vec<engine::Event>| {
             for event in events {
                 let _ = app.emit("transcript", event);
@@ -163,13 +182,21 @@ async fn start_recording(
             emit(pipeline.push(source, &samples));
             emit(pipeline.tick());
         }
-        match pipeline.finish() {
-            Ok(events) => emit(events),
+        let tapped = match pipeline.finish() {
+            Ok((events, tapped)) => {
+                emit(events);
+                tapped
+            }
             Err(e) => {
                 let _ = app.emit("transcript-error", format!("{e:#}"));
+                None
             }
-        }
+        };
         let _ = app.emit("transcript-done", ());
+        // Runs on its own thread so stopping returns at once; the UI shows its progress.
+        if let Some(tapped) = tapped {
+            std::thread::spawn(move || final_pass(app, final_pass_meeting, tapped, max_speakers));
+        }
     });
 
     *state.recording.lock().unwrap() = Some(Recording {
@@ -194,6 +221,87 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<(), String> {
     })
     .await
     .map_err(|e| e.to_string())
+}
+
+/// Ids come from the UI: keep only characters that are safe in a file name.
+fn safe_id(id: &str) -> String {
+    id.chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+        .collect()
+}
+
+/// ~0.035 measured on an M4 (see diarize_probe), with margin for slower Macs. Only drives the
+/// estimate shown in the UI.
+const DIARIZE_RTF_ESTIMATE: f32 = 0.06;
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FinalPassStarted {
+    meeting_id: String,
+    stage: &'static str,
+    estimate_seconds: f32,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FinalPassSpeakers {
+    meeting_id: String,
+    base: usize,
+    assignments: Vec<diarize::Assignment>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FinalPassDone {
+    meeting_id: String,
+    error: Option<String>,
+}
+
+/// After a recording: re-check who spoke when over the whole tapped channel.
+fn final_pass(app: AppHandle, meeting_id: String, tapped: pipeline::Tapped, max_speakers: usize) {
+    let result = (|| -> anyhow::Result<()> {
+        if tapped.spans.is_empty() {
+            return Ok(());
+        }
+        let samples = pipeline::read_tap(&tapped.path)?;
+        let seconds = samples.len() as f32 / SAMPLE_RATE as f32;
+        let _ = app.emit(
+            "final-pass",
+            FinalPassStarted {
+                meeting_id: meeting_id.clone(),
+                stage: "speakers",
+                estimate_seconds: seconds * DIARIZE_RTF_ESTIMATE,
+            },
+        );
+        let turns = diarize::diarize(&models_dir(), &samples, diarize::Options::default())?;
+        let mut assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
+        // More voices than the user expects: redo the clustering with their maximum.
+        if diarize::speaker_count(&assignments) > max_speakers {
+            let opts = diarize::Options {
+                num_speakers: Some(max_speakers),
+                ..Default::default()
+            };
+            let turns = diarize::diarize(&models_dir(), &samples, opts)?;
+            assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
+        }
+        let _ = app.emit(
+            "final-pass-speakers",
+            FinalPassSpeakers {
+                meeting_id: meeting_id.clone(),
+                base: tapped.base,
+                assignments,
+            },
+        );
+        Ok(())
+    })();
+    let _ = std::fs::remove_file(&tapped.path);
+    let _ = app.emit(
+        "final-pass-done",
+        FinalPassDone {
+            meeting_id,
+            error: result.err().map(|e| format!("{e:#}")),
+        },
+    );
 }
 
 /// Opens the database on first use, importing the JSON files of earlier versions.
@@ -246,17 +354,74 @@ async fn search_meetings(app: AppHandle, query: String) -> Result<Vec<db::Hit>, 
 }
 
 #[tauri::command]
-async fn delete_meeting(app: AppHandle, id: String) -> Result<(), String> {
+async fn delete_meeting(
+    app: AppHandle,
+    id: String,
+    audio_path: Option<String>,
+) -> Result<(), String> {
     with_db(&app, |db| db.delete(&id))?;
-    // Its recording too, if one was saved (same id → same file name, see start_recording).
-    let audio = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("recordings")
-        .join(format!("{id}.ogg"));
-    if id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') && audio.exists() {
-        std::fs::remove_file(audio).map_err(|e| format!("No s'ha pogut eliminar l'àudio: {e}"))?;
+    // Its recording too. Only ever an .ogg the app wrote (the path comes from the meeting).
+    if let Some(path) = audio_path.map(std::path::PathBuf::from) {
+        if path.extension().is_some_and(|e| e == "ogg") && path.exists() {
+            std::fs::remove_file(path)
+                .map_err(|e| format!("No s'ha pogut eliminar l'àudio: {e}"))?;
+        }
+    }
+    Ok(())
+}
+
+/// Shows the selected microphone's level in the settings window ("mic-level" events).
+#[tauri::command]
+async fn start_mic_monitor(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    device: Option<String>,
+) -> Result<(), String> {
+    if let Some(stop) = state.monitor.lock().unwrap().take() {
+        let _ = stop.send(());
+    }
+    let (stop_tx, stop_rx) = unbounded::<()>();
+    let (ready_tx, ready_rx) = unbounded::<Result<(), String>>();
+    std::thread::spawn(move || {
+        let (tx, rx) = unbounded::<audio::Frame>();
+        let capture = match audio::start_capture(true, device.as_deref(), false, tx) {
+            Ok(c) => {
+                let _ = ready_tx.send(Ok(()));
+                c
+            }
+            Err(e) => {
+                let _ = ready_tx.send(Err(format!("{e:#}")));
+                return;
+            }
+        };
+        let mut pending: Vec<f32> = vec![];
+        loop {
+            if stop_rx.try_recv().is_ok() {
+                break;
+            }
+            match rx.recv_timeout(Duration::from_millis(100)) {
+                Ok((_, samples)) => pending.extend(samples),
+                Err(RecvTimeoutError::Timeout) => continue,
+                Err(RecvTimeoutError::Disconnected) => break,
+            }
+            if pending.len() >= SAMPLE_RATE / 20 {
+                let rms =
+                    (pending.iter().map(|x| x * x).sum::<f32>() / pending.len() as f32).sqrt();
+                pending.clear();
+                let _ = app.emit("mic-level", Level { rms });
+            }
+        }
+        drop(capture);
+    });
+    ready_rx.recv().map_err(|e| e.to_string())??;
+    *state.monitor.lock().unwrap() = Some(stop_tx);
+    Ok(())
+}
+
+#[tauri::command]
+async fn stop_mic_monitor(state: State<'_, AppState>) -> Result<(), String> {
+    if let Some(stop) = state.monitor.lock().unwrap().take() {
+        let _ = stop.send(());
     }
     Ok(())
 }
@@ -277,6 +442,31 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .setup(|app| {
+            // The standard macOS menus (Edit gives copy/paste), plus Settings… in the app menu.
+            let menu = tauri::menu::Menu::default(app.handle())?;
+            let settings = tauri::menu::MenuItem::with_id(
+                app,
+                "settings",
+                "Configuració…",
+                true,
+                Some("CmdOrCtrl+,"),
+            )?;
+            if let Some(tauri::menu::MenuItemKind::Submenu(app_menu)) = menu.items()?.first() {
+                app_menu.insert(&settings, 1)?;
+            }
+            app.set_menu(menu)?;
+            app.on_menu_event(|app, event| {
+                if event.id() == "settings" {
+                    let _ = app.emit("open-settings", ());
+                }
+            });
+            Ok(())
+        })
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             prepare,
@@ -289,6 +479,8 @@ pub fn run() {
             search_meetings,
             delete_meeting,
             list_microphones,
+            start_mic_monitor,
+            stop_mic_monitor,
             write_export
         ])
         .run(tauri::generate_context!())

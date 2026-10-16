@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
         .get(3)
         .map(|p| Recorder::create(std::path::Path::new(p), 2))
         .transpose()?;
-    let mut pipeline = Pipeline::new(&models, true, true, 5, 0.65, recorder)?;
+    let mut pipeline = Pipeline::new(&models, true, true, 5, 0.65, recorder, None)?;
     let mut events = vec![];
     // Callbacks arrive in uneven sizes and the system stream runs slightly ahead.
     let (sys_step, mic_step) = (1024, 441);
@@ -52,7 +52,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
     }
-    events.extend(pipeline.finish()?);
+    events.extend(pipeline.finish()?.0);
     for e in events {
         if let Event::Final {
             channel,

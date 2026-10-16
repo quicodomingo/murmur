@@ -115,7 +115,10 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - Permís «Gravació de pantalla i àudio del sistema»: en dev el demana el terminal des d'on s'executa; empaquetada, la pròpia app.
   - Windows (pendent): loopback WASAPI.
 - **Desar l'àudio** (`recorder.rs`): Ogg/Opus 16 kHz; mono 16 kbps (~7 MB/h) amb una font, **estèreo 24 kbps (~11 MB/h) amb micròfon (esquerra, ja sense eco) + sistema (dreta)**. La transcripció de l'àudio descomprimit és pràcticament idèntica a l'original. Fitxer a `<app_data_dir>/recordings/<meeting_id>.ogg`. Opus es compila amb cmake (`brew install cmake`).
-- **Configuració** (`SettingsDialog.tsx`, ⌘,): Àudio (micròfon, àudio del sistema, desar l'àudio) i Transcripció (màxim de parlants, separació de veus). Es desa a `localStorage` (`transcriptor.settings.v1`) i es passa a `start_recording`.
+- **Configuració** (`SettingsDialog.tsx`; ⌘, i «Configuració…» al menú de l'app, que emet `open-settings`). Es desa a `localStorage` (`transcriptor.settings.v1`) i es passa a `start_recording`.
+  - General: obrir en iniciar la sessió (plugin autostart, LaunchAgent), panell principal (transcripció o notes: l'altre va al `SidePanel` redimensionable), calendaris (encara «no disponible»).
+  - Àudio: micròfon + dispositiu + **nivell d'entrada en directe** (`start_mic_monitor`/`stop_mic_monitor`, esdeveniment `mic-level`), àudio del sistema, desar l'àudio i **carpeta** (diàleg natiu; per defecte `<app_data_dir>/recordings`).
+  - Transcripció: màxim de parlants, separació de veus, **verificació de parlants en acabar** (desactivada per defecte).
 - **Notes** (`NotesPanel.tsx`, `lib/notes.ts`): editor Tiptap 3 (títols 1–3, negreta, cursiva, subratllat, ratllat, llistes, tasques; dreceres Markdown en escriure). Es desa com a JSON de Tiptap (`meeting.notesDoc`) perquè **cada bloc porta `attrs.t`** (minut de la reunió en què s'hi va escriure; `keepOnSplit: false`). Exportació a Markdown pròpia (`docToMarkdown`). Les marques a la transcripció surten de `notesFromDoc`.
 - **Dependència**: totes les versions 2.x de `zip` estan retirades de crates.io; `Cargo.toml` fa `[patch.crates-io]` a l'etiqueta git v2.6.1 (la demana `sherpa-onnx-sys`).
 - **Models en dev**: `models_dir()` llegeix `TRANSCRIPTOR_MODELS` o `../../models`. Pendent: directori de dades de l'app + pantalla de primera obertura amb descàrrega.
@@ -130,6 +133,12 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - **Exportació** (`lib/export.ts`): Markdown i Word (`docx`, carregat a demanda), notes primer i després la transcripció. Diàleg natiu de desar (plugin dialog) + ordre `write_export`.
   - **Eliminar** una reunió (menú del títol, confirmació nativa) esborra també el seu àudio.
 - Disseny de referència a Superdesign (`.superdesign/design-system.md`, `.superdesign/resume.json`).
+
+## Passada final: verificació de parlants (`diarize.rs`, `final_pass` a `lib.rs`)
+
+- Durant la gravació, el canal dels altres (sistema en una trucada, micròfon si no n'hi ha) es desa en PCM 16 bits a `<app_cache_dir>/final-pass/` (només si la verificació està activada).
+- En aturar, en un fil a part: diarització sherpa-onnx (segmentació pyannote 3.0 + 3D-Speaker), cada frase en directe rep el parlant que més s'hi solapa, i la UI (`relabel` a `store.ts`) reassigna: els noms i les frases fixades a mà (`speakerLocked`) segueixen la persona. Esdeveniments `final-pass`, `final-pass-speakers`, `final-pass-done`; estat de reunió `processing` amb l'avís «Verificant parlants…» (progrés estimat: la llibreria no en dona).
+- `window_shift` 0,5 és ~6× més ràpid que 0,1 (RTF 0,035 a l'M4). **El llindar encara no està ajustat**: comptar parlants enganya (1,1 donava 5 parlants a la reunió de 20 min però ajuntava gairebé tot en 3 min). Cal l'etiquetatge manual (`data/qui-parla.html` → JSON amb el parlant real de les 34 frases dels primers 6 min) per triar-lo.
 
 ## Resultats de la primera reunió real (20 min, 5 parlants)
 

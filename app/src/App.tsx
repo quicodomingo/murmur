@@ -4,7 +4,8 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { ChevronDown, Copy, FileDown, FileText, FolderOpen, Mic, PanelLeft, PanelRight, Share, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { NOTES_WIDTH, NotesPanel } from "@/components/NotesPanel";
+import { NotesPanel } from "@/components/NotesPanel";
+import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/Sidebar";
@@ -102,7 +103,7 @@ export default function App() {
   const [notes, setNotes] = useStoredState("transcriptor.notesLayout.v1", {
     visible: true,
     full: false,
-    width: NOTES_WIDTH.default,
+    width: SIDE_WIDTH.default,
   });
   const showNotes = notes.visible;
   const [hoveredNote, setHoveredNote] = useState<string | null>(null);
@@ -137,9 +138,25 @@ export default function App() {
       onLevel: setLevel,
       onDone: () => dispatch({ type: "stopped" }),
       onError: (message) => toast.error(message),
+      onFinalPass: (e) => dispatch({ type: "finalPassStarted", id: e.meetingId, stage: e.stage, estimateSeconds: e.estimateSeconds }),
+      onFinalPassSpeakers: (e) => {
+        dispatch({ type: "speakersVerified", id: e.meetingId, base: e.base, assignments: e.assignments });
+        toast("Parlants verificats");
+      },
+      onFinalPassDone: (e) => {
+        dispatch({ type: "finalPassDone", id: e.meetingId });
+        if (e.error) toast.error(`No s'han pogut verificar els parlants: ${e.error}`);
+      },
     });
     return () => void unlisten.then((u) => u());
   }, [dispatch]);
+
+  // "Configuració…" in the app menu.
+  useEffect(() => {
+    if (!backend.isTauri()) return;
+    const unlisten = backend.onOpenSettings(() => setShowSettings(true));
+    return () => void unlisten.then((u) => u());
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -168,7 +185,17 @@ export default function App() {
     dispatch({ type: "new", meeting: m });
     startedAt.current = Date.now();
     try {
-      const path = await backend.startRecording({ meetingId: m.id, ...settings });
+      const path = await backend.startRecording({
+        meetingId: m.id,
+        mic: settings.mic,
+        micDevice: settings.micDevice,
+        system: settings.system,
+        saveAudio: settings.saveAudio,
+        recordingsDir: settings.recordingsDir,
+        maxSpeakers: settings.maxSpeakers,
+        threshold: settings.threshold,
+        verifySpeakers: settings.verifySpeakers,
+      });
       if (path) dispatch({ type: "audio", id: m.id, path });
     } catch (e) {
       dispatch({ type: "stopped" });
@@ -208,7 +235,7 @@ export default function App() {
       : window.confirm(message);
     if (!confirmed) return;
     try {
-      if (backend.isTauri()) await backend.deleteMeeting(m.id);
+      if (backend.isTauri()) await backend.deleteMeeting(m.id, m.audioPath ?? null);
       forget(m.id);
       dispatch({ type: "delete", id: m.id });
     } catch (e) {
@@ -216,7 +243,39 @@ export default function App() {
     }
   };
 
-  const now = meeting?.status === "recording" ? meeting.duration : (meeting?.duration ?? 0);
+  // Settings › General › Panell principal: the other panel goes on the right.
+  const notesPrimary = settings.primaryPanel === "notes";
+  const renderTranscript = (compact: boolean) =>
+    meeting && (
+      <Transcript
+        meeting={meeting}
+        compact={compact}
+        jump={state.jump?.meetingId === meeting.id ? state.jump : null}
+        finalPass={state.finalPass[meeting.id] ?? null}
+        partial={meeting.status === "recording" ? state.partial : { mic: "", system: "" }}
+        hoveredNote={hoveredNote}
+        onHoverNote={setHoveredNote}
+        onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
+        onReassign={(utteranceId, speaker) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker })}
+        onRename={(speaker, name) => dispatch({ type: "rename", id: meeting.id, speaker, name })}
+        onEdit={(utteranceId, text) => dispatch({ type: "edit", id: meeting.id, utteranceId, text })}
+      />
+    );
+  const renderNotes = (mode: "side" | "full") =>
+    meeting && (
+      <NotesPanel
+        meetingId={meeting.id}
+        doc={notesDoc(meeting)}
+        now={meeting.duration}
+        hoveredNote={hoveredNote}
+        onHoverNote={setHoveredNote}
+        onChange={(doc) => dispatch({ type: "notes", id: meeting.id, doc })}
+        mode={mode}
+        width={notes.width}
+        onResize={(width) => setNotes((n) => ({ ...n, width }))}
+        onToggleFull={notesPrimary ? undefined : () => setNotes((n) => ({ ...n, full: !n.full }))}
+      />
+    );
 
   return (
     <TooltipProvider delayDuration={600}>
@@ -318,43 +377,29 @@ export default function App() {
               )
             )}
             {meeting && (
-              <ToolbarButton label={showNotes ? "Amaga les notes" : "Mostra les notes"} onClick={() => setNotes((n) => ({ ...n, visible: !n.visible }))} active={showNotes}>
+              <ToolbarButton label={`${showNotes ? "Amaga" : "Mostra"} ${notesPrimary ? "la transcripció" : "les notes"}`} onClick={() => setNotes((n) => ({ ...n, visible: !n.visible }))} active={showNotes}>
                 <PanelRight className="size-4" />
               </ToolbarButton>
             )}
           </header>
 
           <div className="flex min-h-0 flex-1">
-            <main className={cn("min-w-0 flex-1", meeting && showNotes && notes.full && "hidden")}>
-              {meeting ? (
-                <Transcript
-                  meeting={meeting}
-                  jump={state.jump?.meetingId === meeting.id ? state.jump : null}
-                  partial={meeting.status === "recording" ? state.partial : { mic: "", system: "" }}
-                  hoveredNote={hoveredNote}
-                  onHoverNote={setHoveredNote}
-                  onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
-                  onReassign={(utteranceId, speaker) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker })}
-                  onRename={(speaker, name) => dispatch({ type: "rename", id: meeting.id, speaker, name })}
-                  onEdit={(utteranceId, text) => dispatch({ type: "edit", id: meeting.id, utteranceId, text })}
-                />
-              ) : (
-                state.loaded && <Welcome onStart={start} busy={busy} />
-              )}
-            </main>
-            {meeting && showNotes && (
-              <NotesPanel
-                meetingId={meeting.id}
-                doc={notesDoc(meeting)}
-                now={now}
-                hoveredNote={hoveredNote}
-                onHoverNote={setHoveredNote}
-                onChange={(doc) => dispatch({ type: "notes", id: meeting.id, doc })}
-                mode={notes.full ? "full" : "side"}
-                width={notes.width}
-                onResize={(width) => setNotes((n) => ({ ...n, width }))}
-                onToggleFull={() => setNotes((n) => ({ ...n, full: !n.full }))}
-              />
+            {!meeting ? (
+              <main className="min-w-0 flex-1">{state.loaded && <Welcome onStart={start} busy={busy} />}</main>
+            ) : notesPrimary ? (
+              <>
+                {renderNotes("full")}
+                {showNotes && (
+                  <SidePanel width={notes.width} onResize={(width) => setNotes((n) => ({ ...n, width }))}>
+                    {renderTranscript(true)}
+                  </SidePanel>
+                )}
+              </>
+            ) : (
+              <>
+                <main className={cn("min-w-0 flex-1", showNotes && notes.full && "hidden")}>{renderTranscript(false)}</main>
+                {showNotes && renderNotes(notes.full ? "full" : "side")}
+              </>
             )}
           </div>
         </div>

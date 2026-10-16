@@ -76,6 +76,13 @@ pub struct Utterance {
     pub text: String,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub edited: bool,
+    /// Speaker set by hand: the final pass leaves it alone.
+    #[serde(
+        default,
+        rename = "speakerLocked",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
+    pub speaker_locked: bool,
 }
 
 /// What the sidebar needs, without loading transcripts.
@@ -152,6 +159,7 @@ impl Db {
         let conn = Connection::open(path).context("No s'ha pogut obrir la base de dades")?;
         conn.execute_batch(SCHEMA)
             .context("No s'ha pogut preparar la base de dades")?;
+        migrate(&conn).context("No s'ha pogut actualitzar la base de dades")?;
         Ok(Self { conn })
     }
 
@@ -159,6 +167,7 @@ impl Db {
     fn in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory()?;
         conn.execute_batch(SCHEMA)?;
+        migrate(&conn)?;
         Ok(Self { conn })
     }
 
@@ -215,7 +224,7 @@ impl Db {
             return Ok(None);
         };
         let mut stmt = self.conn.prepare(
-            "SELECT id, start, end, speaker, text, edited FROM utterances
+            "SELECT id, start, end, speaker, text, edited, speaker_locked FROM utterances
              WHERE meeting_id = ?1 ORDER BY start",
         )?;
         let utterances = stmt
@@ -227,6 +236,7 @@ impl Db {
                     speaker: r.get(3)?,
                     text: r.get(4)?,
                     edited: r.get::<_, i64>(5)? != 0,
+                    speaker_locked: r.get::<_, i64>(6)? != 0,
                 })
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -395,6 +405,24 @@ impl Db {
     }
 }
 
+/// Columns added after the first release, for databases created before them.
+fn migrate(conn: &Connection) -> Result<()> {
+    let has = |table: &str, column: &str| -> Result<bool> {
+        let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+        let names = stmt
+            .query_map([], |r| r.get::<_, String>(1))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(names.iter().any(|n| n == column))
+    };
+    if !has("utterances", "speaker_locked")? {
+        conn.execute(
+            "ALTER TABLE utterances ADD COLUMN speaker_locked INTEGER NOT NULL DEFAULT 0",
+            [],
+        )?;
+    }
+    Ok(())
+}
+
 fn upsert_utterance(tx: &Transaction, meeting_id: &str, u: &Utterance) -> Result<()> {
     tx.execute(
         "INSERT INTO utterances (id, meeting_id, start, end, speaker, text, edited)
@@ -521,6 +549,7 @@ mod tests {
                 speaker: 0,
                 text: "Parlem del WordPress.".into(),
                 edited: true,
+                speaker_locked: true,
             }],
             notes: Some(Notes {
                 doc: json!({"type": "doc"}),
@@ -555,6 +584,32 @@ mod tests {
         assert_eq!(db.search("tpv", 10).unwrap().len(), 1);
         assert!(!dir.exists() && root.join("meetings-json-backup/m1.json").exists());
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn opens_a_database_created_before_speaker_locked() {
+        let path =
+            std::env::temp_dir().join(format!("transcriptor-old-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        {
+            let old = Connection::open(&path).unwrap();
+            old.execute_batch(
+                "CREATE TABLE utterances (id TEXT PRIMARY KEY, meeting_id TEXT NOT NULL, start REAL NOT NULL,
+                 end REAL NOT NULL, speaker INTEGER NOT NULL, text TEXT NOT NULL, edited INTEGER NOT NULL DEFAULT 0);",
+            )
+            .unwrap();
+        }
+        let mut db = Db::open(&path).unwrap();
+        db.put(&meeting()).unwrap();
+        assert_eq!(
+            db.get("m1").unwrap().unwrap()["utterances"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        drop(db);
+        std::fs::remove_file(&path).unwrap();
     }
 
     #[test]

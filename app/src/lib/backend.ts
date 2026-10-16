@@ -3,7 +3,16 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { JSONContent } from "@tiptap/core";
 
-import type { EngineEvent, Meeting, MeetingSummary, SearchHit, Utterance } from "./types";
+import type {
+  EngineEvent,
+  FinalPassDone,
+  FinalPassSpeakers,
+  FinalPassStarted,
+  Meeting,
+  MeetingSummary,
+  SearchHit,
+  Utterance,
+} from "./types";
 
 export const isTauri = () => "__TAURI_INTERNALS__" in window;
 
@@ -15,8 +24,10 @@ export const startRecording = (opts: {
   micDevice: string | null;
   system: boolean;
   saveAudio: boolean;
+  recordingsDir: string | null;
   maxSpeakers: number;
   threshold: number;
+  verifySpeakers: boolean;
 }) => invoke<string | null>("start_recording", opts);
 
 export const stopRecording = () => invoke<void>("stop_recording");
@@ -33,7 +44,13 @@ export const getMeeting = (id: string) => invoke<Meeting | null>("get_meeting", 
 export const putMeeting = (meeting: Meeting) => invoke<void>("put_meeting", { meeting });
 export const applyChanges = (id: string, changes: Changes) => invoke<void>("apply_changes", { id, changes });
 export const searchMeetings = (query: string) => invoke<SearchHit[]>("search_meetings", { query });
-export const deleteMeeting = (id: string) => invoke<void>("delete_meeting", { id });
+export const deleteMeeting = (id: string, audioPath: string | null) =>
+  invoke<void>("delete_meeting", { id, audioPath });
+export const startMicMonitor = (device: string | null) => invoke<void>("start_mic_monitor", { device });
+export const stopMicMonitor = () => invoke<void>("stop_mic_monitor");
+export const onMicLevel = (fn: (rms: number) => void) => listen<{ rms: number }>("mic-level", (e) => fn(e.payload.rms));
+/** "Configuració…" in the app menu (⌘,). */
+export const onOpenSettings = (fn: () => void) => listen("open-settings", () => fn());
 export const listMicrophones = () => invoke<string[]>("list_microphones");
 export const writeExport = (path: string, contents: Uint8Array) =>
   invoke<void>("write_export", { path, contents: Array.from(contents) });
@@ -43,12 +60,18 @@ export async function subscribe(handlers: {
   onLevel: (rms: number) => void;
   onDone: () => void;
   onError: (message: string) => void;
+  onFinalPass: (e: FinalPassStarted) => void;
+  onFinalPassSpeakers: (e: FinalPassSpeakers) => void;
+  onFinalPassDone: (e: FinalPassDone) => void;
 }): Promise<UnlistenFn> {
   const unlisten = await Promise.all([
     listen<EngineEvent>("transcript", (e) => handlers.onEvent(e.payload)),
     listen<{ rms: number }>("level", (e) => handlers.onLevel(e.payload.rms)),
     listen("transcript-done", () => handlers.onDone()),
     listen<string>("transcript-error", (e) => handlers.onError(e.payload)),
+    listen<FinalPassStarted>("final-pass", (e) => handlers.onFinalPass(e.payload)),
+    listen<FinalPassSpeakers>("final-pass-speakers", (e) => handlers.onFinalPassSpeakers(e.payload)),
+    listen<FinalPassDone>("final-pass-done", (e) => handlers.onFinalPassDone(e.payload)),
   ]);
   return () => unlisten.forEach((u) => u());
 }

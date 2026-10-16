@@ -18,7 +18,8 @@ Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 
 En aturar la gravació, reprocessar l'àudio desat:
 
-- [ ] Diarització completa (sherpa-onnx: segmentació pyannote + embeddings) sobre el canal del sistema; el micròfon ja és «Tu».
+- [x] Verificació de parlants en acabar (infraestructura, interfície i reassignació respectant noms i canvis manuals).
+- [ ] Ajustar la verificació amb l'etiquetatge manual (`data/qui-parla.html`) i activar-la per defecte.
 - [ ] Transcripció final: decidir entre el Conformer actual o Whisper AINA (cal convertir-lo a MLX / whisper.cpp; amb faster-whisper a CPU va massa lent).
 - [ ] Puntuació i majúscules amb un LLM.
 - [ ] Resum, acords i tasques (amb responsable) amb un LLM.

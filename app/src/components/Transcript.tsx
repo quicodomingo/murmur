@@ -5,14 +5,17 @@ import { toast } from "sonner";
 import { Flag, SpeakerFlag } from "@/components/SpeakerFlag";
 import { clock, longDate, speakerIds, speakerName } from "@/lib/format";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
-import type { Jump } from "@/lib/store";
+import type { Jump, State } from "@/lib/store";
 import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type Utterance } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
   meeting: Meeting;
+  /** In the side panel (notes are the main panel): tighter layout. */
+  compact?: boolean;
   /** Scroll to (and briefly highlight) a search result. */
   jump: Jump | null;
+  finalPass: State["finalPass"][string] | null;
   partial: Record<Channel, string>;
   hoveredNote: string | null;
   onHoverNote: (id: string | null) => void;
@@ -76,12 +79,14 @@ export function Transcript(props: Props) {
         following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
       }}
     >
-      <article className="mx-auto max-w-[680px] px-10 pb-24 pt-14">
-        <TitleInput title={meeting.title} onChange={props.onTitle} />
+      <article className={cn("mx-auto max-w-[680px]", props.compact ? "pb-16 pl-8 pr-4 pt-4" : "px-10 pb-24 pt-14")}>
+        <TitleInput title={meeting.title} onChange={props.onTitle} compact={props.compact} />
         <p className="mt-1.5 text-[13px] text-muted-foreground">
           {longDate(meeting.createdAt)}
           {speakers.length > 0 && ` · ${speakers.length} ${speakers.length === 1 ? "participant" : "participants"}`}
         </p>
+
+        {props.finalPass && <FinalPassBanner {...props.finalPass} />}
 
         {meeting.utterances.length === 0 && live.length === 0 && (
           <p className="mt-12 text-[15px] text-text-secondary">
@@ -130,7 +135,7 @@ export function Transcript(props: Props) {
   );
 }
 
-function TitleInput({ title, onChange }: { title: string; onChange: (t: string) => void }) {
+function TitleInput({ title, onChange, compact }: { title: string; onChange: (t: string) => void; compact?: boolean }) {
   const [value, setValue] = useState(title);
   useEffect(() => setValue(title), [title]);
   return (
@@ -140,7 +145,7 @@ function TitleInput({ title, onChange }: { title: string; onChange: (t: string) 
       onChange={(e) => setValue(e.target.value)}
       onBlur={() => onChange(value.trim() || title)}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className="w-full bg-transparent text-[28px] font-bold tracking-[-0.01em] outline-none"
+      className={cn("w-full bg-transparent font-bold tracking-[-0.01em] outline-none", compact ? "text-[17px]" : "text-[28px]")}
     />
   );
 }
@@ -252,5 +257,36 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
       }}
       className="-mx-1.5 block w-[calc(100%+12px)] resize-none overflow-hidden rounded-md bg-transparent px-1.5 text-[15px] leading-relaxed outline-none ring-2 ring-ring"
     />
+  );
+}
+
+/**
+ * Shown while the final pass re-checks speakers. The diarizer reports no progress, so the bar
+ * follows the measured speed and waits at 95% until the pass really ends.
+ */
+function FinalPassBanner({ estimateSeconds, startedAt }: { estimateSeconds: number; startedAt: number }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const elapsed = (now - startedAt) / 1000;
+  const progress = Math.min(0.95, elapsed / Math.max(estimateSeconds, 1));
+  const left = Math.max(0, estimateSeconds - elapsed);
+  const remaining = left < 45 ? "falta poc" : `uns ${Math.round(left / 60) || 1} min`;
+  return (
+    <div role="status" className="mt-5 rounded-lg bg-muted px-3.5 py-3">
+      <div className="flex items-center gap-2 text-[13px]">
+        <span className="size-3.5 animate-spin rounded-full border-2 border-text-secondary/30 border-t-text-secondary" aria-hidden />
+        <span className="font-medium">Verificant parlants…</span>
+        <span className="text-muted-foreground">{remaining}</span>
+      </div>
+      <p className="mt-1 text-[12px] text-muted-foreground">
+        Es torna a analitzar tota la reunió per separar millor les veus. Pots continuar llegint i editant.
+      </p>
+      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10">
+        <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
+      </div>
+    </div>
   );
 }

@@ -32,6 +32,7 @@ sonora = "0.2"
 ogg = "0.9"
 tauri-plugin-dialog = "2"
 rusqlite = { version = "0.40", features = ["bundled"] }
+tauri-plugin-autostart = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 screencapturekit = "0.3.6"

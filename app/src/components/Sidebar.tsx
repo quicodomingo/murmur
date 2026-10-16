@@ -87,6 +87,8 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
                     <span className="flex-1 truncate">{m.title}</span>
                     {m.status === "recording" ? (
                       <span className="size-1.5 animate-pulse rounded-full bg-record" aria-label="En directe" />
+                    ) : m.status === "processing" ? (
+                      <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label="Verificant parlants" />
                     ) : (
                       <span className="text-[11px] tabular-nums text-text-secondary">{duration(m.duration)}</span>
                     )}
