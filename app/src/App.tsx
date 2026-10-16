@@ -256,8 +256,8 @@ export default function App() {
         hoveredNote={hoveredNote}
         onHoverNote={setHoveredNote}
         onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
-        onReassign={(utteranceId, speaker) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker })}
-        onRename={(speaker, name) => dispatch({ type: "rename", id: meeting.id, speaker, name })}
+        onReassign={(utteranceId, speaker, version) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker, version })}
+        onRename={(speaker, name, version) => dispatch({ type: "rename", id: meeting.id, speaker, name, version })}
         onEdit={(utteranceId, text) => dispatch({ type: "edit", id: meeting.id, utteranceId, text })}
       />
     );

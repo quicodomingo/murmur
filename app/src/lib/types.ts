@@ -31,6 +31,13 @@ export type Meeting = {
   /** Rich notes (Tiptap JSON); blocks carry `attrs.t`, the meeting time they were written at. */
   notesDoc?: JSONContent;
   audioPath?: string | null;
+  /**
+   * Bumped each time the final pass renumbers speakers; `speakerRemap` maps the previous numbers
+   * to the new ones, so an action started on the old numbering (a menu left open) still hits the
+   * right person.
+   */
+  speakersVersion?: number;
+  speakerRemap?: Record<number, number>;
   /** Which inputs were recorded; decides default speaker names ("Tu" for the mic in a call). */
   sources?: { mic: boolean; system: boolean };
 };

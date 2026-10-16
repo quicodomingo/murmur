@@ -38,8 +38,9 @@ export type Action =
   | { type: "tick"; duration: number }
   | { type: "stopped" }
   | { type: "title"; id: string; title: string }
-  | { type: "rename"; id: string; speaker: number; name: string }
-  | { type: "reassign"; id: string; utteranceId: string; speaker: number }
+  /** `version`: the meeting's `speakersVersion` the user saw when they started the action. */
+  | { type: "rename"; id: string; speaker: number; name: string; version: number }
+  | { type: "reassign"; id: string; utteranceId: string; speaker: number; version: number }
   | { type: "edit"; id: string; utteranceId: string; text: string }
   | { type: "notes"; id: string; doc: JSONContent }
   | { type: "audio"; id: string; path: string | null }
@@ -72,7 +73,7 @@ const NO_PARTIAL: Record<Channel, string> = { mic: "", system: "" };
 
 const recording = (state: State) => Object.values(state.open).find((m) => m.status === "recording");
 
-function reducer(state: State, action: Action): State {
+export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "loaded":
       return {
@@ -145,13 +146,15 @@ function reducer(state: State, action: Action): State {
     case "rename":
       return updateMeeting(state, action.id, (m) => ({
         ...m,
-        speakerNames: { ...m.speakerNames, [action.speaker]: action.name },
+        speakerNames: { ...m.speakerNames, [currentSpeaker(m, action.speaker, action.version)]: action.name },
       }));
     case "reassign":
       return updateMeeting(state, action.id, (m) => ({
         ...m,
         utterances: m.utterances.map((u) =>
-          u.id === action.utteranceId ? { ...u, speaker: action.speaker, speakerLocked: true } : u,
+          u.id === action.utteranceId
+            ? { ...u, speaker: currentSpeaker(m, action.speaker, action.version), speakerLocked: true }
+            : u,
         ),
       }));
     case "edit":
@@ -221,7 +224,17 @@ export function relabel(m: Meeting, base: number, assignments: Assignment[]): Me
     const old = Number(id);
     speakerNames[inChannel(old) ? target(old) : old] = name;
   }
-  return { ...m, utterances, speakerNames };
+  // Every old number of this channel → its new number (for actions started before this point).
+  const speakerRemap: Record<number, number> = {};
+  for (const old of new Set([...m.utterances.map((u) => u.speaker), ...Object.keys(m.speakerNames).map(Number)])) {
+    if (inChannel(old)) speakerRemap[old] = target(old);
+  }
+  return { ...m, utterances, speakerNames, speakersVersion: (m.speakersVersion ?? 0) + 1, speakerRemap };
+}
+
+/** A speaker number chosen on an older numbering, translated to the current one. */
+function currentSpeaker(m: Meeting, speaker: number, version: number): number {
+  return version < (m.speakersVersion ?? 0) ? (m.speakerRemap?.[speaker] ?? speaker) : speaker;
 }
 
 /** The smallest set of changes that turns `saved` into `next` (objects are compared by identity). */

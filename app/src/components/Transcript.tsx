@@ -20,8 +20,8 @@ type Props = {
   hoveredNote: string | null;
   onHoverNote: (id: string | null) => void;
   onTitle: (title: string) => void;
-  onReassign: (utteranceId: string, speaker: number) => void;
-  onRename: (speaker: number, name: string) => void;
+  onReassign: (utteranceId: string, speaker: number, version: number) => void;
+  onRename: (speaker: number, name: string, version: number) => void;
   onEdit: (utteranceId: string, text: string) => void;
 };
 
@@ -108,7 +108,8 @@ export function Transcript(props: Props) {
                 <SpeakerFlag
                   speaker={u.speaker}
                   speakers={speakers}
-                  onReassign={(s) => props.onReassign(u.id, s)}
+                  version={meeting.speakersVersion ?? 0}
+                  onReassign={(s, version) => props.onReassign(u.id, s, version)}
                   onRename={props.onRename}
                 />
               }

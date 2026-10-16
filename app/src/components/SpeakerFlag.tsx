@@ -32,23 +32,26 @@ export function Flag({ speaker, name, className }: { speaker: number; name: stri
 type Props = {
   speaker: number;
   speakers: { id: number; name: string }[];
-  onReassign: (speaker: number) => void;
-  onRename: (speaker: number, name: string) => void;
+  /** The meeting's speakersVersion: sent with every action so a stale menu is translated. */
+  version: number;
+  onReassign: (speaker: number, version: number) => void;
+  onRename: (speaker: number, name: string, version: number) => void;
 };
 
 /** Speaker flag that opens a native-style menu to reassign the utterance or rename the speaker. */
-export function SpeakerFlag({ speaker, speakers, onReassign, onRename }: Props) {
+export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename }: Props) {
   const name = speakers.find((s) => s.id === speaker)?.name ?? `Parlant ${speaker + 1}`;
-  const [renaming, setRenaming] = useState<number | null>(null);
+  // The numbering version is captured when renaming starts: the final pass may renumber meanwhile.
+  const [renaming, setRenaming] = useState<{ id: number; version: number } | null>(null);
 
   if (renaming !== null) {
-    const current = speakers.find((s) => s.id === renaming)?.name ?? `Parlant ${renaming + 1}`;
+    const current = speakers.find((s) => s.id === renaming.id)?.name ?? `Parlant ${renaming.id + 1}`;
     return (
       <RenameInput
-        speaker={renaming}
+        speaker={renaming.id}
         initial={current}
         onDone={(value) => {
-          if (value && value !== current) onRename(renaming, value);
+          if (value && value !== current) onRename(renaming.id, value, renaming.version);
           setRenaming(null);
         }}
       />
@@ -65,21 +68,21 @@ export function SpeakerFlag({ speaker, speakers, onReassign, onRename }: Props) 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-56">
         {speakers.map((s) => (
-          <DropdownMenuItem key={s.id} onSelect={() => s.id !== speaker && onReassign(s.id)}>
+          <DropdownMenuItem key={s.id} onSelect={() => s.id !== speaker && onReassign(s.id, version)}>
             <span className="size-2 rounded-full" style={{ background: speakerColor(s.id) }} />
             <span className="flex-1">{s.name}</span>
             {s.id === speaker && <Check className="size-3.5" />}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => setRenaming(speaker)}>
+        <DropdownMenuItem onSelect={() => setRenaming({ id: speaker, version })}>
           <Pencil className="size-3.5" />
           Reanomena «{name}»…
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => {
-            onReassign(nextId);
-            setRenaming(nextId);
+            onReassign(nextId, version);
+            setRenaming({ id: nextId, version });
           }}
         >
           <Plus className="size-3.5" />
