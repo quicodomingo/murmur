@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/app": {
+      "targetKind": "new-target",
+      "projectId": "59bdb2fe-823d-4c6b-aef2-d6b4f5b4e7d5",
+      "activeDraftId": "5f6a442f-c93b-4e2a-9aea-8ea9ebeedbf3",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        ".superdesign/design-system.md"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "667aabef8cae48f812d69a1a7c6cd8d5e0868aa6a126a45b6fdc0f438db25662"
+      },
+      "components": [],
+      "drafts": {
+        "c04b7060-fe03-44c9-ae61-8e96f45d8d96": {
+          "title": "Gravació en directe",
+          "visualDirection": "technical minimalist (paper + forest, Space Grotesk / General Sans / JetBrains Mono)",
+          "model": "gemini-3.1-pro",
+          "currentVersion": 1,
+          "status": "rejected by user (too 'AI slop', not native)"
+        },
+        "5f6a442f-c93b-4e2a-9aea-8ea9ebeedbf3": {
+          "title": "Gravació en directe — nativa + notes",
+          "visualDirection": "native macOS document app (system font, blue accent, speaker name flags)",
+          "model": "claude-sonnet-5",
+          "currentVersion": 3
+        },
+        "a552eeec-dd8f-46a4-acc5-32fde7008d92": {
+          "title": "Revisió després de la reunió",
+          "model": "claude-sonnet-5",
+          "currentVersion": 1,
+          "source": "execute-flow-pages from 5f6a442f"
+        },
+        "205d329d-8b99-4f61-ba45-6dcaac3ab891": {
+          "title": "Configuració — Calendaris",
+          "model": "claude-sonnet-5",
+          "currentVersion": 1,
+          "source": "execute-flow-pages from 5f6a442f"
+        }
+      },
+      "referenceIds": [
+        "876f64b7-4458-4fc5-9cfa-4ec1d0eff61c"
+      ]
+    }
+  }
+}
