@@ -68,7 +68,8 @@ Entre reunions (bloc 5):
 - [x] Pantalles de primera obertura (`Onboarding.tsx`, disseny a `docs/design`): benvinguda, quatre passos amb il·lustracions reals, i descàrrega dels models amb progrés, represa i «Continua en segon pla». Surten el primer cop i sempre que falti el model de transcripció.
 - [x] **Permisos**: Murmur els demana com les altres apps (diàleg del micròfon, avís de macOS per a l'àudio del sistema) i Configuració › Àudio › Permisos en mostra l'estat.
 - [x] Models a la carpeta de dades de l'app (`<app data>/models`) quan no hi ha la carpeta `models/` del projecte.
-- [ ] **Publicar els models convertits** (Conformer per a sherpa-onnx, ~500 MB, CC BY 4.0 d'AINA; puntuació de Softcatalà, llicència per aclarir). Fins llavors, en un Mac nou el model de transcripció no es pot descarregar.
+- [x] Conformer per a sherpa-onnx publicat a [huggingface.co/quicodomingo/murmur-models](https://huggingface.co/quicodomingo/murmur-models) (CC BY 4.0, atribució a AINA; fp32 i int8). Prova: descàrrega completa en una carpeta buida (585 MB, 21 s) i transcripció idèntica a la dels models del projecte.
+- [ ] Puntuació de Softcatalà: guardada al repositori privat `quicodomingo/murmur-punctuation`. Preguntar-los la llicència; si la permet, fer-lo públic i posar-ne les URL a `models.rs`.
 - [ ] Decidir si es baixa el Conformer en int8 (228 MB en total en lloc de 585 MB): mesurar-ne la qualitat amb la referència manual.
 - [ ] Comprovació d'espai lliure abans de descarregar, i verificació (hash) dels fitxers.
 - [ ] Calendaris a la primera obertura (opcional).

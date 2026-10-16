@@ -28,17 +28,23 @@ pub struct OptionalModel {
     pub required: bool,
 }
 
-/// Live and final transcription: the AINA Conformer exported for sherpa-onnx
-/// (tools/export_conformer_sherpa.py, still to be published), voice activity and speakers.
+/// Our export of the AINA Conformer for sherpa-onnx (tools/export_conformer_sherpa.py), published
+/// with its CC BY 4.0 licence at huggingface.co/quicodomingo/murmur-models.
+const CONFORMER_URL_ENCODER: &str = "https://huggingface.co/quicodomingo/murmur-models/resolve/main/conformer-ca-es-sherpa/encoder.onnx";
+const CONFORMER_URL_DECODER: &str = "https://huggingface.co/quicodomingo/murmur-models/resolve/main/conformer-ca-es-sherpa/decoder.onnx";
+const CONFORMER_URL_JOINER: &str = "https://huggingface.co/quicodomingo/murmur-models/resolve/main/conformer-ca-es-sherpa/joiner.onnx";
+const CONFORMER_URL_TOKENS: &str = "https://huggingface.co/quicodomingo/murmur-models/resolve/main/conformer-ca-es-sherpa/tokens.txt";
+
+/// Live and final transcription: the AINA Conformer, voice activity and speakers.
 pub const TRANSCRIPTION: OptionalModel = OptionalModel {
     id: "transcription",
     dir: "",
     required: true,
     files: &[
-        ModelFile { name: "conformer-ca-es-sherpa/encoder.onnx", url: None, bytes: 481_422_175 },
-        ModelFile { name: "conformer-ca-es-sherpa/decoder.onnx", url: None, bytes: 13_787_005 },
-        ModelFile { name: "conformer-ca-es-sherpa/joiner.onnx", url: None, bytes: 3_614_881 },
-        ModelFile { name: "conformer-ca-es-sherpa/tokens.txt", url: None, bytes: 1_955 },
+        ModelFile { name: "conformer-ca-es-sherpa/encoder.onnx", url: Some(CONFORMER_URL_ENCODER), bytes: 481_422_175 },
+        ModelFile { name: "conformer-ca-es-sherpa/decoder.onnx", url: Some(CONFORMER_URL_DECODER), bytes: 13_787_005 },
+        ModelFile { name: "conformer-ca-es-sherpa/joiner.onnx", url: Some(CONFORMER_URL_JOINER), bytes: 3_614_881 },
+        ModelFile { name: "conformer-ca-es-sherpa/tokens.txt", url: Some(CONFORMER_URL_TOKENS), bytes: 1_955 },
         ModelFile {
             name: "silero_vad.onnx",
             url: Some("https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx"),
@@ -68,7 +74,8 @@ pub const PUNCTUATION: OptionalModel = OptionalModel {
     id: "punctuation",
     dir: "punct-ca",
     required: false,
-    // Converted with tools/export_punctuation.py; still to be published somewhere to download from.
+    // Converted with tools/export_punctuation.py. Kept in a private repo (quicodomingo/murmur-punctuation)
+    // until Softcatalà confirms its licence, so the app can't download it yet.
     files: &[
         ModelFile { name: "model.int8.onnx", url: None, bytes: 126_172_226 },
         ModelFile { name: "tokenizer.json", url: None, bytes: 2_296_937 },
