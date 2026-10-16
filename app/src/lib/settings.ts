@@ -15,6 +15,8 @@ export type Settings = {
   recordingsDir: string | null;
   maxSpeakers: number;
   threshold: number;
+  /** In a call, more than one person speaks into the microphone (otherwise it's just "Tu"). */
+  roomSpeakers: boolean;
   /** Final pass: re-check speakers over the whole meeting after stopping (experimental). */
   verifySpeakers: boolean;
   /** What takes the main area; the other one goes in the side panel. */
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // Tuned for TitaNet on a hand-labelled meeting (see engine.rs embedding_model).
   threshold: 0.7,
   verifySpeakers: true,
+  roomSpeakers: false,
   primaryPanel: "transcript",
   // Both need a download, so they're off until the user turns them on.
   punctuate: false,

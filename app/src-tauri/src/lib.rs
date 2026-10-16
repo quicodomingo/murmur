@@ -83,6 +83,7 @@ async fn start_recording(
     save_audio: bool,
     recordings_dir: Option<String>,
     verify_speakers: bool,
+    room_speakers: bool,
 ) -> Result<Option<String>, String> {
     if state.recording.lock().unwrap().is_some() {
         return Err("Ja s'està gravant".into());
@@ -169,6 +170,10 @@ async fn start_recording(
                 return;
             }
         };
+        // A call with nobody else in the room: the microphone is only the user.
+        if mic && system && !room_speakers {
+            pipeline.single_mic_speaker();
+        }
         let emit = |events: Vec<engine::Event>| {
             for event in events {
                 let _ = app.emit("transcript", event);

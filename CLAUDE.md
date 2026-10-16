@@ -158,6 +158,8 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - **Comptar parlants enganya**: finestra 0,5 / llindar 1,1 donava «5 parlants» però ajuntava gairebé tot.
   - 10 de 34 frases són «Diverses persones»: el VAD talla per silencis, no per canvis de parlant. Pendent: partir frases als canvis de torn de la verificació.
   - Una sola reunió: tornar a validar amb més reunions etiquetades (`examples/label_dump` + `data/qui-parla.html`).
+- **Trucades** (micròfon + sistema): el micròfon és una sola persona («Tu») tret que l'usuari activi «Hi ha més gent amb mi a la sala». Abans, la teva veu passada per l'AEC es partia en diversos «Sala N».
+- Una frase només pot crear un parlant nou si dura ≥ 2 s (`TRANSCRIPTOR_NEW_SPEAKER_S`): a la reunió etiquetada, 1–2,5 s donen el mateix 88%; 3 s baixa al 75%.
 - Temps: RTF 0,116 a l'M4 base (~7 min per hora de reunió). Verificació **activada per defecte** (migració de la configuració v2).
 - Experiments: `TRANSCRIPTOR_EMBEDDING` (directe), `TRANSCRIPTOR_DIARIZE_EMBEDDING` (verificació), `TRANSCRIPTOR_NO_PARTIALS`.
 

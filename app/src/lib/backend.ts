@@ -34,6 +34,7 @@ export const startRecording = (opts: {
   maxSpeakers: number;
   threshold: number;
   verifySpeakers: boolean;
+  roomSpeakers: boolean;
 }) => invoke<string | null>("start_recording", opts);
 
 export const stopRecording = () => invoke<void>("stop_recording");

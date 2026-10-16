@@ -269,6 +269,7 @@ export default function App() {
         maxSpeakers: settings.maxSpeakers,
         threshold: settings.threshold,
         verifySpeakers: settings.verifySpeakers,
+        roomSpeakers: settings.roomSpeakers,
       });
       if (path) dispatch({ type: "audio", id: m.id, path });
     } catch (e) {

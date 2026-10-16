@@ -18,6 +18,13 @@ const VAD_WINDOW: usize = 512;
 const PARTIAL_EVERY_S: f32 = 0.6;
 /// Shorter utterances can't create or update speakers (their embeddings are too noisy).
 const MIN_EMBED_S: f32 = 1.0;
+
+/// Shortest utterance that may start a new speaker (shorter ones join the closest one): short
+/// phrases, above all on calls, have the least reliable voice prints. On the hand-labelled
+/// meeting 1–2.5 s score the same (88%), 3 s drops to 75%. `TRANSCRIPTOR_NEW_SPEAKER_S` overrides it.
+fn new_speaker_min_s() -> f32 {
+    std::env::var("TRANSCRIPTOR_NEW_SPEAKER_S").ok().and_then(|v| v.parse().ok()).unwrap_or(2.0)
+}
 /// Audio kept before the VAD fires, so partials don't miss the first syllable.
 const PREROLL_S: f32 = 0.4;
 const MAX_SPEECH_S: f32 = 15.0;
@@ -159,7 +166,7 @@ impl SpeakerClusters {
             if best_sim < self.threshold {
                 best = self.last;
             }
-        } else if best_sim >= self.threshold || self.sums.len() >= self.max_speakers {
+        } else if best_sim >= self.threshold || self.sums.len() >= self.max_speakers || duration < new_speaker_min_s() {
             add_into(&mut self.sums[best], &emb);
         } else {
             self.sums.push(emb);
@@ -219,6 +226,11 @@ pub struct LiveSession<'m> {
 }
 
 impl<'m> LiveSession<'m> {
+    /// Caps how many speakers this channel can tell apart (1: everything is the same person).
+    pub fn set_max_speakers(&mut self, max: usize) {
+        self.speakers.max_speakers = max.max(1);
+    }
+
     pub fn new(
         models: &'m Models,
         channel: Channel,

@@ -395,6 +395,12 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
   return (
     <>
       <Group title="Parlants en directe">
+        <Row
+          label="Hi ha més gent amb mi a la sala"
+          hint="En una trucada, tot el que entra pel micròfon és «Tu». Activa-ho si sou més d'una persona davant del mateix ordinador."
+        >
+          <Switch checked={settings.roomSpeakers} onCheckedChange={(roomSpeakers) => onChange({ roomSpeakers })} />
+        </Row>
         <Row label="Nombre màxim de parlants">
           <input
             type="number"

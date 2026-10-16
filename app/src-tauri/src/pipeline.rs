@@ -94,6 +94,14 @@ pub struct Pipeline<'m> {
 }
 
 impl<'m> Pipeline<'m> {
+    /// In a call the microphone is usually just the user: one speaker, "Tu". Without this, short
+    /// phrases through echo cancellation get split into several made-up people.
+    pub fn single_mic_speaker(&mut self) {
+        if let Some(mic) = self.mic.as_mut() {
+            mic.set_max_speakers(1);
+        }
+    }
+
     pub fn new(
         models: &'m Models,
         mic: bool,
