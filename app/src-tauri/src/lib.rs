@@ -4,18 +4,20 @@ pub mod db;
 pub mod diarize;
 pub mod engine;
 pub mod llm;
+pub mod models;
 pub mod punctuate;
 pub mod pipeline;
 pub mod recorder;
 pub mod storage;
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
 use crossbeam_channel::{RecvTimeoutError, Sender, unbounded};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use engine::{Models, SAMPLE_RATE, models_dir};
@@ -28,6 +30,13 @@ struct AppState {
     db: Mutex<Option<db::Db>>,
     /// Input level preview in the settings window.
     monitor: Mutex<Option<Sender<()>>>,
+    /// Optional models: loaded on first use, dropped when deleted (the LLM also after each job).
+    llm: Mutex<Option<Arc<llm::Llm>>>,
+    /// One LLM job at a time: two would need twice the memory.
+    llm_job: Mutex<()>,
+    punctuator: Mutex<Option<punctuate::Punctuator>>,
+    /// Downloads in progress, by model id, with their cancel flag.
+    downloads: Mutex<HashMap<String, Arc<AtomicBool>>>,
 }
 
 struct Recording {
@@ -196,8 +205,19 @@ async fn start_recording(
         };
         let _ = app.emit("transcript-done", ());
         // Runs on its own thread so stopping returns at once; the UI shows its progress.
-        if let Some(tapped) = tapped {
-            std::thread::spawn(move || final_pass(app, final_pass_meeting, tapped, max_speakers));
+        // Without it, "final-pass-done" still follows so the UI can go on (punctuation, cover).
+        match tapped {
+            Some(tapped) => {
+                std::thread::spawn(move || {
+                    final_pass(app, final_pass_meeting, tapped, max_speakers)
+                });
+            }
+            None => {
+                let _ = app.emit(
+                    "final-pass-done",
+                    FinalPassDone { meeting_id: final_pass_meeting, error: None },
+                );
+            }
         }
     });
 
@@ -304,6 +324,206 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: pipeline::Tapped, max_
             error: result.err().map(|e| format!("{e:#}")),
         },
     );
+}
+
+// --- Optional models ---------------------------------------------------------------------
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DownloadProgress {
+    id: String,
+    done: u64,
+    total: u64,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DownloadDone {
+    id: String,
+    error: Option<String>,
+    cancelled: bool,
+}
+
+#[tauri::command]
+async fn model_status() -> Vec<models::Status> {
+    let root = models_dir();
+    models::ALL.iter().map(|m| m.status(&root)).collect()
+}
+
+/// Starts downloading a model; "model-download" reports progress, "model-download-done" the end.
+#[tauri::command]
+async fn download_model(app: AppHandle, state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let model = models::find(&id).map_err(|e| e.to_string())?;
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut downloads = state.downloads.lock().unwrap();
+        if downloads.contains_key(&id) {
+            return Ok(());
+        }
+        downloads.insert(id.clone(), cancel.clone());
+    }
+    std::thread::spawn(move || {
+        let result = model.download(&models_dir(), &cancel, |done, total| {
+            let _ = app.emit("model-download", DownloadProgress { id: id.clone(), done, total });
+        });
+        app.state::<AppState>().downloads.lock().unwrap().remove(&id);
+        let cancelled = cancel.load(Ordering::Relaxed);
+        let error = result.err().filter(|_| !cancelled).map(|e| format!("{e:#}"));
+        let _ = app.emit("model-download-done", DownloadDone { id, error, cancelled });
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn cancel_model_download(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    if let Some(cancel) = state.downloads.lock().unwrap().get(&id) {
+        cancel.store(true, Ordering::Relaxed);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_model(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let model = models::find(&id).map_err(|e| e.to_string())?;
+    if state.downloads.lock().unwrap().contains_key(&id) {
+        return Err("Primer atura la descàrrega".into());
+    }
+    match model.id {
+        "llm" => {
+            let _job = state.llm_job.lock().unwrap();
+            *state.llm.lock().unwrap() = None;
+        }
+        _ => *state.punctuator.lock().unwrap() = None,
+    }
+    model.delete(&models_dir()).map_err(|e| format!("{e:#}"))
+}
+
+/// Punctuates consecutive utterances (`punctuate.rs`); returns their new text.
+#[tauri::command]
+async fn punctuate(app: AppHandle, texts: Vec<String>, speakers: Vec<i32>) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let mut slot = state.punctuator.lock().unwrap();
+        if slot.is_none() {
+            let dir = models::PUNCTUATION.path(&models_dir());
+            *slot = Some(punctuate::Punctuator::load(&dir).map_err(|e| format!("{e:#}"))?);
+        }
+        slot.as_mut().unwrap().punctuate(&texts, &speakers).map_err(|e| format!("{e:#}"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LlmTask {
+    id: String,
+    prompt: String,
+    max_tokens: usize,
+    /// JSON schema the answer must follow.
+    schema: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LlmResult {
+    id: String,
+    text: Option<String>,
+    error: Option<String>,
+    seconds: f32,
+    tokens: usize,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LlmProgress {
+    job: String,
+    /// "loading", "reading", or the id of the task being answered.
+    step: String,
+    done: usize,
+    total: usize,
+    /// Seconds spent reading the document (once known).
+    read_seconds: Option<f32>,
+}
+
+/// Reads `document` once and answers each task about it ("llm-progress" events along the way).
+/// The model stays loaded with `keep_loaded` (trying out prompts); otherwise it's freed at the end.
+#[tauri::command]
+async fn run_llm(
+    app: AppHandle,
+    job: String,
+    system: String,
+    document: String,
+    tasks: Vec<LlmTask>,
+    keep_loaded: bool,
+) -> Result<Vec<LlmResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _job = state.llm_job.lock().unwrap();
+        let progress = |step: &str, done: usize, read_seconds: Option<f32>| {
+            let _ = app.emit(
+                "llm-progress",
+                LlmProgress { job: job.clone(), step: step.into(), done, total: tasks.len(), read_seconds },
+            );
+        };
+        let loaded = state.llm.lock().unwrap().clone();
+        let llm = match loaded {
+            Some(llm) => llm,
+            None => {
+                progress("loading", 0, None);
+                let path = models::LLM.file(&models_dir(), 0);
+                let llm = Arc::new(llm::Llm::load(&path).map_err(|e| format!("{e:#}"))?);
+                *state.llm.lock().unwrap() = Some(llm.clone());
+                llm
+            }
+        };
+        progress("reading", 0, None);
+        let results = (|| -> Result<Vec<LlmResult>, String> {
+            let mut session = llm.session(&system, &document).map_err(|e| format!("{e:#}"))?;
+            let read = Some(session.read_seconds);
+            let mut results = Vec::with_capacity(tasks.len());
+            for (i, task) in tasks.iter().enumerate() {
+                progress(&task.id, i, read);
+                let answer = session.ask(&task.prompt, task.max_tokens, task.schema.as_deref());
+                results.push(match answer {
+                    Ok(a) => LlmResult {
+                        id: task.id.clone(),
+                        text: Some(a.text),
+                        error: None,
+                        seconds: a.seconds,
+                        tokens: a.generated_tokens,
+                    },
+                    Err(e) => LlmResult {
+                        id: task.id.clone(),
+                        text: None,
+                        error: Some(format!("{e:#}")),
+                        seconds: 0.0,
+                        tokens: 0,
+                    },
+                });
+            }
+            progress("done", tasks.len(), read);
+            Ok(results)
+        })();
+        if !keep_loaded {
+            *state.llm.lock().unwrap() = None;
+        }
+        results
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Frees the language model (closing the prompt editor).
+#[tauri::command]
+async fn release_llm(app: AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _job = state.llm_job.lock().unwrap();
+        *state.llm.lock().unwrap() = None;
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Opens the database on first use, importing the JSON files of earlier versions.
@@ -483,7 +703,14 @@ pub fn run() {
             list_microphones,
             start_mic_monitor,
             stop_mic_monitor,
-            write_export
+            write_export,
+            model_status,
+            download_model,
+            cancel_model_download,
+            delete_model,
+            punctuate,
+            run_llm,
+            release_llm
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

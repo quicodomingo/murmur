@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS meetings (
     sources       TEXT,
     audio_path    TEXT,
     notes_doc     TEXT,
-    legacy_notes  TEXT
+    legacy_notes  TEXT,
+    cover         TEXT
 );
 
 CREATE TABLE IF NOT EXISTS utterances (
@@ -106,6 +107,14 @@ pub struct MetaPatch {
     pub speaker_names: Option<Value>,
     pub sources: Option<Value>,
     pub audio_path: Option<Option<String>>,
+    /// The generated cover (title, summary, tasks…); null removes it.
+    #[serde(default, deserialize_with = "present")]
+    pub cover: Option<Value>,
+}
+
+/// A field that was sent, even as null (plain `Option` would read null as absent).
+fn present<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<Value>, D::Error> {
+    Value::deserialize(d).map(Some)
 }
 
 /// A stamped notes block, extracted by the UI (`notesFromDoc`) so notes are searchable.
@@ -200,7 +209,7 @@ impl Db {
             .conn
             .query_row(
                 "SELECT id, title, created_at, duration, status, speaker_names, sources, audio_path,
-                        notes_doc, legacy_notes
+                        notes_doc, legacy_notes, cover
                  FROM meetings WHERE id = ?1",
                 [id],
                 |r| {
@@ -216,6 +225,7 @@ impl Db {
                         "audioPath": r.get::<_, Option<String>>(7)?,
                         "notesDoc": parse(r.get(8)?),
                         "notes": parse(r.get(9)?).unwrap_or(json!([])),
+                        "cover": parse(r.get(10)?),
                     }))
                 },
             )
@@ -260,8 +270,8 @@ impl Db {
         };
         tx.execute(
             "INSERT INTO meetings (id, title, created_at, duration, status, speaker_names, sources,
-                                   audio_path, notes_doc, legacy_notes)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                                   audio_path, notes_doc, legacy_notes, cover)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 id,
                 meeting
@@ -285,6 +295,7 @@ impl Db {
                 meeting.get("audioPath").and_then(Value::as_str),
                 text("notesDoc"),
                 text("notes"),
+                text("cover"),
             ],
         )?;
         let utterances: Vec<Utterance> =
@@ -348,6 +359,12 @@ impl Db {
                 tx.execute(
                     "UPDATE meetings SET sources = ?2 WHERE id = ?1",
                     params![id, v.to_string()],
+                )?;
+            }
+            if let Some(v) = meta.cover {
+                tx.execute(
+                    "UPDATE meetings SET cover = ?2 WHERE id = ?1",
+                    params![id, (!v.is_null()).then(|| v.to_string())],
                 )?;
             }
             if let Some(v) = meta.audio_path {
@@ -419,6 +436,9 @@ fn migrate(conn: &Connection) -> Result<()> {
             "ALTER TABLE utterances ADD COLUMN speaker_locked INTEGER NOT NULL DEFAULT 0",
             [],
         )?;
+    }
+    if !has("meetings", "cover")? {
+        conn.execute("ALTER TABLE meetings ADD COLUMN cover TEXT", [])?;
     }
     Ok(())
 }
@@ -511,6 +531,23 @@ mod tests {
         assert_eq!(m["speakerNames"]["0"], "Marta");
         assert_eq!(m["utterances"].as_array().unwrap().len(), 2);
         assert_eq!(db.list().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn cover_is_saved_and_removed() {
+        let mut db = Db::in_memory().unwrap();
+        db.put(&meeting()).unwrap();
+        assert!(db.get("m1").unwrap().unwrap()["cover"].is_null());
+        let set = |cover: Value| Changes {
+            meta: Some(MetaPatch { cover: Some(cover), ..Default::default() }),
+            ..Default::default()
+        };
+        db.apply("m1", set(json!({"summary": "Resum"}))).unwrap();
+        assert_eq!(db.get("m1").unwrap().unwrap()["cover"]["summary"], "Resum");
+        let clear: Changes = serde_json::from_value(json!({"meta": {"cover": null}})).unwrap();
+        assert_eq!(clear.meta.as_ref().unwrap().cover, Some(Value::Null));
+        db.apply("m1", clear).unwrap();
+        assert!(db.get("m1").unwrap().unwrap()["cover"].is_null());
     }
 
     #[test]
