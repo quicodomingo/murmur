@@ -64,6 +64,16 @@ export const onRecordRequest = (fn: (start: boolean) => void) =>
   Promise.all([listen("start-recording", () => fn(true)), listen("stop-recording", () => fn(false))]).then(
     (u) => () => u.forEach((f) => f()),
   );
+/** macOS privacy permissions (permissions.rs). */
+export type Access = "undetermined" | "granted" | "denied";
+export type Permissions = { microphone: Access; systemAudio: boolean };
+export const permissionStatus = () => invoke<Permissions>("permission_status");
+/** Shows the system's microphone dialog (only the first time) and resolves with the answer. */
+export const requestMicrophone = () => invoke<Access>("request_microphone");
+/** The first time, macOS adds Murmur to "Gravació de pantalla i àudio del sistema" and shows a prompt. */
+export const requestSystemAudio = () => invoke<boolean>("request_system_audio");
+export const openPrivacySettings = (pane: "microphone" | "systemAudio") => invoke<void>("open_privacy_settings", { pane });
+
 /** "Reunió detectada": offer to record when another app starts using the microphone. */
 export const setMeetingDetection = (enabled: boolean) => invoke<void>("set_meeting_detection", { enabled });
 export const listMicrophones = () => invoke<string[]>("list_microphones");

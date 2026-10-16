@@ -7,6 +7,7 @@ pub mod llm;
 pub mod micwatch;
 pub mod models;
 pub mod punctuate;
+pub mod permissions;
 pub mod pipeline;
 pub mod recorder;
 pub mod shell;
@@ -738,7 +739,11 @@ pub fn run() {
             shell::current_toast,
             shell::dismiss_toast,
             shell::toast_start,
-            shell::set_meeting_detection
+            shell::set_meeting_detection,
+            permissions::permission_status,
+            permissions::request_microphone,
+            permissions::request_system_audio,
+            permissions::open_privacy_settings
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

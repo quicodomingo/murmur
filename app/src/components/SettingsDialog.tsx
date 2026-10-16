@@ -10,6 +10,7 @@ import { THEMES, type Theme } from "@/lib/appearance";
 import * as backend from "@/lib/backend";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
+import { askSystemAudio, systemAudioAsked } from "@/lib/permissions";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
 import type { LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -235,6 +236,7 @@ function AudioTab({ open, settings, onChange, recording }: { open: boolean; sett
 
   return (
     <>
+      <PermissionsGroup open={open} />
       <Group title="Fonts d'àudio">
         <Row label="Micròfon" hint="La teva veu i la de la sala. En una trucada, apareix com a «Tu».">
           <Switch checked={settings.mic} onCheckedChange={(mic) => onChange({ mic })} />
@@ -289,6 +291,71 @@ function AudioTab({ open, settings, onChange, recording }: { open: boolean; sett
         </Row>
       </Group>
     </>
+  );
+}
+
+/** What macOS lets Murmur record, with the way to fix it right there. */
+function PermissionsGroup({ open }: { open: boolean }) {
+  const [status, setStatus] = useState<backend.Permissions | null>(null);
+  const refresh = () => {
+    if (backend.isTauri()) backend.permissionStatus().then(setStatus).catch(() => {});
+  };
+  useEffect(() => {
+    if (!open) return;
+    refresh();
+    // Coming back from System Settings.
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [open]);
+  if (!status) return null;
+
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted";
+  const granted = (
+    <span className="flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
+      <Check className="size-3.5" aria-hidden /> Permès
+    </span>
+  );
+  return (
+    <Group title="Permisos">
+      <Row
+        label="Micròfon"
+        hint={
+          status.microphone === "denied"
+            ? "Denegat. Activa Murmur a Configuració del Sistema › Privadesa i seguretat › Micròfon."
+            : status.microphone === "undetermined"
+              ? "Encara no l'has permès. macOS t'ho preguntarà."
+              : undefined
+        }
+      >
+        {status.microphone === "granted" ? (
+          granted
+        ) : status.microphone === "undetermined" ? (
+          <button type="button" className={button} onClick={() => backend.requestMicrophone().then(refresh)}>
+            Permet…
+          </button>
+        ) : (
+          <button type="button" className={button} onClick={() => backend.openPrivacySettings("microphone")}>
+            Obre Configuració
+          </button>
+        )}
+      </Row>
+      <Row
+        label="Gravació de pantalla i àudio del sistema"
+        hint={
+          status.systemAudio
+            ? "Per sentir l'altra banda de les trucades. Murmur només en fa servir l'àudio."
+            : "Per sentir l'altra banda de les trucades. Després d'activar-lo, cal tornar a obrir Murmur."
+        }
+      >
+        {status.systemAudio ? (
+          granted
+        ) : (
+          <button type="button" className={button} onClick={() => askSystemAudio().then(refresh)}>
+            {systemAudioAsked() ? "Obre Configuració" : "Permet…"}
+          </button>
+        )}
+      </Row>
+    </Group>
   );
 }
 

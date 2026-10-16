@@ -5454,11 +5454,14 @@ name = "transcriptor"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "block2",
  "core-media-rs",
  "cpal",
  "crossbeam-channel",
  "llama-cpp-2",
  "log",
+ "objc2",
+ "objc2-foundation",
  "ogg",
  "opus",
  "ort",

@@ -19,6 +19,7 @@ import * as backend from "@/lib/backend";
 import { clock, duration, toMarkdown } from "@/lib/format";
 import { exportMeeting, type ExportFormat } from "@/lib/export";
 import { useModels } from "@/lib/models";
+import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
 import { useSettings } from "@/lib/settings";
 import { notesDoc } from "@/lib/notes";
@@ -205,16 +206,22 @@ export default function App() {
       return;
     }
     setBusy(true);
-    const m = newMeeting({ mic: settings.mic, system: settings.system });
+    // Ask for the microphone and system audio like other apps do; record what's allowed.
+    const sources = await ensurePermissions({ mic: settings.mic, system: settings.system }).catch(() => ({ mic: settings.mic, system: settings.system }));
+    if (!sources) {
+      setBusy(false);
+      return;
+    }
+    const m = newMeeting(sources);
     dispatch({ type: "new", meeting: m });
     post.planRecording(m.id, settings.verifySpeakers);
     startedAt.current = Date.now();
     try {
       const path = await backend.startRecording({
         meetingId: m.id,
-        mic: settings.mic,
+        mic: sources.mic,
         micDevice: settings.micDevice,
-        system: settings.system,
+        system: sources.system,
         saveAudio: settings.saveAudio,
         recordingsDir: settings.recordingsDir,
         maxSpeakers: settings.maxSpeakers,
