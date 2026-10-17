@@ -99,7 +99,7 @@ Icona de 104 pt, logotip, versió, una frase que explica que tot es processa en 
 Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16, ombra suau, `toastBackground`). Tenen un botó rodó de tancar a la cantonada superior esquerra.
 - **Comença d'aquí a 2 minuts:** icona de calendari, títol de la reunió · hora · plataforma. Depèn del calendari connectat.
 - **Reunió detectada:** punt vermell amb halo, "*App* fa servir el micròfon".
-- Un sol botó, sempre **Comença a gravar**, amb la icona petita, `accent` / `onAccent`. Sense desplegable.
+- Un sol botó, sempre **Comença a gravar**, amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable. No el logotip: les seves dues barres semblen un botó de pausa.
 - A sota, una barra de compte enrere de 3 pt (`toastProgress` sobre `toastBorder`); quan s'acaba, l'avís desapareix sol.
 
 ### Onboarding

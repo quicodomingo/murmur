@@ -46,11 +46,13 @@ type Props = {
   onReassign: (speaker: number, version: number) => void;
   onRename: (speaker: number, name: string, version: number) => void;
   /** Guests of the calendar event: picking one names this speaker after them. */
-  guests?: string[];
+  guests?: string[] | null;
 };
 
 /** Speaker flag that opens a native-style menu to reassign the utterance or rename the speaker. */
-export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, guests = [] }: Props) {
+export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, guests: invited }: Props) {
+  // Meetings saved before calendars had no guests (null from the database).
+  const guests = invited ?? [];
   const name = speakers.find((s) => s.id === speaker)?.name ?? `Parlant ${speaker + 1}`;
   // The numbering version is captured when renaming starts: the final pass may renumber meanwhile.
   const [renaming, setRenaming] = useState<{ id: number; version: number } | null>(null);

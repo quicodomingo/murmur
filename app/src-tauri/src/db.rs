@@ -229,7 +229,7 @@ impl Db {
                         "notesDoc": parse(r.get(8)?),
                         "notes": parse(r.get(9)?).unwrap_or(json!([])),
                         "cover": parse(r.get(10)?),
-                        "guests": parse(r.get(11)?),
+                        "guests": parse(r.get(11)?).unwrap_or(json!([])),
                     }))
                 },
             )

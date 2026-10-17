@@ -3,8 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { CalendarDays, X } from "lucide-react";
 
-import { LogoIcon } from "@/components/Logo";
-
 /** What Rust shows in the floating alert (shell.rs `Toast`). */
 type Toast = { kind: "detected" | "calendar"; title: string; subtitle: string; start: number | null; seconds: number; id: number };
 
@@ -89,7 +87,8 @@ export function ToastWindow() {
             onClick={() => invoke("toast_start")}
             className="flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-mm-accent pl-2.5 pr-3.5 text-[14px] font-semibold text-mm-on-accent hover:opacity-90"
           >
-            <LogoIcon size={20} />
+            {/* A record dot: the logo's two bars read as "pause" on a button. */}
+            <span className="size-3 rounded-full bg-mm-recording-dot" aria-hidden />
             Comença a gravar
           </button>
         </div>

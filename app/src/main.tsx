@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import App from "./App";
+import { ErrorScreen } from "./components/ErrorScreen";
 import { ToastWindow } from "./components/ToastWindow";
 import "./index.css";
 import { initAppearance } from "./lib/appearance";
@@ -24,5 +25,13 @@ const isToast = "__TAURI_INTERNALS__" in window && getCurrentWindow().label === 
 if (isToast) document.documentElement.classList.add("toast-window");
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>{isToast ? <ToastWindow /> : <App />}</React.StrictMode>,
+  <React.StrictMode>
+    {isToast ? (
+      <ToastWindow />
+    ) : (
+      <ErrorScreen>
+        <App />
+      </ErrorScreen>
+    )}
+  </React.StrictMode>,
 );
