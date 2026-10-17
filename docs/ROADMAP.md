@@ -94,6 +94,7 @@ Entre reunions (bloc 5):
 - [x] Identitat de Murmur (`docs/design/`): tres temes (Negre i àcid, Monocrom, Formigó i vermell) amb mode clar i fosc, Configuració › Aparença, barra lateral, píndola de gravació, etiquetes de parlant, Quant a, icona de l'app.
 - [x] Icona a la barra de menús (repòs, reunió a prop, gravant) i avís flotant «Reunió detectada» quan una altra app comença a fer servir el micròfon (CoreAudio, macOS 14.2+).
 - [ ] Icona del Dock segons el tema (opcional al disseny).
+- [ ] Diarització en directe per finestres (pyannote 5 s cada 1 s + TitaNet): prototip a `examples/window_diarize.rs`, 96% a la sala i 2 grups a Meet (ara 88% i 5). Validar amb més reunions etiquetades i integrar-la al motor.
 - [ ] Afinar la separació de parlants en directe (TitaNet, llindar 0,7). A les trucades de Meet l'altra banda es parteix: cap llindar ni model provat va bé alhora a la sala i a la trucada.
 
 ## 6. Més endavant

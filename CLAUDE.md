@@ -162,6 +162,15 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
 - **Trucades** (micròfon + sistema): el micròfon és una sola persona («Tu») tret que l'usuari activi «Hi ha més gent amb mi a la sala». Abans, la teva veu passada per l'AEC es partia en diversos «Sala N».
 - **Parlants petits** (`absorb_small_speakers`): a la verificació, un parlant amb menys de 10 s de veu en tota la reunió s'uneix al parlant gran amb la veu més semblant (3D-Speaker). En una trucada de Meet amb una sola persona a l'altra banda (~35 s de veu), la verificació era fràgil: desplaçant l'àudio 0,05–1,7 s sortien d'1 a 4 grups; amb la regla, sempre 1. A la reunió etiquetada, el grup real més petit té 16 s i el resultat no canvia (96%, també desplaçada 0,7 s).
 - En directe, l'altra banda d'una trucada de Meet es pot partir igualment: amb TitaNet la mateixa persona s'assembla entre 0,4 i 0,7 (llindar 0,7), i cap llindar ni model (3D-Speaker) va bé alhora a la sala i a la trucada. Comprimir la sala a Opus no l'empitjora: és el so de Meet, no el códec. Tampoc ajuda fusionar parlants en directe. Ho arregla la verificació en aturar.
+- **Prototip de diarització en directe per finestres** (`examples/window_diarize.rs`, `diarize::Diarizer`): cada `hop` segons, pyannote sobre els últims `window` segons; cada parlant local s'enllaça amb un de global si la veu mitjana s'hi assembla (≥ llindar), o en crea un de nou si té prou veu a la finestra. La frase rep el parlant quan una finestra la cobreix (retard mitjà 0,5 s amb hop 1 s).
+  | Configuració (finestra, hop, llindar, veu mínima) | Sala: encerts / F1 | Meet (1 persona): grups | RTF |
+  |---|---|---|---|
+  | Directe actual (TitaNet 0,7) | 88% / 0,77 | 5 | baix |
+  | 3D-Speaker 5 s, 1 s, 0,6, 2 s | 79% / 0,75 | 1 | 0,12 |
+  | 3D-Speaker 20 s, 5 s, 0,6 | 50% / 0,47 | 1 | 0,29 |
+  | **TitaNet 5 s, 1 s, 0,65, 3 s** | **96% / 0,91** | 2 | 0,08 |
+  | TitaNet 5 s, 1 s, 0,63–0,67, 2,5–3,5 s | 92–96% / 0,86–0,91 | 2 | 0,08 |
+  - Finestres de 20 s ajunten persones diferents; finestra de 6 s ja empitjora (79%). Només una reunió de sala i una trucada: validar amb més dades abans d'integrar-ho.
 - Una frase només pot crear un parlant nou si dura ≥ 2 s (`TRANSCRIPTOR_NEW_SPEAKER_S`): a la reunió etiquetada, 1–2,5 s donen el mateix 88%; 3 s baixa al 75%.
 - Temps: RTF 0,116 a l'M4 base (~7 min per hora de reunió). Verificació **activada per defecte** (migració de la configuració v2).
 - Experiments: `TRANSCRIPTOR_EMBEDDING` (directe), `TRANSCRIPTOR_DIARIZE_EMBEDDING` (verificació), `TRANSCRIPTOR_NO_PARTIALS`.

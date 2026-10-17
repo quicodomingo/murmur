@@ -69,49 +69,65 @@ impl Default for Options {
 }
 
 pub fn diarize(models: &Path, samples: &[f32], opts: Options) -> Result<Vec<Turn>> {
-    let path = |p: &str| -> Result<String> {
-        let full = models.join(p);
-        if !full.exists() {
-            return Err(anyhow!("Falta el model {}", full.display()));
-        }
-        Ok(full.to_string_lossy().into_owned())
-    };
-    let threads = std::thread::available_parallelism().map_or(4, |n| n.get().min(8)) as i32;
-    let config = OfflineSpeakerDiarizationConfig {
-        segmentation: OfflineSpeakerSegmentationModelConfig {
-            pyannote: OfflineSpeakerSegmentationPyannoteModelConfig {
-                model: Some(path("sherpa-onnx-pyannote-segmentation-3-0/model.onnx")?),
-                window_shift_ratio: opts.window_shift,
+    Diarizer::new(models, opts)?.run(samples)
+}
+
+/// The loaded models, to diarize several pieces of audio (e.g. windows of a live recording).
+pub struct Diarizer {
+    sd: OfflineSpeakerDiarization,
+}
+
+impl Diarizer {
+    pub fn new(models: &Path, opts: Options) -> Result<Self> {
+        let path = |p: &str| -> Result<String> {
+            let full = models.join(p);
+            if !full.exists() {
+                return Err(anyhow!("Falta el model {}", full.display()));
+            }
+            Ok(full.to_string_lossy().into_owned())
+        };
+        let threads = std::thread::available_parallelism().map_or(4, |n| n.get().min(8)) as i32;
+        let config = OfflineSpeakerDiarizationConfig {
+            segmentation: OfflineSpeakerSegmentationModelConfig {
+                pyannote: OfflineSpeakerSegmentationPyannoteModelConfig {
+                    model: Some(path("sherpa-onnx-pyannote-segmentation-3-0/model.onnx")?),
+                    window_shift_ratio: opts.window_shift,
+                },
+                num_threads: threads,
+                ..Default::default()
             },
-            num_threads: threads,
+            embedding: SpeakerEmbeddingExtractorConfig {
+                model: Some(path(&embedding_model())?),
+                num_threads: threads,
+                ..Default::default()
+            },
+            clustering: FastClusteringConfig {
+                num_clusters: opts.num_speakers.map_or(-1, |n| n as i32),
+                threshold: opts.threshold,
+                ..Default::default()
+            },
             ..Default::default()
-        },
-        embedding: SpeakerEmbeddingExtractorConfig {
-            model: Some(path(&embedding_model())?),
-            num_threads: threads,
-            ..Default::default()
-        },
-        clustering: FastClusteringConfig {
-            num_clusters: opts.num_speakers.map_or(-1, |n| n as i32),
-            threshold: opts.threshold,
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-    let sd = OfflineSpeakerDiarization::create(&config)
-        .context("No s'ha pogut carregar el model de parlants")?;
-    let result = sd
-        .process(samples)
-        .ok_or_else(|| anyhow!("La verificació de parlants ha fallat"))?;
-    Ok(result
-        .sort_by_start_time()
-        .into_iter()
-        .map(|s| Turn {
-            start: s.start,
-            end: s.end,
-            speaker: s.speaker as usize,
-        })
-        .collect())
+        };
+        let sd = OfflineSpeakerDiarization::create(&config)
+            .context("No s'ha pogut carregar el model de parlants")?;
+        Ok(Self { sd })
+    }
+
+    pub fn run(&self, samples: &[f32]) -> Result<Vec<Turn>> {
+        let result = self
+            .sd
+            .process(samples)
+            .ok_or_else(|| anyhow!("La verificació de parlants ha fallat"))?;
+        Ok(result
+            .sort_by_start_time()
+            .into_iter()
+            .map(|s| Turn {
+                start: s.start,
+                end: s.end,
+                speaker: s.speaker as usize,
+            })
+            .collect())
+    }
 }
 
 /// Speakers that actually got utterances.
