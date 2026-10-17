@@ -95,6 +95,9 @@ Icona de 104 pt, logotip, versió, una frase que explica que tot es processa en 
 - **Reunió a prop** (`MenuBarAlertTemplate`): barres plenes i un punt. `isTemplate = true`.
 - **Gravant** (`MenuBarRecording`): barres plenes i punt vermell. `isTemplate = false`, perquè el vermell s'ha de veure.
 
+### Indicador de gravació
+Mentre es grava, una píndola vertical a la vora dreta de la pantalla (finestra pròpia, transparent, sempre al davant, a tots els escriptoris). Fons `recordingPill`, amplada 40, radi 20: punt `recordingDot` que parpelleja, les dues barres de nivell `recordingLevel` (com a la píndola de gravació) i un botó rodó d'aturar. El punt i les barres tornen a obrir Murmur. S'arrossega per les vores i recorda on la deixes. Es pot desactivar a Configuració › General › Avisos.
+
 ### Avisos (toasts)
 Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16, ombra suau, `toastBackground`). Tenen un botó rodó de tancar a la cantonada superior esquerra.
 - **Comença d'aquí a 2 minuts:** icona de calendari, títol de la reunió · hora · plataforma. Depèn del calendari connectat.

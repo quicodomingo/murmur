@@ -206,6 +206,10 @@ export default function App() {
   }, [settings.detectMeetings]);
 
   useEffect(() => {
+    if (backend.isTauri()) backend.setIndicator(settings.recordingIndicator).catch(() => {});
+  }, [settings.recordingIndicator]);
+
+  useEffect(() => {
     if (!backend.isTauri()) return;
     backend
       .setCalendarWatch({ enabled: settings.calendarAlerts, calendarIds: settings.calendarIds, includeNoGuests: settings.calendarNoGuests })

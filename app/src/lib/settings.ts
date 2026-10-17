@@ -29,6 +29,8 @@ export type Settings = {
   prompts: Record<string, string>;
   /** Offer to record when another app starts using the microphone (meeting detection). */
   detectMeetings: boolean;
+  /** A pill on the right edge of the screen while recording (open Murmur, stop). */
+  recordingIndicator: boolean;
   /** "Comença d'aquí a 2 minuts" for meetings in the calendar (once access is granted). */
   calendarAlerts: boolean;
   /** Calendars to watch; null = all of them. */
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   summarize: false,
   prompts: {},
   detectMeetings: true,
+  recordingIndicator: true,
   calendarAlerts: true,
   calendarIds: null,
   calendarNoGuests: false,

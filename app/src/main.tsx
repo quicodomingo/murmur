@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import App from "./App";
 import { ErrorScreen } from "./components/ErrorScreen";
+import { IndicatorWindow } from "./components/IndicatorWindow";
 import { ToastWindow } from "./components/ToastWindow";
 import "./index.css";
 import { initAppearance } from "./lib/appearance";
@@ -20,14 +21,21 @@ if (!import.meta.env.DEV) {
   });
 }
 
-// The same page also runs the floating alert window (shell.rs), transparent around its card.
-const isToast = "__TAURI_INTERNALS__" in window && getCurrentWindow().label === "toast";
-if (isToast) document.documentElement.classList.add("toast-window");
+// The same page also runs the floating alert and the recording indicator (shell.rs), both
+// transparent around their content.
+// In a browser during development, "?window=indicator" or "?window=toast" shows that window on its own.
+const devLabel = import.meta.env.DEV ? new URLSearchParams(location.search).get("window") : null;
+const label = "__TAURI_INTERNALS__" in window ? getCurrentWindow().label : (devLabel ?? "main");
+const isToast = label === "toast";
+const isIndicator = label === "indicator";
+if (isToast || isIndicator) document.documentElement.classList.add("toast-window");
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     {isToast ? (
       <ToastWindow />
+    ) : isIndicator ? (
+      <IndicatorWindow />
     ) : (
       <ErrorScreen>
         <App />

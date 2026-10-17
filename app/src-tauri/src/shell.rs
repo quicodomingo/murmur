@@ -1,5 +1,5 @@
 //! Murmur outside its main window: the menu bar icon (idle, meeting nearby, recording), the
-//! floating alert ("Reunió detectada", "Comença d'aquí a 2 minuts"), the watcher that notices
+//! recording indicator on the right edge of the screen, the floating alert ("Reunió detectada", "Comença d'aquí a 2 minuts"), the watcher that notices
 //! other apps using the mic and the one that looks for upcoming meetings in the calendar.
 
 use std::collections::HashSet;
@@ -22,6 +22,8 @@ const TRAY_RECORDING: &[u8] = include_bytes!("../icons/menubar/MenuBarRecording@
 
 /// The alert window: a 470 pt card plus room for its close button and shadow.
 const TOAST_SIZE: (f64, f64) = (512.0, 120.0);
+/// The recording indicator: a 40 × 112 pt pill plus room for its shadow.
+const INDICATOR_SIZE: (f64, f64) = (60.0, 132.0);
 /// Seconds an alert stays before going away on its own.
 const TOAST_SECONDS: u32 = 20;
 /// The calendar alert shows this long before a meeting starts (and up to a minute after).
@@ -50,6 +52,10 @@ pub struct Shell {
     toast: Mutex<Option<Toast>>,
     recording: AtomicBool,
     detect: AtomicBool,
+    /// Show the recording indicator while recording (Settings › General).
+    indicator: AtomicBool,
+    /// The indicator was placed once: later recordings keep where the user dragged it.
+    indicator_placed: AtomicBool,
     /// Apps whose alert was closed: not shown again until they stop using the microphone.
     dismissed: Mutex<HashSet<String>>,
     next_id: Mutex<u64>,
@@ -119,7 +125,49 @@ pub fn set_recording(app: &AppHandle, recording: bool) {
     if recording {
         hide_toast(app);
     }
+    show_indicator(app, recording && shell(app).indicator.load(Ordering::Relaxed));
     refresh_tray(app);
+}
+
+/// The pill on the right edge of the screen while recording: open Murmur or stop.
+fn show_indicator(app: &AppHandle, visible: bool) {
+    let Some(w) = app.get_webview_window("indicator") else { return };
+    if !visible {
+        let _ = w.hide();
+        return;
+    }
+    // First time: middle of the right edge of the main screen.
+    if !shell(app).indicator_placed.swap(true, Ordering::Relaxed) {
+        if let Ok(Some(monitor)) = w.primary_monitor() {
+            let scale = monitor.scale_factor();
+            let size = monitor.size().to_logical::<f64>(scale);
+            let origin = monitor.position().to_logical::<f64>(scale);
+            let _ = w.set_position(LogicalPosition::new(
+                origin.x + size.width - INDICATOR_SIZE.0 - 2.0,
+                origin.y + (size.height - INDICATOR_SIZE.1) / 2.0,
+            ));
+        }
+    }
+    let _ = w.show();
+}
+
+/// Settings › General › "Indicador de gravació".
+#[tauri::command]
+pub fn set_indicator(app: AppHandle, enabled: bool) {
+    shell(&app).indicator.store(enabled, Ordering::Relaxed);
+    show_indicator(&app, enabled && shell(&app).recording.load(Ordering::Relaxed));
+}
+
+/// The indicator's pill: bring Murmur back.
+#[tauri::command]
+pub fn indicator_open(app: AppHandle) {
+    show_main(&app);
+}
+
+/// The indicator's stop button: the main window stops the recording.
+#[tauri::command]
+pub fn indicator_stop(app: AppHandle) {
+    let _ = app.emit_to("main", "stop-recording", ());
 }
 
 fn show_toast(app: &AppHandle, kind: &'static str, title: String, subtitle: String, start: Option<f64>, seconds: u32) {
@@ -262,6 +310,22 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
         .visible_on_all_workspaces(true)
         .skip_taskbar(true)
         .focused(false)
+        .visible(false)
+        .build()?;
+
+    // The recording indicator: like the alert, transparent and above everything.
+    WebviewWindowBuilder::new(handle, "indicator", WebviewUrl::App("index.html".into()))
+        .title("Murmur")
+        .inner_size(INDICATOR_SIZE.0, INDICATOR_SIZE.1)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .resizable(false)
+        .always_on_top(true)
+        .visible_on_all_workspaces(true)
+        .skip_taskbar(true)
+        .focused(false)
+        .accept_first_mouse(true)
         .visible(false)
         .build()?;
 

@@ -97,6 +97,8 @@ export const calendarEvents = (from: number, to: number, calendarIds: string[] |
 export const setCalendarWatch = (watch: { enabled: boolean; calendarIds: string[] | null; includeNoGuests: boolean }) =>
   invoke<void>("set_calendar_watch", { watch });
 
+/** The pill on the right edge of the screen while recording. */
+export const setIndicator = (enabled: boolean) => invoke<void>("set_indicator", { enabled });
 /** "Reunió detectada": offer to record when another app starts using the microphone. */
 export const setMeetingDetection = (enabled: boolean) => invoke<void>("set_meeting_detection", { enabled });
 /** The system print panel for this window (the cover; index.css hides the rest on paper). */
