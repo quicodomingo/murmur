@@ -44,7 +44,8 @@ export const DEFAULT_SETTINGS: Settings = {
   threshold: 0.7,
   verifySpeakers: true,
   roomSpeakers: false,
-  primaryPanel: "transcript",
+  // Notes in the middle, transcript on the right (v3).
+  primaryPanel: "notes",
   // Both need a download, so they're off until the user turns them on.
   punctuate: false,
   summarize: false,
@@ -54,7 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY = "transcriptor.settings.v1";
 
-const VERSION = 2;
+const VERSION = 3;
 
 /** Settings saved by older versions: move untouched old defaults to the new ones. */
 function migrate(s: Settings & { version?: number }): Settings {
@@ -63,6 +64,10 @@ function migrate(s: Settings & { version?: number }): Settings {
     // speaker check is tuned, so it's on by default.
     if (s.threshold === 0.65) s.threshold = DEFAULT_SETTINGS.threshold;
     s.verifySpeakers = true;
+  }
+  if ((s.version ?? 1) < 3) {
+    // v3: notes are the main panel by default.
+    s.primaryPanel = "notes";
   }
   return { ...s, version: VERSION } as Settings;
 }

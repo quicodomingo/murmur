@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, StickyNote } from "lucide-react";
+import { ArrowDown, Copy, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
 import { Flag, isYou, SpeakerFlag } from "@/components/SpeakerFlag";
@@ -40,9 +40,12 @@ export function Transcript(props: Props) {
   const live = (Object.entries(partial) as [Channel, string][]).filter(([, text]) => text);
   const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id), you: isYou(meeting, id) }));
   const anchors = noteAnchors(meeting);
-  const bottom = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  // Follow the live text until the user scrolls up; "Torna al directe" brings it back.
   const following = useRef(true);
+  const [detached, setDetached] = useState(false);
+  /** A scroll we started (smooth): ignore its intermediate positions. */
+  const programmatic = useRef(false);
   const recording = meeting.status === "recording";
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -56,6 +59,7 @@ export function Transcript(props: Props) {
       meeting.utterances[0];
     if (!target) return;
     following.current = false;
+    setDetached(true);
     requestAnimationFrame(() =>
       scroller.current?.querySelector(`[data-utterance-id="${target.id}"]`)?.scrollIntoView({ block: "center" }),
     );
@@ -67,71 +71,100 @@ export function Transcript(props: Props) {
   }, [props.jump?.nonce, meeting.utterances.length > 0]);
 
   useEffect(() => {
-    if (recording && following.current) bottom.current?.scrollIntoView({ block: "end" });
+    const el = scroller.current;
+    if (recording && following.current && el) el.scrollTop = el.scrollHeight;
   }, [meeting.utterances.length, partial.mic, partial.system, recording]);
 
+  const backToLive = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    programmatic.current = !reduce;
+    following.current = true;
+    setDetached(false);
+    el.scrollTo({ top: el.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+  };
+
   return (
-    <div
-      ref={scroller}
-      className="h-full overflow-y-auto"
-      onScroll={(e) => {
-        const el = e.currentTarget;
-        following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-      }}
-    >
-      <article className={cn("mx-auto max-w-[680px]", props.compact ? "pb-16 pl-8 pr-4 pt-4" : "px-10 pb-24 pt-14")}>
-        <TitleInput title={meeting.title} onChange={props.onTitle} compact={props.compact} />
-        <p className="mt-1.5 text-[13px] text-muted-foreground">
-          {longDate(meeting.createdAt)}
-          {speakers.length > 0 && ` · ${speakers.length} ${speakers.length === 1 ? "participant" : "participants"}`}
-        </p>
-
-        {props.finalPass && <FinalPassBanner {...props.finalPass} />}
-
-        {meeting.utterances.length === 0 && live.length === 0 && (
-          <p className="mt-12 text-[15px] text-text-secondary">
-            {recording ? "Escoltant… La transcripció apareixerà aquí quan algú parli." : "Aquesta reunió no té transcripció."}
+    <div className="relative h-full">
+      <div
+        ref={scroller}
+        className="h-full overflow-y-auto"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+          if (programmatic.current) {
+            if (atBottom) programmatic.current = false;
+            return;
+          }
+          following.current = atBottom;
+          setDetached(!atBottom);
+        }}
+        onWheel={() => (programmatic.current = false)}
+      >
+        <article className={cn("mx-auto max-w-[680px]", props.compact ? "pb-16 pl-8 pr-4 pt-4" : "px-10 pb-24 pt-14")}>
+          <TitleInput title={meeting.title} onChange={props.onTitle} compact={props.compact} />
+          <p className="mt-1.5 text-[13px] text-muted-foreground">
+            {longDate(meeting.createdAt)}
+            {speakers.length > 0 && ` · ${speakers.length} ${speakers.length === 1 ? "participant" : "participants"}`}
           </p>
-        )}
 
-        <div className="mt-10 flex flex-col gap-1">
-          {meeting.utterances.map((u, i) => (
-            <UtteranceRow
-              key={u.id}
-              utterance={u}
-              flash={flash === u.id}
-              showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker}
-              notes={anchors.get(u.id) ?? []}
-              hoveredNote={props.hoveredNote}
-              onHoverNote={props.onHoverNote}
-              flag={
-                <SpeakerFlag
-                  speaker={u.speaker}
-                  speakers={speakers}
-                  version={meeting.speakersVersion ?? 0}
-                  onReassign={(s, version) => props.onReassign(u.id, s, version)}
-                  onRename={props.onRename}
-                />
-              }
-              onEdit={(text) => props.onEdit(u.id, text)}
-            />
-          ))}
+          {props.finalPass && <FinalPassBanner {...props.finalPass} />}
 
-          {live.map(([channel, text]) => {
-            const speaker = channel === "mic" ? 0 : SYSTEM_SPEAKER_BASE;
-            return (
-              <div key={channel} className="mt-3 px-3">
-                <Flag speaker={speaker} you={channel === "mic" && isYou(meeting, 0)} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
-                <p className="mt-1 text-[16px] leading-[1.65] text-muted-foreground" aria-live="off">
-                  {text}
-                  <span className="mm-caret ml-0.5 inline-block h-[18px] w-[2px] translate-y-[3px] bg-mm-caret" />
-                </p>
-              </div>
-            );
-          })}
-          <div ref={bottom} />
-        </div>
-      </article>
+          {meeting.utterances.length === 0 && live.length === 0 && (
+            <p className="mt-12 text-[15px] text-text-secondary">
+              {recording ? "Escoltant… La transcripció apareixerà aquí quan algú parli." : "Aquesta reunió no té transcripció."}
+            </p>
+          )}
+
+          <div className="mt-10 flex flex-col gap-1">
+            {meeting.utterances.map((u, i) => (
+              <UtteranceRow
+                key={u.id}
+                utterance={u}
+                flash={flash === u.id}
+                showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker}
+                notes={anchors.get(u.id) ?? []}
+                hoveredNote={props.hoveredNote}
+                onHoverNote={props.onHoverNote}
+                flag={
+                  <SpeakerFlag
+                    speaker={u.speaker}
+                    speakers={speakers}
+                    version={meeting.speakersVersion ?? 0}
+                    onReassign={(s, version) => props.onReassign(u.id, s, version)}
+                    onRename={props.onRename}
+                  />
+                }
+                onEdit={(text) => props.onEdit(u.id, text)}
+              />
+            ))}
+
+            {live.map(([channel, text]) => {
+              const speaker = channel === "mic" ? 0 : SYSTEM_SPEAKER_BASE;
+              return (
+                <div key={channel} className="mt-3 px-3">
+                  <Flag speaker={speaker} you={channel === "mic" && isYou(meeting, 0)} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
+                  <p className="mt-1 text-[16px] leading-[1.65] text-muted-foreground" aria-live="off">
+                    {text}
+                    <span className="mm-caret ml-0.5 inline-block h-[18px] w-[2px] translate-y-[3px] bg-mm-caret" />
+                  </p>
+                </div>
+              );
+            })}
+            </div>
+        </article>
+      </div>
+      {recording && detached && (
+        <button
+          type="button"
+          onClick={backToLive}
+          className="absolute bottom-5 left-1/2 inline-flex h-[30px] -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-[15px] border border-mm-recording-pill-border bg-mm-recording-pill pl-3 pr-3.5 text-[13px] font-medium text-mm-on-recording-pill shadow-[0_2px_8px_rgb(0_0_0/0.18)] transition-transform duration-150 animate-in fade-in slide-in-from-bottom-1 hover:scale-[1.03] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:animate-none motion-reduce:transition-none"
+        >
+          <ArrowDown className="size-3.5" aria-hidden />
+          Torna al directe
+        </button>
+      )}
     </div>
   );
 }

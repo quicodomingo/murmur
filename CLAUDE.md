@@ -125,7 +125,7 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - Windows (pendent): loopback WASAPI.
 - **Desar l'àudio** (`recorder.rs`): Ogg/Opus 16 kHz; mono 16 kbps (~7 MB/h) amb una font, **estèreo 24 kbps (~11 MB/h) amb micròfon (esquerra, ja sense eco) + sistema (dreta)**. La transcripció de l'àudio descomprimit és pràcticament idèntica a l'original. Fitxer a `<app_data_dir>/recordings/<meeting_id>.ogg`. Opus es compila amb cmake (`brew install cmake`).
 - **Configuració** (`SettingsDialog.tsx`; ⌘, i «Configuració…» al menú de l'app, que emet `open-settings`). Es desa a `localStorage` (`transcriptor.settings.v1`) i es passa a `start_recording`.
-  - General: obrir en iniciar la sessió (plugin autostart, LaunchAgent), panell principal (transcripció o notes: l'altre va al `SidePanel` redimensionable), calendaris (encara «no disponible»).
+  - General: obrir en iniciar la sessió (plugin autostart, LaunchAgent), panell principal (notes per defecte, o transcripció: l'altre va al `SidePanel` redimensionable), calendaris (encara «no disponible»).
   - Àudio: micròfon + dispositiu + **nivell d'entrada en directe** (`start_mic_monitor`/`stop_mic_monitor`, esdeveniment `mic-level`), àudio del sistema, desar l'àudio i **carpeta** (diàleg natiu; per defecte `<app_data_dir>/recordings`).
   - Transcripció: màxim de parlants, separació de veus, **verificació de parlants en acabar** (desactivada per defecte).
 - **Notes** (`NotesPanel.tsx`, `lib/notes.ts`): editor Tiptap 3 (títols 1–3, negreta, cursiva, subratllat, ratllat, llistes, tasques; dreceres Markdown en escriure). Es desa com a JSON de Tiptap (`meeting.notesDoc`) perquè **cada bloc porta `attrs.t`** (minut de la reunió en què s'hi va escriure; `keepOnSplit: false`). Exportació a Markdown pròpia (`docToMarkdown`). Les marques a la transcripció surten de `notesFromDoc`.
@@ -133,6 +133,7 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
 - **Publicar** (`app/scripts/release.sh`): compila i signa amb el Developer ID de `tauri.conf.json` (hardened runtime + `Entitlements.plist` amb `audio-input`, sense el qual el micròfon queda bloquejat), notaritza amb el perfil del clauer `murmur` (`xcrun notarytool store-credentials`), grapa i fa `Murmur-<versió>.dmg`, també notaritzat.
 - **Models en dev**: `models_dir()` llegeix `TRANSCRIPTOR_MODELS` o `../../models`. Pendent: directori de dades de l'app + pantalla de primera obertura amb descàrrega.
 - **Interfície** (`src/`): shadcn/ui (Radix, preset Nova) amb tokens natius de macOS a `src/index.css`; font del sistema; mode fosc segons el sistema. Finestra amb `titleBarStyle: Overlay` (semàfors sobre la barra lateral) i `data-tauri-drag-region` a la barra d'eines.
+  - Transcripció en directe: segueix el text nou fins que l'usuari puja; llavors surt la píndola «Torna al directe».
   - Panell de notes: amaga/mostra des de la barra d'eines (únic botó), **redimensionable** arrossegant la vora esquerra (doble clic restableix; fletxes del teclat), i **mode complet** que amaga la transcripció. Es recorda a `localStorage` (`transcriptor.notesLayout.v1`).
   - En producció es bloqueja el menú contextual del web fora del text editable; l'inspector només existeix en builds `dev`.
   - Edició inline amb `<textarea>` que creix, **no** `contentEditable` (amb React duplicava text).
