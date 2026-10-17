@@ -1,7 +1,7 @@
 //! Final-pass speakers for labelled spans, for several settings (diarizes the whole file).
 //!     cargo run --release --example diarize_spans -- reunio.wav qui-parla.json 0.5,1.1 0.1,0.9,5 …
 //! Prints one JSON line per setting: {"config": "...", "speakers": [...]} in span order.
-use transcriptor_lib::diarize::{Options, Span, assign, diarize};
+use transcriptor_lib::diarize::{Options, Span, absorb_small_speakers, assign, diarize};
 use transcriptor_lib::engine::models_dir;
 
 fn main() -> anyhow::Result<()> {
@@ -24,7 +24,11 @@ fn main() -> anyhow::Result<()> {
             num_speakers: v.get(2).map(|n| n.parse()).transpose()?,
         };
         let turns = diarize(&models_dir(), wave.samples(), opts)?;
-        let speakers: Vec<usize> = assign(&spans, &turns, 0)
+        let mut assignments = assign(&spans, &turns, 0);
+        if std::env::var_os("NO_ABSORB").is_none() {
+            assignments = absorb_small_speakers(&models_dir(), wave.samples(), &spans, assignments, 0)?;
+        }
+        let speakers: Vec<usize> = assignments
             .iter()
             .map(|a| a.speaker)
             .collect();

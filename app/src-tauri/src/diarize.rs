@@ -1,6 +1,7 @@
 //! Offline speaker diarization for the final pass: pyannote segmentation + 3D-Speaker embeddings
 //! + clustering over a whole channel, then each live utterance gets the speaker it overlaps most.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow};
@@ -8,7 +9,7 @@ use serde::Serialize;
 use sherpa_onnx::{
     FastClusteringConfig, OfflineSpeakerDiarization, OfflineSpeakerDiarizationConfig,
     OfflineSpeakerSegmentationModelConfig, OfflineSpeakerSegmentationPyannoteModelConfig,
-    SpeakerEmbeddingExtractorConfig,
+    SpeakerEmbeddingExtractor, SpeakerEmbeddingExtractorConfig,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -113,8 +114,6 @@ pub fn diarize(models: &Path, samples: &[f32], opts: Options) -> Result<Vec<Turn
         .collect())
 }
 
-/// Gives every utterance the speaker it overlaps most (or the nearest turn if it falls in a gap).
-/// Speakers are renumbered by order of appearance, starting at `base`, so "Parlant 1" speaks first.
 /// Speakers that actually got utterances.
 pub fn speaker_count(assignments: &[Assignment]) -> usize {
     let mut ids: Vec<usize> = assignments.iter().map(|a| a.speaker).collect();
@@ -123,6 +122,8 @@ pub fn speaker_count(assignments: &[Assignment]) -> usize {
     ids.len()
 }
 
+/// Gives every utterance the speaker it overlaps most (or the nearest turn if it falls in a gap).
+/// Speakers are renumbered by order of appearance, starting at `base`, so "Parlant 1" speaks first.
 pub fn assign(spans: &[Span], turns: &[Turn], base: usize) -> Vec<Assignment> {
     if turns.is_empty() {
         return vec![];
@@ -157,9 +158,137 @@ pub fn assign(spans: &[Span], turns: &[Turn], base: usize) -> Vec<Assignment> {
         .collect()
 }
 
+/// A speaker heard for less than this over the whole channel is taken for one of the others.
+/// On a Google Meet call with one remote person (~35 s of speech), the clustering split off
+/// groups of 1–6 s depending on where its windows fell; on the hand-labelled room meeting the
+/// smallest real group had 16 s. Someone who only says a few words gets merged too.
+pub const MIN_SPEAKER_S: f32 = 10.0;
+/// Longest utterances used for each speaker's average voice (bounds the cost on long meetings).
+const VOICE_SPANS: usize = 30;
+
+/// Moves the utterances of speakers with under `MIN_SPEAKER_S` of speech to the larger speaker
+/// with the most similar voice (3D-Speaker), then renumbers by order of appearance from `base`.
+pub fn absorb_small_speakers(
+    models: &Path,
+    samples: &[f32],
+    spans: &[Span],
+    assignments: Vec<Assignment>,
+    base: usize,
+) -> Result<Vec<Assignment>> {
+    if small_and_large(spans, &assignments).is_none() {
+        return Ok(assignments);
+    }
+    let model = models.join(embedding_model());
+    let extractor = SpeakerEmbeddingExtractor::create(&SpeakerEmbeddingExtractorConfig {
+        model: Some(model.to_string_lossy().into_owned()),
+        num_threads: std::thread::available_parallelism().map_or(4, |n| n.get().min(8)) as i32,
+        ..Default::default()
+    })
+    .context("No s'ha pogut carregar el model de parlants")?;
+    let audio = |s: &Span| {
+        let a = ((s.start.max(0.0) * 16_000.0) as usize).min(samples.len());
+        let b = ((s.end.max(0.0) * 16_000.0) as usize).min(samples.len());
+        &samples[a..b]
+    };
+    let voice = |indices: &[usize]| -> Option<Vec<f32>> {
+        let mut sum: Vec<f32> = vec![];
+        for &i in indices {
+            let stream = extractor.create_stream()?;
+            stream.accept_waveform(16_000, audio(&spans[i]));
+            stream.input_finished();
+            if !extractor.is_ready(&stream) {
+                continue;
+            }
+            let e = extractor.compute(&stream)?;
+            let norm = e.iter().map(|x| x * x).sum::<f32>().sqrt() + 1e-9;
+            sum.resize(e.len(), 0.0);
+            sum.iter_mut().zip(&e).for_each(|(s, x)| *s += x / norm);
+        }
+        (!sum.is_empty()).then_some(sum)
+    };
+    Ok(absorb(spans, assignments, base, voice))
+}
+
+/// Seconds of speech per speaker, split at `MIN_SPEAKER_S`; `None` unless there are both.
+fn small_and_large(spans: &[Span], assignments: &[Assignment]) -> Option<(Vec<usize>, Vec<usize>)> {
+    let mut secs: HashMap<usize, f32> = HashMap::new();
+    for (s, a) in spans.iter().zip(assignments) {
+        *secs.entry(a.speaker).or_default() += s.end - s.start;
+    }
+    let (small, large): (Vec<usize>, Vec<usize>) = secs.keys().partition(|k| secs[k] < MIN_SPEAKER_S);
+    (!small.is_empty() && !large.is_empty()).then_some((small, large))
+}
+
+/// `voice` gives the summed voice print of some utterances (by index), if any is long enough.
+fn absorb(
+    spans: &[Span],
+    mut assignments: Vec<Assignment>,
+    base: usize,
+    voice: impl Fn(&[usize]) -> Option<Vec<f32>>,
+) -> Vec<Assignment> {
+    let Some((small, large)) = small_and_large(spans, &assignments) else { return assignments };
+    let lines = |speaker: usize| -> Vec<usize> {
+        (0..assignments.len()).filter(|&i| assignments[i].speaker == speaker).collect()
+    };
+    let large: Vec<(usize, Vec<f32>)> = large
+        .into_iter()
+        .filter_map(|speaker| {
+            let mut indices = lines(speaker);
+            indices.sort_by(|&a, &b| (spans[b].end - spans[b].start).total_cmp(&(spans[a].end - spans[a].start)));
+            indices.truncate(VOICE_SPANS);
+            voice(&indices).map(|v| (speaker, v))
+        })
+        .collect();
+    let cosine = |a: &[f32], b: &[f32]| {
+        let norm = |v: &[f32]| v.iter().map(|x| x * x).sum::<f32>().sqrt() + 1e-9;
+        a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>() / (norm(a) * norm(b))
+    };
+    let mut target: HashMap<usize, usize> = HashMap::new();
+    for speaker in small {
+        let Some(v) = voice(&lines(speaker)) else { continue };
+        if let Some((to, _)) = large.iter().max_by(|a, b| cosine(&a.1, &v).total_cmp(&cosine(&b.1, &v))) {
+            target.insert(speaker, *to);
+        }
+    }
+    for a in &mut assignments {
+        a.speaker = target.get(&a.speaker).copied().unwrap_or(a.speaker);
+    }
+    // Renumber by order of appearance again.
+    let mut order: Vec<usize> = vec![];
+    for a in &mut assignments {
+        let index = order.iter().position(|&k| k == a.speaker).unwrap_or_else(|| {
+            order.push(a.speaker);
+            order.len() - 1
+        });
+        a.speaker = base + index;
+    }
+    assignments
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn small_speakers_join_the_closest_voice() {
+        let spans: Vec<Span> = [(0.0, 8.0), (9.0, 10.0), (11.0, 23.0), (24.0, 26.0), (27.0, 37.0)]
+            .iter()
+            .map(|&(start, end)| Span { start, end })
+            .collect();
+        let speakers = [100, 101, 102, 103, 100];
+        let assignments = spans
+            .iter()
+            .zip(speakers)
+            .map(|(s, speaker)| Assignment { start: s.start, speaker })
+            .collect();
+        // 100 and 102 are large; 101 sounds like 102, 103 like 100.
+        let voice = |indices: &[usize]| -> Option<Vec<f32>> {
+            let near_first = indices.iter().any(|&i| speakers[i] == 100 || speakers[i] == 103);
+            Some(if near_first { vec![1.0, 0.1] } else { vec![0.1, 1.0] })
+        };
+        let out: Vec<usize> = absorb(&spans, assignments, 100, voice).iter().map(|a| a.speaker).collect();
+        assert_eq!(out, [100, 101, 101, 100, 100]);
+    }
 
     #[test]
     fn assigns_by_overlap_and_numbers_by_appearance() {

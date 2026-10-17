@@ -316,6 +316,8 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: pipeline::Tapped, max_
             let turns = diarize::diarize(&models_dir(), &samples, opts)?;
             assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
         }
+        let assignments =
+            diarize::absorb_small_speakers(&models_dir(), &samples, &tapped.spans, assignments, tapped.base)?;
         let _ = app.emit(
             "final-pass-speakers",
             FinalPassSpeakers {

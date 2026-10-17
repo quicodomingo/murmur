@@ -20,7 +20,8 @@ En aturar la gravació, reprocessar l'àudio desat:
 
 - [x] Verificació de parlants en acabar (infraestructura, interfície i reassignació respectant noms i canvis manuals).
 - [x] Ajustar la verificació amb l'etiquetatge manual: directe amb TitaNet (75% → 88% d'encerts), verificació 96%. Activada per defecte.
-- [ ] Validar els parlants amb una segona reunió etiquetada.
+- [x] Trucades: el micròfon és «Tu», i la verificació uneix els parlants amb menys de 10 s de veu (a Meet, una sola persona sortia en 2–4 grups segons l'alineació de l'àudio).
+- [ ] Validar els parlants amb una segona reunió etiquetada, i amb una trucada de 2+ persones a l'altra banda.
 - [ ] Partir les frases que barregen parlants als canvis de torn de la verificació (10 de 34 frases ho fan).
 - [ ] Transcripció final: decidir entre el Conformer actual o Whisper AINA (cal convertir-lo a MLX / whisper.cpp; amb faster-whisper a CPU va massa lent).
 - [x] **Prova de LLM local** (reunió real de 20 min = 6.426 tokens ≈ 19K tokens/hora; M4 base, llama.cpp + Metal). Resultats a `results/llm/`:
@@ -93,7 +94,7 @@ Entre reunions (bloc 5):
 - [x] Identitat de Murmur (`docs/design/`): tres temes (Negre i àcid, Monocrom, Formigó i vermell) amb mode clar i fosc, Configuració › Aparença, barra lateral, píndola de gravació, etiquetes de parlant, Quant a, icona de l'app.
 - [x] Icona a la barra de menús (repòs, reunió a prop, gravant) i avís flotant «Reunió detectada» quan una altra app comença a fer servir el micròfon (CoreAudio, macOS 14.2+).
 - [ ] Icona del Dock segons el tema (opcional al disseny).
-- [ ] Afinar la separació de parlants en directe (llindar per defecte 0,65).
+- [ ] Afinar la separació de parlants en directe (TitaNet, llindar 0,7). A les trucades de Meet l'altra banda es parteix: cap llindar ni model provat va bé alhora a la sala i a la trucada.
 
 ## 6. Més endavant
 
