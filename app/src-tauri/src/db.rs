@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS meetings (
     audio_path    TEXT,
     notes_doc     TEXT,
     legacy_notes  TEXT,
-    cover         TEXT
+    cover         TEXT,
+    guests        TEXT
 );
 
 CREATE TABLE IF NOT EXISTS utterances (
@@ -110,6 +111,8 @@ pub struct MetaPatch {
     /// The generated cover (title, summary, tasks…); null removes it.
     #[serde(default, deserialize_with = "present")]
     pub cover: Option<Value>,
+    /// Guests of the calendar event it was recorded for (names to offer for speakers).
+    pub guests: Option<Value>,
 }
 
 /// A field that was sent, even as null (plain `Option` would read null as absent).
@@ -209,7 +212,7 @@ impl Db {
             .conn
             .query_row(
                 "SELECT id, title, created_at, duration, status, speaker_names, sources, audio_path,
-                        notes_doc, legacy_notes, cover
+                        notes_doc, legacy_notes, cover, guests
                  FROM meetings WHERE id = ?1",
                 [id],
                 |r| {
@@ -226,6 +229,7 @@ impl Db {
                         "notesDoc": parse(r.get(8)?),
                         "notes": parse(r.get(9)?).unwrap_or(json!([])),
                         "cover": parse(r.get(10)?),
+                        "guests": parse(r.get(11)?),
                     }))
                 },
             )
@@ -270,8 +274,8 @@ impl Db {
         };
         tx.execute(
             "INSERT INTO meetings (id, title, created_at, duration, status, speaker_names, sources,
-                                   audio_path, notes_doc, legacy_notes, cover)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                                   audio_path, notes_doc, legacy_notes, cover, guests)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
                 id,
                 meeting
@@ -296,6 +300,7 @@ impl Db {
                 text("notesDoc"),
                 text("notes"),
                 text("cover"),
+                text("guests"),
             ],
         )?;
         let utterances: Vec<Utterance> =
@@ -358,6 +363,12 @@ impl Db {
             if let Some(v) = meta.sources {
                 tx.execute(
                     "UPDATE meetings SET sources = ?2 WHERE id = ?1",
+                    params![id, v.to_string()],
+                )?;
+            }
+            if let Some(v) = meta.guests {
+                tx.execute(
+                    "UPDATE meetings SET guests = ?2 WHERE id = ?1",
                     params![id, v.to_string()],
                 )?;
             }
@@ -439,6 +450,9 @@ fn migrate(conn: &Connection) -> Result<()> {
     }
     if !has("meetings", "cover")? {
         conn.execute("ALTER TABLE meetings ADD COLUMN cover TEXT", [])?;
+    }
+    if !has("meetings", "guests")? {
+        conn.execute("ALTER TABLE meetings ADD COLUMN guests TEXT", [])?;
     }
     Ok(())
 }

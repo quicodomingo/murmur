@@ -6,7 +6,22 @@ import { CalendarDays, X } from "lucide-react";
 import { LogoIcon } from "@/components/Logo";
 
 /** What Rust shows in the floating alert (shell.rs `Toast`). */
-type Toast = { kind: "detected" | "calendar"; title: string; subtitle: string; seconds: number; id: number };
+type Toast = { kind: "detected" | "calendar"; title: string; subtitle: string; start: number | null; seconds: number; id: number };
+
+/** "Comença d'aquí a 2 minuts", "Comença ara", "Ha començat". */
+function startsIn(start: number, now: number): string {
+  const minutes = Math.ceil((start - now) / 60_000);
+  if (minutes > 1) return `Comença d'aquí a ${minutes} minuts`;
+  if (minutes === 1) return "Comença d'aquí a 1 minut";
+  return start - now > -60_000 ? "Comença ara" : "Ha començat";
+}
+
+/** The calendar alert's lines: when, then "Títol · 17:00 · Google Meet". */
+function calendarLines(toast: Toast, now: number): [string, string] {
+  const start = toast.start ?? now;
+  const time = new Date(start).toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" });
+  return [startsIn(start, now), [toast.title, time, toast.subtitle].filter(Boolean).join(" · ")];
+}
 
 /**
  * The floating alert under the menu bar (its own transparent window, label "toast"): one button,
@@ -40,6 +55,8 @@ export function ToastWindow() {
   }, [toast?.id]);
 
   if (!toast) return null;
+  // The countdown re-renders every 100 ms, which also keeps "d'aquí a N minuts" current.
+  const [title, subtitle] = toast.kind === "calendar" ? calendarLines(toast, Date.now()) : [toast.title, toast.subtitle];
   return (
     <div className="relative ml-6 mt-3.5 w-[470px]" role="alertdialog" aria-labelledby="toast-title" aria-describedby="toast-text">
       <button
@@ -61,10 +78,10 @@ export function ToastWindow() {
           )}
           <div className="min-w-0 flex-1">
             <div id="toast-title" className="text-[15px] font-semibold">
-              {toast.title}
+              {title}
             </div>
             <div id="toast-text" className="truncate text-[13px] text-mm-toast-secondary">
-              {toast.subtitle}
+              {subtitle}
             </div>
           </div>
           <button

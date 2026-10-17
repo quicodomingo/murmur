@@ -1,4 +1,5 @@
 import { clock, duration, longDate, speakerName } from "./format";
+import { notesDoc, notesFromDoc } from "./notes";
 import type { Cover, LlmResult, LlmTask, Meeting } from "./types";
 
 // The cover is written by the local language model (Gemma 4 E4B, lib.rs run_llm): it reads the
@@ -27,8 +28,10 @@ export const PROMPTS: PromptDef[] = [
     text:
       "Ets un assistent que treballa amb transcripcions de reunions en català. La transcripció s'ha fet automàticament: " +
       "pot tenir paraules mal reconegudes (sobretot noms i marques) i fragments en castellà. Cada línia comença amb el minut " +
-      "entre claudàtors i el nom de qui parla. Respon sempre en català correcte i natural, sense castellanismes. " +
-      "No t'inventis res que no surti a la transcripció.",
+      "entre claudàtors i el nom de qui parla. Al final hi pot haver les notes que ha pres l'usuari durant la reunió, amb el " +
+      "minut en què les va escriure: mostren què li ha semblat important, i el que hi digui (una tasca, una decisió) també " +
+      "compta. Respon sempre en català correcte i natural, sense castellanismes. No t'inventis res que no surti a la " +
+      "transcripció o a les notes.",
     maxTokens: 0,
     schema: null,
   },
@@ -83,10 +86,14 @@ export const PROMPTS: PromptDef[] = [
     id: "tasks",
     label: "Tasques",
     text:
-      "Fes la llista de les tasques o encàrrecs que surten a la reunió (com a màxim 8). Per a cada una: què s'ha de fer, en " +
-      "poques paraules i començant per un infinitiu (per exemple «Preparar el vídeo de demostració»); qui se n'encarrega, amb " +
-      "el nom tal com surt a la transcripció; per a quan, i el minut on surt, en format m:ss. Si no es diu qui o quan, deixa " +
-      'aquell camp com a text buit (""). Si no n\'hi ha cap, deixa la llista buida.',
+      "Fes la llista de les tasques que s'han encarregat a la reunió (com a màxim 8). Una tasca és una acció concreta que " +
+      "algú ha dit que s'ha de fer: quan algú la demana («caldria enviar-los el pressupost», «Pere, ho pots mirar?»), s'hi " +
+      "compromet («ho preparo jo») o queda apuntada a les notes. No són tasques els temes de conversa, les opinions, les " +
+      "idees ni les decisions que no demanen a ningú que faci res. Per a cada una: què s'ha de fer, en poques paraules i " +
+      "començant per un infinitiu (per exemple «Preparar el vídeo de demostració»); qui se n'encarrega, amb el nom tal com " +
+      "surt a la transcripció; per a quan, i el minut on surt, en format m:ss. Si no es diu qui o quan, deixa aquell camp " +
+      'com a text buit (""). Si a la reunió no s\'ha encarregat cap tasca, deixa la llista buida: val més no posar-ne cap ' +
+      "que inventar-ne.",
     maxTokens: 650,
     schema: {
       type: "object",
@@ -158,7 +165,39 @@ export function coverDocument(m: Meeting): string {
     else turns.push({ speaker: u.speaker, start: u.start, text: [u.text] });
   }
   for (const t of turns) lines.push(`[${clock(t.start)}] ${speakerName(m, t.speaker)}: ${t.text.join(" ")}`);
+  // The user's notes, with the minute each one was written: what they found worth keeping.
+  const notes = notesFromDoc(notesDoc(m)).filter((n) => n.text.trim());
+  if (notes.length) {
+    lines.push("", "Notes preses durant la reunió:");
+    for (const n of notes) lines.push(`[${clock(n.t)}] ${n.text.trim()}`);
+  }
   return lines.join("\n");
+}
+
+/**
+ * A short fingerprint of what the model reads (names, text, notes): saved with the cover, so a
+ * change made afterwards, or while it was being written, shows it's out of date.
+ */
+export function coverBasis(document: string): string {
+  let h = 5381;
+  for (let i = 0; i < document.length; i++) h = ((h << 5) + h + document.charCodeAt(i)) | 0;
+  return `${document.length}:${(h >>> 0).toString(36)}`;
+}
+
+/** The cover no longer matches the meeting (only covers that saved what they read). */
+export const coverOutdated = (m: Meeting) => !!m.cover?.basis && m.cover.basis !== coverBasis(coverDocument(m));
+
+/**
+ * Generating again keeps what the user did on the cover: tasks added by hand, and the ticks of
+ * tasks that come back with the same text.
+ */
+export function keepTaskEdits(next: Cover, previous: Cover | null | undefined): Cover {
+  if (!previous?.tasks?.length || !next.tasks) return next;
+  const key = (t: string) => t.trim().toLocaleLowerCase("ca");
+  const done = new Set(previous.tasks.filter((t) => t.done).map((t) => key(t.text)));
+  const tasks = next.tasks.map((t) => (done.has(key(t.text)) ? { ...t, done: true } : t));
+  const known = new Set(tasks.map((t) => key(t.text)));
+  return { ...next, tasks: [...tasks, ...previous.tasks.filter((t) => t.manual && !known.has(key(t.text)))] };
 }
 
 /** Rough time for the whole cover, measured on an M4 (20 min meeting: 6,500 tokens read in 41 s, 6 parts in 100 s). */

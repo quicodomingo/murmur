@@ -133,6 +133,7 @@ pub fn open_privacy_settings(pane: String) -> Result<(), String> {
     let anchor = match pane.as_str() {
         "microphone" => "Privacy_Microphone",
         "systemAudio" => "Privacy_ScreenCapture",
+        "calendars" => "Privacy_Calendars",
         _ => return Err(format!("Secció desconeguda: {pane}")),
     };
     std::process::Command::new("open")

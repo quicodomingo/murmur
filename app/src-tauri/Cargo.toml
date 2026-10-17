@@ -44,7 +44,9 @@ screencapturekit = "0.3.6"
 core-media-rs = "0.3"
 objc2 = "0.6"
 block2 = "0.6"
-objc2-foundation = "0.3"
+objc2-foundation = { version = "0.3", features = ["NSDate", "NSArray", "NSString", "NSURL", "NSPredicate", "NSError"] }
+objc2-event-kit = { version = "0.3", features = ["EKEventStore", "EKCalendar", "EKCalendarItem", "EKEvent", "EKParticipant", "EKSource", "EKTypes", "EKObject", "block2", "objc2-app-kit"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["NSColor", "NSColorSpace", "std"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

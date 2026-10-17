@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
-import { AlignLeft, Check, RefreshCw, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { AlignLeft, Check, Plus, Printer, RefreshCw, Sparkles, X } from "lucide-react";
 
 import { LogoMark } from "@/components/Logo";
 
 import { Flag, isYou, speakerTone } from "@/components/SpeakerFlag";
 import { TitleInput } from "@/components/Transcript";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import * as backend from "@/lib/backend";
-import { talkTime } from "@/lib/cover";
+import { coverOutdated, talkTime } from "@/lib/cover";
 import { clock, duration, longDate, speakerIds } from "@/lib/format";
 import type { PostProcess } from "@/lib/store";
-import type { LlmProgress, Meeting, PostStage } from "@/lib/types";
+import type { Cover as CoverData, LlmProgress, Meeting, PostStage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -22,8 +24,13 @@ type Props = {
   onJump: (t: number) => void;
   onShowTranscript: () => void;
   onTitle: (title: string) => void;
-  onToggleTask: (index: number, done: boolean) => void;
+  /** The tasks after a change made by hand (tick, edit, add, remove). */
+  onTasks: (tasks: Task[]) => void;
+  /** "PDF o envia…": the system print panel (Save as PDF, Mail, Messages). */
+  onPrint: () => void;
 };
+
+type Task = NonNullable<CoverData["tasks"]>[number];
 
 /** The meeting at a glance: title, tone, who spoke, summary, decisions, tasks and parts. */
 export function Cover(props: Props) {
@@ -42,6 +49,19 @@ export function Cover(props: Props) {
           <Empty {...props} />
         )}
       </article>
+      {/* What "PDF o envia…" prints: the app is hidden on paper (index.css), this copy isn't. */}
+      {!generating &&
+        meeting.cover &&
+        createPortal(
+          <div className="mm-print hidden print:block">
+            <article className="px-2">
+              <p className="text-[12px] text-muted-foreground">{meta(meeting)}</p>
+              <h1 className="mt-1 text-[26px] font-bold leading-tight">{meeting.title}</h1>
+              <Ready {...props} />
+            </article>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -77,7 +97,7 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 
 // --- Ready ---------------------------------------------------------------------------------
 
-function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggleTask }: Props) {
+function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks, onPrint }: Props) {
   const cover = meeting.cover!;
   const talk = talkTime(meeting);
   // Owners are names the model read in the transcript: match them to speakers for the colour.
@@ -90,21 +110,34 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
   return (
     <>
       {cover.excerpt && <p className="mt-3.5 max-w-[64ch] text-[18px] leading-[1.55]">{cover.excerpt}</p>}
-      <div className="mt-3 flex items-center gap-x-3 text-[12px] text-text-secondary">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-text-secondary">
         <span className="flex items-center gap-1.5">
           <LogoMark size={13} />
           Generat en aquest ordinador. Cada punt enllaça al moment de la reunió d'on surt.
         </span>
-        <button
-          type="button"
-          onClick={onGenerate}
-          disabled={!!blocked}
-          title={blocked ?? undefined}
-          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-mm-link hover:bg-mm-fill-subtle disabled:opacity-40"
-        >
-          <RefreshCw className="size-3" aria-hidden /> Torna a generar
-        </button>
+        <span className="flex items-center gap-1 print:hidden">
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={!!blocked}
+            title={blocked ?? undefined}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-mm-link hover:bg-mm-fill-subtle disabled:opacity-40"
+          >
+            <RefreshCw className="size-3" aria-hidden /> Torna a generar
+          </button>
+          <button type="button" onClick={onPrint} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-mm-link hover:bg-mm-fill-subtle">
+            <Printer className="size-3" aria-hidden /> PDF o envia…
+          </button>
+        </span>
       </div>
+      {coverOutdated(meeting) && (
+        <div role="status" className="mt-4 flex items-center gap-3 rounded-[10px] border border-border bg-mm-fill-subtle px-3.5 py-2.5 text-[13px] print:hidden">
+          <span className="min-w-0 flex-1">La transcripció o les notes han canviat des que es va generar la portada.</span>
+          <Button variant="outline" className="h-7 shrink-0 rounded-md px-3 text-[13px]" onClick={onGenerate} disabled={!!blocked} title={blocked ?? undefined}>
+            <RefreshCw className="size-3.5" /> Torna a generar
+          </Button>
+        </div>
+      )}
 
       <div className="mt-7 grid gap-3.5 md:grid-cols-[1fr_1.35fr]">
         {cover.tone && (
@@ -182,45 +215,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
       {cover.tasks && (
         <section aria-labelledby="task-h" className="mt-8">
           <SectionTitle id="task-h">Tasques</SectionTitle>
-          {cover.tasks.length ? (
-            <ul className="grid gap-x-7 md:grid-cols-2">
-              {cover.tasks.map((task, i) => {
-                const owner = task.owner ? ownerSpeaker(task.owner) : undefined;
-                return (
-                  <li key={i} className="grid grid-cols-[18px_1fr] gap-2.5 border-b border-border py-2">
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={!!task.done}
-                      aria-label={`Fet: ${task.text}`}
-                      onClick={() => onToggleTask(i, !task.done)}
-                      className={cn(
-                        "mt-0.5 grid size-4 place-items-center rounded-full border-[1.5px] border-mm-text-tertiary transition-colors focus-visible:outline-2 focus-visible:outline-ring",
-                        task.done && "border-primary bg-primary text-primary-foreground",
-                      )}
-                    >
-                      {task.done && <Check className="size-2.5" strokeWidth={3} />}
-                    </button>
-                    <div className="min-w-0">
-                      <div className={cn("text-[14px]", task.done && "text-text-secondary line-through")}>{task.text}</div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-                        {task.owner &&
-                          (owner !== undefined ? (
-                            <Flag speaker={owner} you={isYou(meeting, owner)} name={task.owner} />
-                          ) : (
-                            <span className="inline-flex h-5 items-center rounded-[5px] bg-mm-fill-subtle px-1.5 text-[12px] font-semibold text-foreground">{task.owner}</span>
-                          ))}
-                        {task.when && <span>{task.when}</span>}
-                        {task.t !== null && <TimeLink t={task.t} onJump={onJump} />}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-[14px] text-text-secondary">No s'hi ha encarregat cap tasca.</p>
-          )}
+          <TaskList meeting={meeting} tasks={cover.tasks} ownerSpeaker={ownerSpeaker} onJump={onJump} onChange={onTasks} />
         </section>
       )}
 
@@ -259,12 +254,162 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onToggl
         </section>
       )}
 
-      <div className="mt-9 flex justify-center">
+      <div className="mt-9 flex justify-center print:hidden">
         <Button variant="outline" className="h-8 rounded-lg px-3.5 text-[14px]" onClick={onShowTranscript}>
           <AlignLeft className="size-4" /> Veure la transcripció completa
         </Button>
       </div>
     </>
+  );
+}
+
+/**
+ * The cover's tasks, editable by hand: tick, change the text or who does it, remove, add.
+ * Tasks added here are kept when the cover is generated again (lib/cover.ts keepTaskEdits).
+ */
+function TaskList({
+  meeting,
+  tasks,
+  ownerSpeaker,
+  onJump,
+  onChange,
+}: {
+  meeting: Meeting;
+  tasks: Task[];
+  ownerSpeaker: (owner: string) => number | undefined;
+  onJump: (t: number) => void;
+  onChange: (tasks: Task[]) => void;
+}) {
+  const [editing, setEditing] = useState<number | null>(null);
+  const update = (i: number, patch: Partial<Task>) => onChange(tasks.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+  const remove = (i: number) => onChange(tasks.filter((_, j) => j !== i));
+  // People to give a task to: who spoke, then the calendar's guests.
+  const people = [...new Set([...talkTime(meeting).map((s) => s.name), ...(meeting.guests ?? [])])];
+
+  return (
+    <>
+      {tasks.length ? (
+        <ul className="grid gap-x-7 md:grid-cols-2">
+          {tasks.map((task, i) => {
+            const owner = task.owner ? ownerSpeaker(task.owner) : undefined;
+            return (
+              <li key={i} className="group grid grid-cols-[18px_1fr_auto] gap-2.5 border-b border-border py-2">
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={!!task.done}
+                  aria-label={`Fet: ${task.text}`}
+                  onClick={() => update(i, { done: !task.done })}
+                  className={cn(
+                    "mt-0.5 grid size-4 place-items-center rounded-full border-[1.5px] border-mm-text-tertiary transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+                    task.done && "border-primary bg-primary text-primary-foreground",
+                  )}
+                >
+                  {task.done && <Check className="size-2.5" strokeWidth={3} />}
+                </button>
+                <div className="min-w-0">
+                  {editing === i ? (
+                    <TaskInput
+                      initial={task.text}
+                      onDone={(text) => {
+                        setEditing(null);
+                        if (text) update(i, { text });
+                        else if (!task.text) remove(i);
+                      }}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditing(i)}
+                      title="Edita la tasca"
+                      className={cn("block w-full cursor-text rounded-sm text-left text-[14px] focus-visible:outline-2 focus-visible:outline-ring", task.done && "text-text-secondary line-through")}
+                    >
+                      {task.text}
+                    </button>
+                  )}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className="rounded-[4px] focus-visible:outline-2 focus-visible:outline-ring" aria-label={task.owner ? `${task.owner}: canvia qui se n'encarrega` : "Assigna la tasca"}>
+                          {task.owner ? (
+                            owner !== undefined ? (
+                              <Flag speaker={owner} you={isYou(meeting, owner)} name={task.owner} />
+                            ) : (
+                              <span className="inline-flex h-5 items-center rounded-[5px] bg-mm-fill-subtle px-1.5 text-[12px] font-semibold text-foreground">{task.owner}</span>
+                            )
+                          ) : (
+                            <span className="inline-flex h-5 items-center rounded-[5px] px-1 text-[12px] text-text-secondary hover:bg-mm-fill-subtle print:hidden">Assigna…</span>
+                          )}
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="min-w-48">
+                        {people.map((name) => (
+                          <DropdownMenuItem key={name} onSelect={() => update(i, { owner: name })}>
+                            <span className="flex-1">{name}</span>
+                            {task.owner === name && <Check className="size-3.5" />}
+                          </DropdownMenuItem>
+                        ))}
+                        {people.length > 0 && <DropdownMenuSeparator />}
+                        <DropdownMenuItem onSelect={() => update(i, { owner: null })}>Ningú en concret</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    {task.when && <span>{task.when}</span>}
+                    {task.t !== null && <TimeLink t={task.t} onJump={onJump} />}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  aria-label={`Elimina la tasca: ${task.text}`}
+                  className="mt-0.5 grid size-5 place-items-center rounded-md text-text-secondary opacity-0 hover:bg-mm-fill-subtle hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 print:hidden"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-[14px] text-text-secondary">En aquesta reunió no s'han demanat tasques.</p>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          onChange([...tasks, { text: "", owner: null, when: null, t: null, manual: true }]);
+          setEditing(tasks.length);
+        }}
+        className="mt-2 flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-mm-link hover:bg-mm-fill-subtle print:hidden"
+      >
+        <Plus className="size-3.5" aria-hidden /> Afegeix una tasca
+      </button>
+    </>
+  );
+}
+
+function TaskInput({ initial, onDone }: { initial: string; onDone: (text: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [value, setValue] = useState(initial);
+  const done = useRef(false);
+  const finish = (text: string) => {
+    if (done.current) return;
+    done.current = true;
+    onDone(text);
+  };
+  useEffect(() => ref.current?.focus(), []);
+  return (
+    <input
+      ref={ref}
+      value={value}
+      aria-label="Tasca"
+      placeholder="Què s'ha de fer?"
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => finish(value.trim())}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") finish(value.trim());
+        if (e.key === "Escape") finish(initial);
+      }}
+      className="-mx-1 w-[calc(100%+8px)] rounded-md bg-transparent px-1 text-[14px] outline-none ring-2 ring-ring"
+    />
   );
 }
 

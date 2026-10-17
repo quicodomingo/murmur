@@ -68,7 +68,7 @@ export type Action =
   /** Texts sent to the punctuation model (`from`) and what came back; edited meanwhile = skipped. */
   | { type: "punctuated"; id: string; changes: { utteranceId: string; from: string; to: string }[] }
   | { type: "cover"; id: string; cover: Cover | null; title: string | null }
-  | { type: "coverTask"; id: string; index: number; done: boolean }
+  | { type: "coverTasks"; id: string; tasks: NonNullable<Cover["tasks"]> }
   | { type: "postDone"; id: string };
 
 const summaryOf = (m: Meeting): MeetingSummary => ({
@@ -171,12 +171,8 @@ export function reducer(state: State, action: Action): State {
     }
     case "cover":
       return updateMeeting(state, action.id, (m) => ({ ...m, cover: action.cover, title: action.title ?? m.title }));
-    case "coverTask":
-      return updateMeeting(state, action.id, (m) =>
-        m.cover?.tasks
-          ? { ...m, cover: { ...m.cover, tasks: m.cover.tasks.map((t, i) => (i === action.index ? { ...t, done: action.done } : t)) } }
-          : m,
-      );
+    case "coverTasks":
+      return updateMeeting(state, action.id, (m) => (m.cover ? { ...m, cover: { ...m.cover, tasks: action.tasks } } : m));
     case "postDone": {
       const { [action.id]: _done, ...finalPass } = state.finalPass;
       return updateMeeting({ ...state, finalPass }, action.id, (m) =>
@@ -290,6 +286,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.sources !== next.sources) meta.sources = next.sources;
   if (saved.audioPath !== next.audioPath) meta.audioPath = next.audioPath ?? null;
   if (saved.cover !== next.cover) meta.cover = next.cover ?? null;
+  if (saved.guests !== next.guests && next.guests) meta.guests = next.guests;
   if (Object.keys(meta).length) changes.meta = meta;
   if (saved.utterances !== next.utterances) {
     const before = new Map(saved.utterances.map((u) => [u.id, u]));

@@ -6,5 +6,9 @@
   <string>Murmur fa servir el micròfon per transcriure la reunió. L'àudio es processa en aquest Mac i no surt mai de l'ordinador.</string>
   <key>NSAudioCaptureUsageDescription</key>
   <string>Murmur escolta l'àudio de l'altra banda de la trucada (Zoom, Meet, Teams…) per transcriure-la. Tot es processa en aquest Mac.</string>
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>Murmur llegeix el calendari per avisar-te quan comença una reunió i posar-li el títol de l'esdeveniment. No modifica res i les dades no surten d'aquest Mac.</string>
+  <key>NSCalendarsUsageDescription</key>
+  <string>Murmur llegeix el calendari per avisar-te quan comença una reunió i posar-li el títol de l'esdeveniment. No modifica res i les dades no surten d'aquest Mac.</string>
 </dict>
 </plist>

@@ -17,6 +17,7 @@ import { Transcript } from "@/components/Transcript";
 import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as backend from "@/lib/backend";
+import { currentEvent, guestNames } from "@/lib/calendar";
 import { clock, duration, toMarkdown } from "@/lib/format";
 import { exportMeeting, type ExportFormat } from "@/lib/export";
 import { useModels } from "@/lib/models";
@@ -68,12 +69,12 @@ function localSearch(meetings: Meeting[], query: string): SearchHit[] {
   });
 }
 
-function newMeeting(sources: { mic: boolean; system: boolean }): Meeting {
+function newMeeting(sources: { mic: boolean; system: boolean }, title?: string, guests?: string[]): Meeting {
   const now = new Date();
   const time = now.toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" });
   return {
     id: crypto.randomUUID(),
-    title: `Reunió de les ${time}`,
+    title: title || `Reunió de les ${time}`,
     createdAt: now.getTime(),
     duration: 0,
     status: "recording",
@@ -81,6 +82,7 @@ function newMeeting(sources: { mic: boolean; system: boolean }): Meeting {
     speakerNames: {},
     notes: [],
     sources,
+    guests: guests?.length ? guests : undefined,
   };
 }
 
@@ -203,6 +205,13 @@ export default function App() {
     if (backend.isTauri()) backend.setMeetingDetection(settings.detectMeetings).catch(() => {});
   }, [settings.detectMeetings]);
 
+  useEffect(() => {
+    if (!backend.isTauri()) return;
+    backend
+      .setCalendarWatch({ enabled: settings.calendarAlerts, calendarIds: settings.calendarIds, includeNoGuests: settings.calendarNoGuests })
+      .catch(() => {});
+  }, [settings.calendarAlerts, settings.calendarIds, settings.calendarNoGuests]);
+
   // Load the live models ahead of time (once they're on disk) so recording starts at once.
   useEffect(() => {
     if (backend.isTauri() && models.status.transcription?.installed) backend.prepare().catch((e) => toast.error(String(e)));
@@ -254,7 +263,9 @@ export default function App() {
       setBusy(false);
       return;
     }
-    const m = newMeeting(sources);
+    // Named after the calendar event going on now, if there's one.
+    const event = await currentEvent(settings).catch(() => null);
+    const m = newMeeting(sources, event?.title.trim(), event ? guestNames(event) : undefined);
     dispatch({ type: "new", meeting: m });
     post.planRecording(m.id, settings.verifySpeakers);
     startedAt.current = Date.now();
@@ -348,6 +359,41 @@ export default function App() {
       : meeting?.status === "processing"
         ? "Espera que acabi el processament."
         : null;
+  /**
+   * "PDF o envia…": macOS's print panel has Save as PDF and sharing (Mail, Messages). Paper is
+   * light, so the page switches to light mode until the user is back in the window.
+   */
+  const printCover = async () => {
+    const html = document.documentElement;
+    const previous = { mode: html.dataset.mode, dark: html.classList.contains("dark") };
+    html.dataset.mode = "light";
+    html.classList.remove("dark");
+    const restore = () => {
+      if (previous.mode) html.dataset.mode = previous.mode;
+      html.classList.toggle("dark", previous.dark);
+    };
+    await new Promise((r) => requestAnimationFrame(r));
+    if (!backend.isTauri()) {
+      window.print();
+      restore();
+      return;
+    }
+    try {
+      await backend.printPage();
+    } catch (e) {
+      toast.error(String(e));
+      restore();
+      return;
+    }
+    // The panel is a sheet: the page gets no events until it's closed.
+    const back = () => {
+      restore();
+      window.removeEventListener("pointermove", back);
+      window.removeEventListener("keydown", back);
+    };
+    window.addEventListener("pointermove", back);
+    window.addEventListener("keydown", back);
+  };
   const jumpTo = (t: number) => {
     if (!meeting) return;
     setView({ cover: false });
@@ -363,7 +409,8 @@ export default function App() {
         onJump={jumpTo}
         onShowTranscript={() => setView({ cover: false })}
         onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
-        onToggleTask={(index, done) => dispatch({ type: "coverTask", id: meeting.id, index, done })}
+        onTasks={(tasks) => dispatch({ type: "coverTasks", id: meeting.id, tasks })}
+        onPrint={printCover}
       />
     );
   const renderTranscript = (compact: boolean) =>
@@ -450,7 +497,7 @@ export default function App() {
               <div role="radiogroup" aria-label="Vista" className="ml-1 flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
                 {[
                   { cover: true, label: "Portada" },
-                  { cover: false, label: "Transcripció" },
+                  { cover: false, label: notesPrimary ? "Notes" : "Transcripció" },
                 ].map((o) => (
                   <button
                     key={o.label}

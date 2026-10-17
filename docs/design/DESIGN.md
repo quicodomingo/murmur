@@ -79,7 +79,7 @@ Estructura igual que la teva maqueta original: metadades, títol, entradeta, not
 
 ### Configuració
 Cinc pestanyes, en aquest ordre: **General, Aparença, Àudio, Transcripció, Intel·ligència**. Pestanya activa amb fons `tabSelected`.
-- **General:** Inici (Obre Murmur en iniciar la sessió), Interfície (Panell principal: Transcripció / Notes), Calendaris (Google i Apple, encara no disponibles).
+- **General:** Inici (Obre Murmur en iniciar la sessió), Interfície (Panell principal: Transcripció / Notes), Avisos (Reunió detectada), Calendaris (el Calendari de macOS, que inclou els comptes de Google, iCloud o Exchange afegits al sistema: botó Connecta…; un cop connectat, interruptors «Avisa quan comenci una reunió» i «Inclou els esdeveniments sense convidats», i la llista «Calendaris que vigila» amb el color de cada calendari, el compte i un interruptor; «Tots» per tornar-los a vigilar tots).
 - **Aparença:** Tema, amb tres targetes que mostren una mini finestra partida (clar a l'esquerra, fosc a la dreta) i un check a la seleccionada (contorn de 2 pt en `textPrimary`); i Mode (Sistema / Clar / Fosc).
 - **Àudio:** Micròfon, Dispositiu, Nivell d'entrada (12 segments; els actius en `toggleOn`, els buits en `meterOff`), Àudio del sistema; Gravació (Desa l'àudio, Carpeta).
 - **Transcripció:** Nombre màxim de parlants, Separació de veus (slider en `toggleOn` sobre `meterOff`, valor i enllaç Restableix en `link`), Verificació de parlants.

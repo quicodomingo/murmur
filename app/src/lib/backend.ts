@@ -41,7 +41,7 @@ export const stopRecording = () => invoke<void>("stop_recording");
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null; cover?: Cover | null };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[] };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };
@@ -73,10 +73,34 @@ export const permissionStatus = () => invoke<Permissions>("permission_status");
 export const requestMicrophone = () => invoke<Access>("request_microphone");
 /** The first time, macOS adds Murmur to "Gravació de pantalla i àudio del sistema" and shows a prompt. */
 export const requestSystemAudio = () => invoke<boolean>("request_system_audio");
-export const openPrivacySettings = (pane: "microphone" | "systemAudio") => invoke<void>("open_privacy_settings", { pane });
+export const openPrivacySettings = (pane: "microphone" | "systemAudio" | "calendars") => invoke<void>("open_privacy_settings", { pane });
+
+/** The macOS calendar (calendar.rs): every account added to the system. */
+export type CalendarInfo = { id: string; title: string; account: string; color: string };
+export type CalendarEvent = {
+  id: string;
+  calendarId: string;
+  title: string;
+  /** ms since 1970 */
+  start: number;
+  end: number;
+  attendees: { name: string | null; email: string | null; me: boolean }[];
+  platform: string | null;
+};
+export const calendarAccess = () => invoke<Access>("calendar_access");
+/** Shows the system's calendar dialog (only the first time) and resolves with the answer. */
+export const requestCalendarAccess = () => invoke<Access>("request_calendar_access");
+export const listCalendars = () => invoke<CalendarInfo[]>("list_calendars");
+export const calendarEvents = (from: number, to: number, calendarIds: string[] | null) =>
+  invoke<CalendarEvent[]>("calendar_events", { from, to, calendarIds });
+/** "Comença d'aquí a 2 minuts": which calendars the alert watches. */
+export const setCalendarWatch = (watch: { enabled: boolean; calendarIds: string[] | null; includeNoGuests: boolean }) =>
+  invoke<void>("set_calendar_watch", { watch });
 
 /** "Reunió detectada": offer to record when another app starts using the microphone. */
 export const setMeetingDetection = (enabled: boolean) => invoke<void>("set_meeting_detection", { enabled });
+/** The system print panel for this window (the cover; index.css hides the rest on paper). */
+export const printPage = () => invoke<void>("print_page");
 export const listMicrophones = () => invoke<string[]>("list_microphones");
 export const writeExport = (path: string, contents: Uint8Array) =>
   invoke<void>("write_export", { path, contents: Array.from(contents) });

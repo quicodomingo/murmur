@@ -42,16 +42,21 @@ export type Meeting = {
   sources?: { mic: boolean; system: boolean };
   /** Written by the local language model after the recording (lib/cover.ts). */
   cover?: Cover | null;
+  /** Guests of the calendar event it was recorded for: names offered for the speakers. */
+  guests?: string[];
 };
 
 /** The meeting's cover. Times are seconds into the meeting (null: the model gave none or a bad one). */
 export type Cover = {
   generatedAt: number;
+  /** What the model read (lib/cover.ts coverBasis): when it differs, the cover is out of date. */
+  basis?: string;
   excerpt?: string;
   tone?: { label: string; reason: string };
   summary?: string[];
   decisions?: { text: string; t: number | null }[];
-  tasks?: { text: string; owner: string | null; when: string | null; t: number | null; done?: boolean }[];
+  /** `manual`: added by hand on the cover (kept when the cover is generated again). */
+  tasks?: { text: string; owner: string | null; when: string | null; t: number | null; done?: boolean; manual?: boolean }[];
   parts?: { t: number; title: string; points: string[] }[];
   /** Parts that could not be generated, by prompt id. */
   errors?: Record<string, string>;

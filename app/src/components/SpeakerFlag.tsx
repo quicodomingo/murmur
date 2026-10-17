@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Pencil, Plus } from "lucide-react";
+import { Check, Pencil, Plus, UserRound } from "lucide-react";
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -44,10 +45,12 @@ type Props = {
   version: number;
   onReassign: (speaker: number, version: number) => void;
   onRename: (speaker: number, name: string, version: number) => void;
+  /** Guests of the calendar event: picking one names this speaker after them. */
+  guests?: string[];
 };
 
 /** Speaker flag that opens a native-style menu to reassign the utterance or rename the speaker. */
-export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename }: Props) {
+export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, guests = [] }: Props) {
   const name = speakers.find((s) => s.id === speaker)?.name ?? `Parlant ${speaker + 1}`;
   // The numbering version is captured when renaming starts: the final pass may renumber meanwhile.
   const [renaming, setRenaming] = useState<{ id: number; version: number } | null>(null);
@@ -59,6 +62,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename }
         speaker={renaming.id}
         you={speakers.find((s) => s.id === renaming.id)?.you}
         initial={current}
+        suggestions={guests}
         onDone={(value) => {
           if (value && value !== current) onRename(renaming.id, value, renaming.version);
           setRenaming(null);
@@ -68,6 +72,9 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename }
   }
 
   const nextId = Math.max(-1, ...speakers.map((s) => s.id)) + 1;
+  // Guests who aren't a speaker's name yet.
+  const taken = new Set(speakers.map((s) => s.name.toLocaleLowerCase("ca")));
+  const unnamed = guests.filter((g) => !taken.has(g.toLocaleLowerCase("ca")));
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -83,6 +90,18 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename }
             {s.id === speaker && <Check className="size-3.5" />}
           </DropdownMenuItem>
         ))}
+        {unnamed.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">Convidats: «{name}» és…</DropdownMenuLabel>
+            {unnamed.map((g) => (
+              <DropdownMenuItem key={g} onSelect={() => onRename(speaker, g, version)}>
+                <UserRound className="size-3.5" />
+                {g}
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => setRenaming({ id: speaker, version })}>
           <Pencil className="size-3.5" />
@@ -102,7 +121,19 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename }
   );
 }
 
-function RenameInput({ speaker, you, initial, onDone }: { speaker: number; you?: boolean; initial: string; onDone: (v: string) => void }) {
+function RenameInput({
+  speaker,
+  you,
+  initial,
+  suggestions,
+  onDone,
+}: {
+  speaker: number;
+  you?: boolean;
+  initial: string;
+  suggestions: string[];
+  onDone: (v: string) => void;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(initial);
   useEffect(() => {
@@ -110,19 +141,30 @@ function RenameInput({ speaker, you, initial, onDone }: { speaker: number; you?:
     const t = setTimeout(() => ref.current?.select(), 30);
     return () => clearTimeout(t);
   }, []);
+  const listId = `guests-${speaker}`;
   return (
-    <input
-      ref={ref}
-      value={value}
-      aria-label="Nom del parlant"
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={() => onDone(value.trim())}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onDone(value.trim());
-        if (e.key === "Escape") onDone("");
-      }}
-      className="h-5 w-36 rounded-[5px] px-1.5 text-[12px] font-semibold outline-none ring-2 ring-ring"
-      style={{ background: speakerTone(speaker, you).tint, color: speakerTone(speaker, you).text }}
-    />
+    <>
+      <input
+        ref={ref}
+        list={suggestions.length ? listId : undefined}
+        value={value}
+        aria-label="Nom del parlant"
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => onDone(value.trim())}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onDone(value.trim());
+          if (e.key === "Escape") onDone("");
+        }}
+        className="h-5 w-36 rounded-[5px] px-1.5 text-[12px] font-semibold outline-none ring-2 ring-ring"
+        style={{ background: speakerTone(speaker, you).tint, color: speakerTone(speaker, you).text }}
+      />
+      {suggestions.length > 0 && (
+        <datalist id={listId}>
+          {suggestions.map((g) => (
+            <option key={g} value={g} />
+          ))}
+        </datalist>
+      )}
+    </>
   );
 }

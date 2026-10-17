@@ -125,7 +125,8 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - Windows (pendent): loopback WASAPI.
 - **Desar l'àudio** (`recorder.rs`): Ogg/Opus 16 kHz; mono 16 kbps (~7 MB/h) amb una font, **estèreo 24 kbps (~11 MB/h) amb micròfon (esquerra, ja sense eco) + sistema (dreta)**. La transcripció de l'àudio descomprimit és pràcticament idèntica a l'original. Fitxer a `<app_data_dir>/recordings/<meeting_id>.ogg`. Opus es compila amb cmake (`brew install cmake`).
 - **Configuració** (`SettingsDialog.tsx`; ⌘, i «Configuració…» al menú de l'app, que emet `open-settings`). Es desa a `localStorage` (`transcriptor.settings.v1`) i es passa a `start_recording`.
-  - General: obrir en iniciar la sessió (plugin autostart, LaunchAgent), panell principal (notes per defecte, o transcripció: l'altre va al `SidePanel` redimensionable), calendaris (encara «no disponible»).
+  - General: obrir en iniciar la sessió (plugin autostart, LaunchAgent), panell principal (notes per defecte, o transcripció: l'altre va al `SidePanel` redimensionable), calendaris (vegeu **Calendari**).
+- **Calendari** (`calendar.rs`, EventKit): llegeix el Calendari de macOS, que inclou els comptes de Google, iCloud i Exchange afegits al sistema (la integració directa amb Google demanaria OAuth i la verificació de Google: només si cal per a Windows). Permís propi (`NSCalendarsFullAccessUsageDescription` + entitlement `personal-information.calendars`). Cada 20 s, `shell.rs` busca als calendaris triats una reunió que comenci d'aquí a ≤ 2 min (o fa ≤ 1 min) i mostra l'avís «Comença d'aquí a 2 minuts · Títol · 17:00 · Google Meet» (un cop per esdeveniment). Per defecte només esdeveniments amb convidats o enllaç de videotrucada. En començar a gravar, la reunió agafa el títol i els convidats de l'esdeveniment en curs (`lib/calendar.ts`, columna `guests`): el menú de cada parlant els ofereix com a noms (i en reanomenar).
   - Àudio: micròfon + dispositiu + **nivell d'entrada en directe** (`start_mic_monitor`/`stop_mic_monitor`, esdeveniment `mic-level`), àudio del sistema, desar l'àudio i **carpeta** (diàleg natiu; per defecte `<app_data_dir>/recordings`).
   - Transcripció: màxim de parlants, separació de veus, **verificació de parlants en acabar** (desactivada per defecte).
 - **Notes** (`NotesPanel.tsx`, `lib/notes.ts`): editor Tiptap 3 (títols 1–3, negreta, cursiva, subratllat, ratllat, llistes, tasques; dreceres Markdown en escriure). Es desa com a JSON de Tiptap (`meeting.notesDoc`) perquè **cada bloc porta `attrs.t`** (minut de la reunió en què s'hi va escriure; `keepOnSplit: false`). Exportació a Markdown pròpia (`docToMarkdown`). Les marques a la transcripció surten de `notesFromDoc`.
@@ -144,6 +145,13 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
   - **Exportació** (`lib/export.ts`): Markdown i Word (`docx`, carregat a demanda), notes primer i després la transcripció. Diàleg natiu de desar (plugin dialog) + ordre `write_export`.
   - **Eliminar** una reunió (menú del títol, confirmació nativa) esborra també el seu àudio.
 - Disseny: `docs/design/` (vegeu la secció Disseny).
+
+## Portada (`lib/cover.ts`, `Cover.tsx`)
+
+- El model llegeix la transcripció i, al final, les notes amb el minut en què es van escriure (també compten com a font de tasques i decisions).
+- Tasques: només accions que algú demana o es compromet a fer; si no n'hi ha, «En aquesta reunió no s'han demanat tasques». Es poden marcar, editar, assignar (qui ha parlat + convidats), eliminar i afegir; en tornar a generar es conserven les afegides a mà i les marcades.
+- La portada desa una empremta del que ha llegit (`basis`): si després canvien noms, parlants, text o notes (també durant la generació), avisa que ha quedat desactualitzada i ofereix tornar-la a generar.
+- «PDF o envia…»: el tauler d'impressió de macOS (Desa com a PDF, Mail, Missatges) sobre una còpia de la portada (`.mm-print`); la pàgina passa a mode clar mentre s'imprimeix.
 
 ## Passada final: verificació de parlants (`diarize.rs`, `final_pass` a `lib.rs`)
 

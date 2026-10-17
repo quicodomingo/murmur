@@ -2,7 +2,7 @@ import { useCallback, useRef, type Dispatch } from "react";
 import { toast } from "sonner";
 
 import * as backend from "./backend";
-import { buildCover, coverDocument, coverEstimate, isDefaultTitle, llmTasks, PROMPTS, promptText } from "./cover";
+import { buildCover, coverBasis, coverDocument, coverEstimate, isDefaultTitle, keepTaskEdits, llmTasks, PROMPTS, promptText } from "./cover";
 import { modelInstalled } from "./models";
 import type { Settings } from "./settings";
 import type { Action, State } from "./store";
@@ -81,7 +81,10 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
               tasks,
               keepLoaded: false,
             });
-            const { cover, title } = buildCover(results, meeting);
+            const built = buildCover(results, meeting);
+            const title = built.title;
+            // What it read: changes made meanwhile (a speaker renamed) show the cover is out of date.
+            const cover = keepTaskEdits({ ...built.cover, basis: coverBasis(document) }, latest.current.open[id]?.cover);
             // The model's title replaces the automatic one, never one the user wrote.
             const current = latest.current.open[id]?.title ?? meeting.title;
             dispatch({ type: "cover", id, cover, title: title && isDefaultTitle(current) ? title : null });

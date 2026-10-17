@@ -80,7 +80,10 @@ Entre reunions (bloc 5):
 
 ## 4. Configuració pendent (ja dissenyada)
 
-- [ ] Calendaris: Google Calendar i Apple Calendar → títol de la reunió, noms dels parlants a partir dels convidats, avís «Comença d'aquí a 2 minuts» (la finestra d'avisos ja existeix).
+- [x] Calendari de macOS (inclou Google, iCloud i Exchange afegits al sistema): triar calendaris, avís «Comença d'aquí a 2 minuts» i títol de la reunió.
+- [x] Noms dels parlants a partir dels convidats de l'esdeveniment (menú del parlant).
+- [x] Portada: tasques editables, notes com a font, avís de portada desactualitzada i «PDF o envia…».
+- [ ] Google Calendar directe (OAuth) per a Windows, si cal.
 - [ ] Intel·ligència: model local o clau pròpia d'OpenAI / Anthropic, desada al clauer del sistema. Només s'envia text, mai àudio.
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
 

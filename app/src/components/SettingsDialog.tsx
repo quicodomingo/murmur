@@ -120,27 +120,115 @@ function GeneralTab({ settings, onChange }: { settings: Settings; onChange: Prop
           />
         </Row>
       </Group>
-      <Group title="Calendaris">
-        <CalendarRow name="Google Calendar" />
-        <CalendarRow name="Apple Calendar" />
-      </Group>
-      <p className="px-1 text-[11px] leading-snug text-muted-foreground">
-        Amb un calendari connectat, les reunions agafaran el títol de l'esdeveniment i els noms dels convidats per anomenar els parlants.
-      </p>
+      <CalendarSettings settings={settings} onChange={onChange} />
     </>
   );
 }
 
-function CalendarRow({ name }: { name: string }) {
+/**
+ * The macOS calendar: every account added to the system (iCloud, Google, Exchange…). Once
+ * connected, the alert before each meeting and which calendars it watches.
+ */
+function CalendarSettings({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
+  const [access, setAccess] = useState<backend.Access | null>(null);
+  const [calendars, setCalendars] = useState<backend.CalendarInfo[]>([]);
+  const refresh = () => {
+    if (!backend.isTauri()) return;
+    backend
+      .calendarAccess()
+      .then(async (a) => {
+        setAccess(a);
+        if (a === "granted") setCalendars(await backend.listCalendars());
+      })
+      .catch(() => {});
+  };
+  useEffect(() => {
+    refresh();
+    // Coming back from System Settings.
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted";
+  const footnote = (
+    <p className="-mt-3 mb-5 px-1 text-[11px] leading-snug text-muted-foreground">
+      Murmur llegeix els calendaris que tens a l'app Calendari de macOS. Per afegir-hi Google Calendar, afegeix el compte a Configuració del Sistema › Comptes d'Internet.
+    </p>
+  );
+  if (access !== "granted") {
+    return (
+      <>
+        <Group title="Calendaris">
+          <Row
+            label="Calendari de macOS"
+            hint={
+              access === "denied"
+                ? "Denegat. Activa Murmur a Configuració del Sistema › Privadesa i seguretat › Calendaris."
+                : "Per avisar-te quan comença una reunió i posar-li el títol de l'esdeveniment. Només el llegeix."
+            }
+          >
+            <span className="flex items-center gap-2">
+              <CalendarDays className="size-4 text-muted-foreground" aria-hidden />
+              {access === "denied" ? (
+                <button type="button" className={button} onClick={() => backend.openPrivacySettings("calendars")}>
+                  Obre Configuració
+                </button>
+              ) : (
+                <button type="button" className={button} disabled={access === null} onClick={() => backend.requestCalendarAccess().then(refresh)}>
+                  Connecta…
+                </button>
+              )}
+            </span>
+          </Row>
+        </Group>
+        {footnote}
+      </>
+    );
+  }
+
+  const ids = calendars.map((c) => c.id);
+  const watched = (id: string) => settings.calendarIds === null || settings.calendarIds.includes(id);
+  const toggle = (id: string, on: boolean) => {
+    const next = (settings.calendarIds ?? ids).filter((c) => c !== id && ids.includes(c));
+    if (on) next.push(id);
+    onChange({ calendarIds: next.length === ids.length ? null : next });
+  };
   return (
-    <Row label={name} hint="Encara no disponible">
-      <span className="flex items-center gap-2">
-        <CalendarDays className="size-4 text-muted-foreground" />
-        <button type="button" disabled className="h-6 rounded-md border border-input bg-background px-2.5 text-[13px] opacity-50">
-          Connecta
-        </button>
-      </span>
-    </Row>
+    <>
+      <Group title="Calendaris">
+        <Row label="Avisa quan comenci una reunió" hint="Uns 2 minuts abans, amb un botó per començar a gravar. La gravació agafa el títol de l'esdeveniment.">
+          <Switch checked={settings.calendarAlerts} onCheckedChange={(calendarAlerts) => onChange({ calendarAlerts })} />
+        </Row>
+        <Row label="Inclou els esdeveniments sense convidats" hint="També els que no tenen convidats ni enllaç de videotrucada.">
+          <Switch checked={settings.calendarNoGuests} onCheckedChange={(calendarNoGuests) => onChange({ calendarNoGuests })} />
+        </Row>
+      </Group>
+      <section className="mb-5">
+        <div className="mb-1.5 flex items-baseline justify-between px-1">
+          <h3 className="text-[12px] font-semibold text-muted-foreground">Calendaris que vigila</h3>
+          {settings.calendarIds !== null && (
+            <button type="button" className="text-[12px] text-mm-link hover:underline" onClick={() => onChange({ calendarIds: null })}>
+              Tots
+            </button>
+          )}
+        </div>
+        <div className="divide-y divide-border rounded-[10px] border border-border bg-background">
+          {calendars.length === 0 && <Row label="No hi ha cap calendari" hint="Afegeix-ne un a l'app Calendari de macOS.">{null}</Row>}
+          {calendars.map((c) => (
+            <div key={c.id} className="flex min-h-11 items-center gap-3 px-3 py-2">
+              {/* The calendar's own colour, as macOS shows it. */}
+              <span className="size-3 shrink-0 rounded-[3px]" style={{ backgroundColor: c.color }} aria-hidden />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px]">{c.title}</div>
+                {c.account && c.account !== c.title && <div className="truncate text-[11px] text-muted-foreground">{c.account}</div>}
+              </div>
+              <Switch checked={watched(c.id)} onCheckedChange={(on) => toggle(c.id, on)} aria-label={`Vigila ${c.title}`} />
+            </div>
+          ))}
+        </div>
+      </section>
+      {footnote}
+    </>
   );
 }
 

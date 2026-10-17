@@ -1,5 +1,6 @@
 pub mod aec;
 pub mod audio;
+pub mod calendar;
 pub mod db;
 pub mod diarize;
 pub mod engine;
@@ -287,6 +288,12 @@ struct FinalPassSpeakers {
 struct FinalPassDone {
     meeting_id: String,
     error: Option<String>,
+}
+
+/// "PDF o envia…" on the cover: the system print panel (Save as PDF, Mail, Messages…).
+#[tauri::command]
+fn print_page(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.print().map_err(|e| e.to_string())
 }
 
 /// After a recording: re-check who spoke when over the whole tapped channel.
@@ -753,6 +760,12 @@ pub fn run() {
             shell::dismiss_toast,
             shell::toast_start,
             shell::set_meeting_detection,
+            shell::set_calendar_watch,
+            print_page,
+            calendar::calendar_access,
+            calendar::request_calendar_access,
+            calendar::list_calendars,
+            calendar::calendar_events,
             permissions::permission_status,
             permissions::request_microphone,
             permissions::request_system_audio,

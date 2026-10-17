@@ -131,6 +131,7 @@ export function Transcript(props: Props) {
                   <SpeakerFlag
                     speaker={u.speaker}
                     speakers={speakers}
+                    guests={meeting.guests}
                     version={meeting.speakersVersion ?? 0}
                     onReassign={(s, version) => props.onReassign(u.id, s, version)}
                     onRename={props.onRename}

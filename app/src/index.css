@@ -155,6 +155,17 @@
     -webkit-user-select: text;
     user-select: text;
     }
+  /* "PDF o envia…" prints only the cover's copy (Cover.tsx, .mm-print), not the app. */
+  @media print {
+    #root,
+    [data-sonner-toaster] {
+      display: none !important;
+    }
+    html,
+    body {
+      background: var(--mm-background);
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }

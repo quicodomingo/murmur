@@ -1,5 +1,6 @@
 //! Murmur outside its main window: the menu bar icon (idle, meeting nearby, recording), the
-//! floating alert ("Reunió detectada") and the watcher that notices other apps using the mic.
+//! floating alert ("Reunió detectada", "Comença d'aquí a 2 minuts"), the watcher that notices
+//! other apps using the mic and the one that looks for upcoming meetings in the calendar.
 
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -12,6 +13,7 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{TrayIcon, TrayIconBuilder};
 use tauri::{AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder};
 
+use crate::calendar;
 use crate::micwatch;
 
 const TRAY_IDLE: &[u8] = include_bytes!("../icons/menubar/MenuBarTemplate@2x.png");
@@ -22,14 +24,20 @@ const TRAY_RECORDING: &[u8] = include_bytes!("../icons/menubar/MenuBarRecording@
 const TOAST_SIZE: (f64, f64) = (512.0, 120.0);
 /// Seconds an alert stays before going away on its own.
 const TOAST_SECONDS: u32 = 20;
+/// The calendar alert shows this long before a meeting starts (and up to a minute after).
+const CALENDAR_LEAD_S: f64 = 120.0;
+const CALENDAR_LATE_S: f64 = 60.0;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Toast {
-    /// "detected": another app is using the microphone.
+    /// "detected": another app is using the microphone; "calendar": a meeting is about to start.
     pub kind: &'static str,
     pub title: String,
+    /// The app using the microphone (detected), or the video call service, if any (calendar).
     pub subtitle: String,
+    /// When the meeting starts, in ms since 1970 (calendar): the window counts down to it.
+    pub start: Option<f64>,
     pub seconds: u32,
     /// Changes with every alert, so the window restarts its countdown.
     pub id: u64,
@@ -45,6 +53,9 @@ pub struct Shell {
     /// Apps whose alert was closed: not shown again until they stop using the microphone.
     dismissed: Mutex<HashSet<String>>,
     next_id: Mutex<u64>,
+    calendar: Mutex<calendar::Watch>,
+    /// Calendar events already announced (id + start), so each one alerts once.
+    announced: Mutex<HashSet<String>>,
 }
 
 #[derive(Clone, Copy)]
@@ -111,12 +122,12 @@ pub fn set_recording(app: &AppHandle, recording: bool) {
     refresh_tray(app);
 }
 
-fn show_toast(app: &AppHandle, title: String, subtitle: String) {
+fn show_toast(app: &AppHandle, kind: &'static str, title: String, subtitle: String, start: Option<f64>, seconds: u32) {
     let toast = {
         let shell = shell(app);
         let mut next = shell.next_id.lock().unwrap();
         *next += 1;
-        Toast { kind: "detected", title, subtitle, seconds: TOAST_SECONDS, id: *next }
+        Toast { kind, title, subtitle, start, seconds, id: *next }
     };
     *shell(app).toast.lock().unwrap() = Some(toast.clone());
     if let Some(w) = app.get_webview_window("toast") {
@@ -150,7 +161,7 @@ pub fn current_toast(app: AppHandle) -> Option<Toast> {
 /// Closed by hand or timed out: don't ask again for this app until it stops using the mic.
 #[tauri::command]
 pub fn dismiss_toast(app: AppHandle) {
-    if let Some(toast) = shell(&app).toast.lock().unwrap().as_ref() {
+    if let Some(toast) = shell(&app).toast.lock().unwrap().as_ref().filter(|t| t.kind == "detected") {
         shell(&app).dismissed.lock().unwrap().insert(toast.subtitle.clone());
     }
     hide_toast(&app);
@@ -170,6 +181,33 @@ pub fn set_meeting_detection(app: AppHandle, enabled: bool) {
     if !enabled {
         hide_toast(&app);
     }
+}
+
+/// Settings › General › Calendaris: whether to alert and which calendars to watch.
+#[tauri::command]
+pub fn set_calendar_watch(app: AppHandle, watch: calendar::Watch) {
+    let enabled = watch.enabled;
+    *shell(&app).calendar.lock().unwrap() = watch;
+    let calendar_shown = shell(&app).toast.lock().unwrap().as_ref().is_some_and(|t| t.kind == "calendar");
+    if !enabled && calendar_shown {
+        hide_toast(&app);
+    }
+}
+
+/// The next meeting starting within `CALENDAR_LEAD_S` (or that just started) not yet announced.
+fn upcoming_meeting(app: &AppHandle) -> Option<calendar::EventInfo> {
+    let watch = shell(app).calendar.lock().unwrap().clone();
+    if !watch.enabled {
+        return None;
+    }
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).ok()?.as_secs_f64() * 1000.0;
+    let announced = shell(app).announced.lock().unwrap().clone();
+    calendar::events(now - CALENDAR_LATE_S * 1000.0, now + CALENDAR_LEAD_S * 1000.0, watch.calendar_ids.as_deref())
+        .into_iter()
+        .filter(|e| e.start >= now - CALENDAR_LATE_S * 1000.0 && e.start <= now + CALENDAR_LEAD_S * 1000.0)
+        .filter(|e| watch.include_no_guests || e.is_meeting())
+        .filter(|e| !announced.contains(&format!("{}@{}", e.id, e.start)))
+        .min_by(|a, b| a.start.total_cmp(&b.start))
 }
 
 pub fn setup(app: &tauri::App) -> tauri::Result<()> {
@@ -238,20 +276,37 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
             // An app that let go of the microphone may ask again next time.
             shell.dismissed.lock().unwrap().retain(|s| users.iter().any(|u| s.starts_with(u.as_str())));
             let active = shell.detect.load(Ordering::Relaxed) && !shell.recording.load(Ordering::Relaxed);
-            let shown = shell.toast.lock().unwrap().as_ref().map(|t| t.subtitle.clone());
+            // Only "Reunió detectada" follows the microphone; a calendar alert stays.
+            let shown = shell.toast.lock().unwrap().as_ref().filter(|t| t.kind == "detected").map(|t| t.subtitle.clone());
+            let calendar_shown = shell.toast.lock().unwrap().as_ref().is_some_and(|t| t.kind == "calendar");
             if let Some(subtitle) = &shown {
                 if !active || !users.iter().any(|u| subtitle.starts_with(u.as_str())) {
                     hide_toast(&app);
                 }
             }
-            if active {
+            if active && !calendar_shown {
                 let dismissed = shell.dismissed.lock().unwrap().clone();
                 if let Some(name) = users.difference(&previous).find(|n| !dismissed.iter().any(|d| d.starts_with(n.as_str()))) {
-                    show_toast(&app, "Reunió detectada".into(), format!("{name} fa servir el micròfon"));
+                    show_toast(&app, "detected", "Reunió detectada".into(), format!("{name} fa servir el micròfon"), None, TOAST_SECONDS);
                 }
             }
             previous = users;
         }
+    });
+
+    // Calendar alert: a meeting in the watched calendars is about to start.
+    let app = handle.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(20));
+        if shell(&app).recording.load(Ordering::Relaxed) {
+            continue;
+        }
+        let Some(event) = upcoming_meeting(&app) else { continue };
+        shell(&app).announced.lock().unwrap().insert(format!("{}@{}", event.id, event.start));
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64() * 1000.0);
+        // Until a minute after it starts, at least half a minute.
+        let seconds = (((event.start - now) / 1000.0 + CALENDAR_LATE_S).max(30.0)) as u32;
+        show_toast(&app, "calendar", event.title, event.platform.unwrap_or_default(), Some(event.start), seconds);
     });
     Ok(())
 }
