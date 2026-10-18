@@ -54,7 +54,7 @@
       "signingIdentity": "Developer ID Application: We Are Mortensen S.L. (NYQHV4FSKC)",
       "entitlements": "Entitlements.plist",
       "hardenedRuntime": true,
-      "minimumSystemVersion": "13.0"
+      "minimumSystemVersion": "14.2"
     }
   },
   "plugins": {

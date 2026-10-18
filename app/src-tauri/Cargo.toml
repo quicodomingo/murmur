@@ -45,11 +45,12 @@ semver = "1"
 libc = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-screencapturekit = "0.3.6"
-core-media-rs = "0.3"
+objc2-core-audio = "0.3"
+objc2-core-audio-types = "0.3"
+objc2-core-foundation = "0.3"
 objc2 = "0.6"
 block2 = "0.6"
-objc2-foundation = { version = "0.3", features = ["NSDate", "NSArray", "NSString", "NSURL", "NSPredicate", "NSError"] }
+objc2-foundation = { version = "0.3", features = ["NSDate", "NSArray", "NSString", "NSURL", "NSPredicate", "NSError", "NSValue"] }
 objc2-event-kit = { version = "0.3", features = ["EKEventStore", "EKCalendar", "EKCalendarItem", "EKEvent", "EKParticipant", "EKSource", "EKTypes", "EKObject", "block2", "objc2-app-kit"] }
 core-graphics = "0.24"
 core-foundation = "0.10"

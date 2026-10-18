@@ -15,6 +15,8 @@ pub mod pipeline;
 pub mod recorder;
 pub mod shell;
 pub mod storage;
+#[cfg(target_os = "macos")]
+pub mod systap;
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -688,6 +690,11 @@ fn screens_dir(app: &AppHandle, meeting_id: &str) -> Result<std::path::PathBuf, 
 #[tauri::command]
 async fn capture_screen(app: AppHandle, meeting_id: String, t: f64) -> Result<String, String> {
     let dir = screens_dir(&app, &meeting_id)?;
+    // Only the screenshots need it: the first time, macOS shows its prompt.
+    if !permissions::screen_granted() {
+        permissions::request_screen();
+        return Err("Per fer captures cal el permís de «Gravació de pantalla». Activa Murmur a Configuració del Sistema i torna-ho a provar.".into());
+    }
     let path = tauri::async_runtime::spawn_blocking(move || capture::capture(&dir, (t * 1000.0) as u64))
         .await
         .map_err(|e| e.to_string())??;
@@ -905,6 +912,7 @@ pub fn run() {
             permissions::permission_status,
             permissions::request_microphone,
             permissions::request_system_audio,
+            permissions::request_screen,
             permissions::open_privacy_settings
         ])
         .build(tauri::generate_context!())

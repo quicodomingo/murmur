@@ -1,5 +1,5 @@
-//! Audio capture: microphone (cpal) + system audio (ScreenCaptureKit on macOS), each sent as
-//! 16 kHz mono f32 frames tagged with their source.
+//! Audio capture: microphone (cpal) + system audio (a Core Audio process tap on macOS, systap.rs),
+//! each sent as 16 kHz mono f32 frames tagged with their source.
 
 use anyhow::{Context, Result, anyhow};
 use cpal::SampleFormat;
@@ -22,14 +22,14 @@ const SIM_CHUNK: usize = SAMPLE_RATE / 10;
 pub type Frame = (Source, Vec<f32>);
 
 /// Linear-interpolation resampler that keeps its phase across callbacks.
-struct Resampler {
+pub(crate) struct Resampler {
     ratio: f64,
     t: f64,
     prev: f32,
 }
 
 impl Resampler {
-    fn new(input_rate: u32) -> Self {
+    pub(crate) fn new(input_rate: u32) -> Self {
         Self {
             ratio: input_rate as f64 / SAMPLE_RATE as f64,
             t: 0.0,
@@ -37,7 +37,7 @@ impl Resampler {
         }
     }
 
-    fn process(&mut self, input: &[f32], out: &mut Vec<f32>) {
+    pub(crate) fn process(&mut self, input: &[f32], out: &mut Vec<f32>) {
         if input.is_empty() {
             return;
         }
@@ -61,16 +61,7 @@ impl Resampler {
 pub struct Capture {
     _mic: Option<cpal::Stream>,
     #[cfg(target_os = "macos")]
-    _system: Option<screencapturekit::stream::SCStream>,
-}
-
-#[cfg(target_os = "macos")]
-impl Drop for Capture {
-    fn drop(&mut self) {
-        if let Some(stream) = &self._system {
-            let _ = stream.stop_capture();
-        }
-    }
+    _system: Option<crate::systap::SystemTap>,
 }
 
 /// `mic_device`: input device name from `list_microphones`; `None` (or not found) = system default.
@@ -88,7 +79,7 @@ pub fn start_capture(
     // Start system audio first: if its permission is missing we fail before opening the mic.
     #[cfg(target_os = "macos")]
     let system_stream = if system {
-        Some(system_audio::start(tx.clone())?)
+        Some(crate::systap::start(tx.clone())?)
     } else {
         None
     };
@@ -172,87 +163,6 @@ fn start_mic(name: Option<&str>, tx: Sender<Frame>) -> Result<cpal::Stream> {
     .context("No s'ha pogut obrir el micròfon")?;
     stream.play().context("No s'ha pogut començar a gravar")?;
     Ok(stream)
-}
-
-#[cfg(target_os = "macos")]
-mod system_audio {
-    use anyhow::{Result, anyhow};
-    use core_media_rs::cm_sample_buffer::CMSampleBuffer;
-    use screencapturekit::shareable_content::SCShareableContent;
-    use screencapturekit::stream::{
-        SCStream, configuration::SCStreamConfiguration, content_filter::SCContentFilter,
-        output_trait::SCStreamOutputTrait, output_type::SCStreamOutputType,
-    };
-
-    use crossbeam_channel::Sender;
-
-    use super::{Frame, Source};
-    use crate::engine::SAMPLE_RATE;
-
-    struct Output {
-        tx: Sender<Frame>,
-    }
-
-    impl SCStreamOutputTrait for Output {
-        fn did_output_sample_buffer(&self, sample: CMSampleBuffer, _of_type: SCStreamOutputType) {
-            let Ok(list) = sample.get_audio_buffer_list() else {
-                return;
-            };
-            // We ask for mono, so the first buffer holds every sample (f32, native endian).
-            let Some(buffer) = list.get(0) else { return };
-            let samples: Vec<f32> = buffer
-                .data()
-                .chunks_exact(4)
-                .map(|c| f32::from_ne_bytes([c[0], c[1], c[2], c[3]]))
-                .collect();
-            let _ = self.tx.send((Source::System, samples));
-        }
-    }
-
-    pub fn start(tx: Sender<Frame>) -> Result<SCStream> {
-        let permission = || {
-            anyhow!(
-                "Per captar l'àudio de les videotrucades cal permís de «Gravació de pantalla i \
-                 àudio del sistema» a Configuració del Sistema › Privadesa i seguretat."
-            )
-        };
-        let content = SCShareableContent::get().map_err(|_| permission())?;
-        let display = content
-            .displays()
-            .into_iter()
-            .next()
-            .ok_or_else(permission)?;
-        let filter = SCContentFilter::new().with_display_excluding_windows(&display, &[]);
-        let err = |e| anyhow!("No s'ha pogut configurar l'àudio del sistema: {e:?}");
-        // The video stream is mandatory in ScreenCaptureKit; keep it tiny and almost still since
-        // we ignore it. Without a frame interval it follows the screen: with a video call on it,
-        // WindowServer scaled the whole display down 60 times a second and starved the
-        // transcription.
-        let once_in_a_while = core_media_rs::cm_time::CMTime { value: 10, timescale: 1, flags: 1, epoch: 0 };
-        let config = SCStreamConfiguration::new()
-            .set_width(2)
-            .map_err(err)?
-            .set_height(2)
-            .map_err(err)?
-            .set_minimum_frame_interval(&once_in_a_while)
-            .map_err(err)?
-            .set_queue_depth(3)
-            .map_err(err)?
-            .set_shows_cursor(false)
-            .map_err(err)?
-            .set_captures_audio(true)
-            .map_err(err)?
-            .set_sample_rate(SAMPLE_RATE as u32)
-            .map_err(err)?
-            .set_channel_count(1)
-            .map_err(err)?
-            .set_excludes_current_process_audio(true)
-            .map_err(err)?;
-        let mut stream = SCStream::new(&filter, &config);
-        stream.add_output_handler(Output { tx }, SCStreamOutputType::Audio);
-        stream.start_capture().map_err(|_| permission())?;
-        Ok(stream)
-    }
 }
 
 /// Dev aid: stream a 16 kHz mono WAV at real-time pace as if it were the system audio of a call

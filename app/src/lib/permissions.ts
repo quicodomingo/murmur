@@ -2,9 +2,12 @@ import { toast } from "sonner";
 
 import * as backend from "./backend";
 
-const ASKED_KEY = "murmur.systemAudioAsked";
+const ASKED_KEY = "murmur.systemAudioTapAsked";
 
-/** macOS only shows its system audio prompt once; after that, the way in is System Settings. */
+/**
+ * System audio comes from a Core Audio tap (systap.rs). macOS asks for "System audio recording"
+ * the first time a tap opens and doesn't tell apps the answer: without it, the tap is silent.
+ */
 export function systemAudioAsked(): boolean {
   try {
     return localStorage.getItem(ASKED_KEY) === "1";
@@ -13,7 +16,7 @@ export function systemAudioAsked(): boolean {
   }
 }
 
-/** Asks for system audio: the system prompt the first time, the settings page afterwards. */
+/** The system prompt the first time, the settings page afterwards. */
 export async function askSystemAudio() {
   if (systemAudioAsked()) {
     await backend.openPrivacySettings("systemAudio");
@@ -34,7 +37,7 @@ export async function askSystemAudio() {
 export async function ensurePermissions(want: { mic: boolean; system: boolean }): Promise<{ mic: boolean; system: boolean } | null> {
   let status = await backend.permissionStatus();
   let mic = want.mic;
-  let system = want.system;
+  const system = want.system;
 
   if (mic && status.microphone === "undetermined") {
     await backend.requestMicrophone();
@@ -49,16 +52,12 @@ export async function ensurePermissions(want: { mic: boolean; system: boolean })
     });
   }
 
-  if (system && !status.systemAudio) {
-    system = false;
-    const first = !systemAudioAsked();
+  // The first recording with system audio shows macOS's prompt; recording goes on either way.
+  if (system && !systemAudioAsked()) {
     await askSystemAudio();
-    toast(first ? "Cal permís per a l'àudio del sistema" : "Falta el permís per a l'àudio del sistema", {
-      description:
-        "Activa Murmur a «Gravació de pantalla i àudio del sistema» i torna-la a obrir. " +
-        (mic ? "Mentrestant, aquesta reunió es grava només amb el micròfon." : ""),
-      action: first ? undefined : { label: "Obre Configuració", onClick: () => backend.openPrivacySettings("systemAudio") },
-      duration: 12000,
+    toast("Permet que Murmur escolti l'àudio del sistema", {
+      description: "És l'altra banda de les trucades. Si no surt a la transcripció, revisa-ho a Configuració › Àudio › Permisos.",
+      duration: 10000,
     });
   }
 

@@ -68,13 +68,16 @@ export const onRecordRequest = (fn: (start: boolean) => void) =>
   );
 /** macOS privacy permissions (permissions.rs). */
 export type Access = "undetermined" | "granted" | "denied";
-export type Permissions = { microphone: Access; systemAudio: boolean };
+/** `screen`: screen recording, only needed for the screenshots. System audio can't be queried. */
+export type Permissions = { microphone: Access; screen: boolean };
 export const permissionStatus = () => invoke<Permissions>("permission_status");
 /** Shows the system's microphone dialog (only the first time) and resolves with the answer. */
 export const requestMicrophone = () => invoke<Access>("request_microphone");
-/** The first time, macOS adds Murmur to "Gravació de pantalla i àudio del sistema" and shows a prompt. */
-export const requestSystemAudio = () => invoke<boolean>("request_system_audio");
-export const openPrivacySettings = (pane: "microphone" | "systemAudio" | "calendars") => invoke<void>("open_privacy_settings", { pane });
+/** Opens the system audio tap a moment: the first time, macOS shows its permission prompt. */
+export const requestSystemAudio = () => invoke<void>("request_system_audio");
+/** Screen recording (screenshots): the first time, macOS adds Murmur to the list and shows a prompt. */
+export const requestScreen = () => invoke<boolean>("request_screen");
+export const openPrivacySettings = (pane: "microphone" | "systemAudio" | "screen" | "calendars") => invoke<void>("open_privacy_settings", { pane });
 
 /** The macOS calendar (calendar.rs): every account added to the system. */
 export type CalendarInfo = { id: string; title: string; account: string; color: string };

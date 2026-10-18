@@ -466,7 +466,7 @@ function AudioTab({ open, settings, onChange, recording }: { open: boolean; sett
             </Row>
           </>
         )}
-        <Row label="Àudio del sistema" hint="Zoom, Meet, Teams… Es transcriu a part del micròfon i se n'elimina l'eco, també amb altaveus. Cal permís de «Gravació de pantalla i àudio del sistema».">
+        <Row label="Àudio del sistema" hint="Zoom, Meet, Teams… Es transcriu a part del micròfon i se n'elimina l'eco, també amb altaveus. Només l'àudio: Murmur no veu la pantalla.">
           <Switch checked={settings.system} onCheckedChange={(system) => onChange({ system })} />
         </Row>
       </Group>
@@ -542,18 +542,19 @@ function PermissionsGroup({ open }: { open: boolean }) {
         )}
       </Row>
       <Row
-        label="Gravació de pantalla i àudio del sistema"
-        hint={
-          status.systemAudio
-            ? "Per sentir l'altra banda de les trucades i per a les captures que facis des de l'indicador."
-            : "Per sentir l'altra banda de les trucades i fer captures. Després d'activar-lo, cal tornar a obrir Murmur."
-        }
+        label="Àudio del sistema"
+        hint="Per sentir l'altra banda de les trucades. macOS no diu a les apps si l'has permès: si l'altra banda no es transcriu, comprova que Murmur és a Configuració del Sistema › Gravació de pantalla i àudio del sistema › Només àudio del sistema."
       >
-        {status.systemAudio ? (
+        <button type="button" className={button} onClick={() => askSystemAudio().then(refresh)}>
+          {systemAudioAsked() ? "Obre Configuració" : "Permet…"}
+        </button>
+      </Row>
+      <Row label="Gravació de pantalla" hint="Només per a les captures que fas des de l'indicador. Murmur no grava mai la pantalla.">
+        {status.screen ? (
           granted
         ) : (
-          <button type="button" className={button} onClick={() => askSystemAudio().then(refresh)}>
-            {systemAudioAsked() ? "Obre Configuració" : "Permet…"}
+          <button type="button" className={button} onClick={() => backend.requestScreen().then(refresh)}>
+            Permet…
           </button>
         )}
       </Row>
