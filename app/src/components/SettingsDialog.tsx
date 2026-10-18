@@ -28,6 +28,7 @@ type Props = {
 const TABS = [
   { id: "general", label: "General", icon: SlidersHorizontal },
   { id: "appearance", label: "Aparença", icon: Contrast },
+  { id: "calendar", label: "Calendari", icon: CalendarDays },
   { id: "audio", label: "Àudio", icon: Mic },
   { id: "transcription", label: "Transcripció", icon: AudioLines },
   { id: "intelligence", label: "Intel·ligència", icon: Sparkles },
@@ -59,7 +60,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
                 role="tab"
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
-                className={cn("flex w-24 flex-col items-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground", tab === id && "bg-mm-tab-selected text-foreground")}
+                className={cn("flex w-[88px] flex-col items-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground", tab === id && "bg-mm-tab-selected text-foreground")}
               >
                 <Icon className="size-5" strokeWidth={1.5} />
                 {label}
@@ -69,9 +70,10 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
         </div>
 
         <div className="h-[min(62vh,520px)] overflow-y-auto bg-mm-settings-background px-8 py-5">
-          {recording && !["general", "appearance"].includes(tab) && <p className="mb-3 text-[12px] text-muted-foreground">Els canvis s'aplicaran a la propera gravació.</p>}
-          {tab === "general" && <GeneralTab settings={settings} onChange={onChange} />}
+          {recording && ["audio", "transcription", "intelligence"].includes(tab) && <p className="mb-3 text-[12px] text-muted-foreground">Els canvis s'aplicaran a la propera gravació.</p>}
+          {tab === "general" && <GeneralTab settings={settings} onChange={onChange} onGoTo={setTab} />}
           {tab === "appearance" && <AppearanceTab settings={settings} onChange={onChange} />}
+          {tab === "calendar" && <CalendarSettings settings={settings} onChange={onChange} />}
           {tab === "audio" && <AudioTab open={open} settings={settings} onChange={onChange} recording={recording} />}
           {tab === "transcription" && <TranscriptionTab settings={settings} onChange={onChange} />}
           {tab === "intelligence" && <IntelligenceTab settings={settings} onChange={onChange} meeting={meeting} onLlmLoaded={() => (llmLoaded.current = true)} />}
@@ -83,10 +85,14 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
 
 // --- General -------------------------------------------------------------------------------
 
-function GeneralTab({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
+/** How Murmur behaves: when it opens, how it invites you to record, what shows while recording. */
+function GeneralTab({ settings, onChange, onGoTo }: { settings: Settings; onChange: Props["onChange"]; onGoTo: (tab: Tab) => void }) {
   const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [calendar, setCalendar] = useState<backend.Access | null>(null);
   useEffect(() => {
-    if (backend.isTauri()) autostartEnabled().then(setAutostart).catch(() => setAutostart(null));
+    if (!backend.isTauri()) return;
+    autostartEnabled().then(setAutostart).catch(() => setAutostart(null));
+    backend.calendarAccess().then(setCalendar).catch(() => {});
   }, []);
   const toggleAutostart = async (on: boolean) => {
     try {
@@ -96,6 +102,7 @@ function GeneralTab({ settings, onChange }: { settings: Settings; onChange: Prop
       toast.error(String(e));
     }
   };
+  const connected = calendar === "granted";
   return (
     <>
       <Group title="Inici">
@@ -103,41 +110,46 @@ function GeneralTab({ settings, onChange }: { settings: Settings; onChange: Prop
           <Switch checked={!!autostart} disabled={autostart === null} onCheckedChange={toggleAutostart} />
         </Row>
       </Group>
-      <Group title="Avisos">
-        <Row label="Indicador de gravació" hint="Mentre graves, una píndola a la dreta de la pantalla per tornar a Murmur o aturar la gravació. Es pot arrossegar.">
-          <Switch checked={settings.recordingIndicator} onCheckedChange={(recordingIndicator) => onChange({ recordingIndicator })} />
-        </Row>
-        <Row label="Mode compacte en clicar l'indicador" hint="Murmur es fa estreta, al costat de la trucada i sempre al davant, només amb les notes.">
-          <Switch
-            checked={settings.compactNotes}
-            disabled={!settings.recordingIndicator}
-            onCheckedChange={(compactNotes) => onChange({ compactNotes })}
-          />
-        </Row>
+      <Group title="Abans de la reunió">
         <Row label="Reunió detectada" hint="Quan una altra app (Zoom, Meet, Teams…) comença a fer servir el micròfon, Murmur et proposa gravar.">
           <Switch checked={settings.detectMeetings} onCheckedChange={(detectMeetings) => onChange({ detectMeetings })} />
         </Row>
+        <div className="flex min-h-11 items-center gap-4 px-3 py-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px]">Avisa quan comenci una reunió del calendari</div>
+            <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              {connected ? (
+                "Uns 2 minuts abans, amb un botó per començar a gravar. La gravació agafa el títol i els convidats de l'esdeveniment."
+              ) : (
+                <>
+                  Cal connectar el calendari.{" "}
+                  <button type="button" className="text-mm-link hover:underline" onClick={() => onGoTo("calendar")}>
+                    Ves a Calendari
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          <Switch checked={connected && settings.calendarAlerts} disabled={!connected} onCheckedChange={(calendarAlerts) => onChange({ calendarAlerts })} />
+        </div>
       </Group>
-      <Group title="Interfície">
-        <Row label="Panell principal" hint="L'altre es mostra al costat i es pot amagar des de la barra d'eines.">
-          <Segmented
-            value={settings.primaryPanel}
-            options={[
-              { value: "transcript", label: "Transcripció" },
-              { value: "notes", label: "Notes" },
-            ]}
-            onChange={(primaryPanel) => onChange({ primaryPanel })}
-          />
+      <Group title="Durant la gravació">
+        <Row label="Indicador de gravació" hint="Una píndola a la dreta de la pantalla per tornar a Murmur, fer una captura o aturar la gravació. Es pot arrossegar.">
+          <Switch checked={settings.recordingIndicator} onCheckedChange={(recordingIndicator) => onChange({ recordingIndicator })} />
         </Row>
+        <div className={cn(!settings.recordingIndicator && "opacity-50")}>
+          <Row label="Mode compacte en clicar l'indicador" hint="Murmur es fa estreta, al costat de la trucada i sempre al davant, només amb les notes.">
+            <Switch checked={settings.compactNotes} disabled={!settings.recordingIndicator} onCheckedChange={(compactNotes) => onChange({ compactNotes })} />
+          </Row>
+        </div>
       </Group>
-      <CalendarSettings settings={settings} onChange={onChange} />
     </>
   );
 }
 
 /**
- * The macOS calendar: every account added to the system (iCloud, Google, Exchange…). Once
- * connected, the alert before each meeting and which calendars it watches.
+ * Calendari tab: the macOS calendar, with every account added to the system (iCloud, Google,
+ * Exchange…), and which calendars and events Murmur watches. The alert itself is in General.
  */
 function CalendarSettings({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
   const [access, setAccess] = useState<backend.Access | null>(null);
@@ -191,7 +203,7 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
   if (access !== "granted") {
     return (
       <>
-        <Group title="Calendaris">
+        <Group title="Connexió">
           <Row
             label="Calendari de macOS"
             hint={
@@ -228,11 +240,15 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
   };
   return (
     <>
-      <Group title="Calendaris">
-        <Row label="Avisa quan comenci una reunió" hint="Uns 2 minuts abans, amb un botó per començar a gravar. La gravació agafa el títol de l'esdeveniment.">
-          <Switch checked={settings.calendarAlerts} onCheckedChange={(calendarAlerts) => onChange({ calendarAlerts })} />
+      <Group title="Connexió">
+        <Row label="Calendari de macOS" hint="Connectat. Murmur només el llegeix: no hi crea ni hi canvia res.">
+          <span className="flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
+            <Check className="size-3.5" aria-hidden /> Permès
+          </span>
         </Row>
-        <Row label="Inclou els esdeveniments sense convidats" hint="També els que no tenen convidats ni enllaç de videotrucada.">
+      </Group>
+      <Group title="Esdeveniments">
+        <Row label="Inclou els esdeveniments sense convidats" hint="Per defecte només compten com a reunions els que tenen convidats o un enllaç de videotrucada.">
           <Switch checked={settings.calendarNoGuests} onCheckedChange={(calendarNoGuests) => onChange({ calendarNoGuests })} />
         </Row>
       </Group>
@@ -321,6 +337,18 @@ function AppearanceTab({ settings, onChange }: { settings: Settings; onChange: P
               { value: "dark", label: "Fosc" },
             ]}
             onChange={(mode) => onChange({ mode })}
+          />
+        </Row>
+      </Group>
+      <Group title="Disposició">
+        <Row label="Panell principal" hint="L'altre es mostra al costat i es pot amagar des de la barra d'eines.">
+          <Segmented
+            value={settings.primaryPanel}
+            options={[
+              { value: "notes", label: "Notes" },
+              { value: "transcript", label: "Transcripció" },
+            ]}
+            onChange={(primaryPanel) => onChange({ primaryPanel })}
           />
         </Row>
       </Group>
@@ -472,8 +500,8 @@ function PermissionsGroup({ open }: { open: boolean }) {
         label="Gravació de pantalla i àudio del sistema"
         hint={
           status.systemAudio
-            ? "Per sentir l'altra banda de les trucades. Murmur només en fa servir l'àudio."
-            : "Per sentir l'altra banda de les trucades. Després d'activar-lo, cal tornar a obrir Murmur."
+            ? "Per sentir l'altra banda de les trucades i per a les captures que facis des de l'indicador."
+            : "Per sentir l'altra banda de les trucades i fer captures. Després d'activar-lo, cal tornar a obrir Murmur."
         }
       >
         {status.systemAudio ? (
@@ -521,6 +549,7 @@ function InputLevel({ device }: { device: string | null }) {
 // --- Transcripció --------------------------------------------------------------------------
 
 function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
+  const models = useModels();
   return (
     <>
       <Group title="Parlants en directe">
@@ -573,6 +602,10 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
         >
           <Switch checked={settings.verifySpeakers} onCheckedChange={(verifySpeakers) => onChange({ verifySpeakers })} />
         </Row>
+        <Row label="Puntuació i majúscules" hint="Posa punts, comes i majúscules a tota la transcripció. Triga uns segons.">
+          <Switch checked={settings.punctuate} onCheckedChange={(on) => enableWithModel(models, "punctuation", on, () => onChange({ punctuate: on }))} />
+        </Row>
+        <ModelRow id="punctuation" name="Model de puntuació de Softcatalà" enabled={settings.punctuate} onDisable={() => onChange({ punctuate: false })} />
       </Group>
     </>
   );
@@ -592,24 +625,14 @@ function IntelligenceTab({
   onLlmLoaded: () => void;
 }) {
   const models = useModels();
-  // Turning a feature on fetches its model if it isn't there yet.
-  const toggle = (id: ModelId, key: "punctuate" | "summarize", on: boolean) => {
-    onChange({ [key]: on });
-    const status = models.status[id];
-    if (on && status && !status.installed && status.downloadable && !models.downloading[id]) downloadModel(id);
-  };
   return (
     <>
-      <Group title="En acabar la gravació">
-        <Row label="Puntuació i majúscules" hint="Posa punts, comes i majúscules a tota la transcripció. Triga uns segons.">
-          <Switch checked={settings.punctuate} onCheckedChange={(on) => toggle("punctuation", "punctuate", on)} />
-        </Row>
-        <ModelRow id="punctuation" name="Model de puntuació de Softcatalà" enabled={settings.punctuate} onDisable={() => onChange({ punctuate: false })} />
+      <Group title="Portada">
         <Row
-          label="Portada"
+          label="Genera la portada en acabar la gravació"
           hint="Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions, les tasques i les parts. Triga uns 2–3 minuts per a una reunió de 20 minuts; pots continuar treballant mentrestant."
         >
-          <Switch checked={settings.summarize} onCheckedChange={(on) => toggle("llm", "summarize", on)} />
+          <Switch checked={settings.summarize} onCheckedChange={(on) => enableWithModel(models, "llm", on, () => onChange({ summarize: on }))} />
         </Row>
         <ModelRow id="llm" name="Gemma 4 E4B, de Google" enabled={settings.summarize} onDisable={() => onChange({ summarize: false })} />
       </Group>
@@ -620,6 +643,13 @@ function IntelligenceTab({
       <PromptsEditor settings={settings} onChange={onChange} meeting={meeting} llmReady={!!models.status.llm?.installed} onLlmLoaded={onLlmLoaded} />
     </>
   );
+}
+
+/** Turning a feature on fetches its model if it isn't there yet. */
+function enableWithModel(models: ReturnType<typeof useModels>, id: ModelId, on: boolean, apply: () => void) {
+  apply();
+  const status = models.status[id];
+  if (on && status && !status.installed && status.downloadable && !models.downloading[id]) downloadModel(id);
 }
 
 /** A model's state under its feature: size, download progress, download/stop/delete. */

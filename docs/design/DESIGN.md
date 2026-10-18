@@ -78,12 +78,13 @@ Regla de proporció: **90% neutres, 9% text i negre, 1% accent.** Si l'accent ap
 Estructura igual que la teva maqueta original: metadades, títol, entradeta, nota "Generat en aquest ordinador", targetes de To i Qui ha parlat, Resum, Decisions, Tasques i Parts. Els minuts enllaçats fan servir `timestamp`. El punt del To fa servir el color de text en clar i l'accent en fosc.
 
 ### Configuració
-Cinc pestanyes, en aquest ordre: **General, Aparença, Àudio, Transcripció, Intel·ligència**. Pestanya activa amb fons `tabSelected`.
-- **General:** Inici (Obre Murmur en iniciar la sessió), Interfície (Panell principal: Transcripció / Notes), Avisos (Reunió detectada), Calendaris (el Calendari de macOS, que inclou els comptes de Google, iCloud o Exchange afegits al sistema: botó Connecta…; un cop connectat, interruptors «Avisa quan comenci una reunió» i «Inclou els esdeveniments sense convidats», i la llista «Calendaris que vigila» amb el color de cada calendari, el compte i un interruptor; «Tots» per tornar-los a vigilar tots).
-- **Aparença:** Tema, amb tres targetes que mostren una mini finestra partida (clar a l'esquerra, fosc a la dreta) i un check a la seleccionada (contorn de 2 pt en `textPrimary`); i Mode (Sistema / Clar / Fosc).
-- **Àudio:** Micròfon, Dispositiu, Nivell d'entrada (12 segments; els actius en `toggleOn`, els buits en `meterOff`), Àudio del sistema; Gravació (Desa l'àudio, Carpeta).
-- **Transcripció:** Nombre màxim de parlants, Separació de veus (slider en `toggleOn` sobre `meterOff`, valor i enllaç Restableix en `link`), Verificació de parlants.
-- **Intel·ligència:** Puntuació i majúscules, Portada, nota de privadesa amb icona de cadenat, Prompts de la portada (acordió).
+Sis pestanyes, en aquest ordre, cadascuna respon una pregunta: **General** (com es comporta), **Aparença** (com es veu), **Calendari** (d'on treu les reunions), **Àudio** (què escolta i què desa), **Transcripció** (com transcriu i qui parla), **Intel·ligència** (què en fa el model de llenguatge). Pestanya activa amb fons `tabSelected`. Cada permís va al costat de la funció que fa funcionar.
+- **General:** Inici (Obre Murmur en iniciar la sessió); Abans de la reunió (Reunió detectada; Avisa quan comenci una reunió del calendari, desactivat amb l'enllaç «Ves a Calendari» si no està connectat); Durant la gravació (Indicador de gravació; Mode compacte en clicar l'indicador, atenuat si l'indicador està desactivat).
+- **Aparença:** Tema, amb tres targetes que mostren una mini finestra partida (clar a l'esquerra, fosc a la dreta) i un check a la seleccionada (contorn de 2 pt en `textPrimary`); Mode (Sistema / Clar / Fosc); Disposició (Panell principal: Notes / Transcripció).
+- **Calendari:** Connexió (Calendari de macOS, que inclou els comptes de Google, iCloud o Exchange afegits al sistema: Connecta…, i «Sincronitzant els calendaris…» mentre macOS els carrega); Esdeveniments (Inclou els esdeveniments sense convidats); Calendaris que vigila (color, nom, compte i interruptor; «Tots»). Nota sobre Comptes d'Internet.
+- **Àudio:** Permisos (Micròfon; Gravació de pantalla i àudio del sistema, que també serveix per a les captures); Fonts d'àudio (Micròfon, Dispositiu, Nivell d'entrada amb 12 segments, actius en `toggleOn` i buits en `meterOff`, Àudio del sistema); Gravació (Desa l'àudio, Carpeta).
+- **Transcripció:** Parlants en directe (Hi ha més gent amb mi a la sala, Nombre màxim de parlants, Separació de veus amb slider en `toggleOn` sobre `meterOff`, valor i Restableix en `link`); En acabar la gravació (Verificació de parlants, Puntuació i majúscules amb el seu model).
+- **Intel·ligència:** Portada (Genera la portada en acabar la gravació, amb el model), nota de privadesa amb cadenat, Prompts de la portada (acordió).
 - Interruptors: actiu `toggleOn` amb botó `toggleKnob`; inactiu `toggleOff` amb botó blanc.
 
 ### Quant a
