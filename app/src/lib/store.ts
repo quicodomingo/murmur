@@ -12,6 +12,7 @@ import {
   type Meeting,
   type MeetingSummary,
   type PostStage,
+  type Screen,
   type Utterance,
 } from "./types";
 
@@ -69,6 +70,8 @@ export type Action =
   | { type: "punctuated"; id: string; changes: { utteranceId: string; from: string; to: string }[] }
   | { type: "cover"; id: string; cover: Cover | null; title: string | null }
   | { type: "coverTasks"; id: string; tasks: NonNullable<Cover["tasks"]> }
+  | { type: "screen"; id: string; screen: Screen }
+  | { type: "removeScreen"; id: string; path: string }
   | { type: "postDone"; id: string };
 
 const summaryOf = (m: Meeting): MeetingSummary => ({
@@ -171,6 +174,10 @@ export function reducer(state: State, action: Action): State {
     }
     case "cover":
       return updateMeeting(state, action.id, (m) => ({ ...m, cover: action.cover, title: action.title ?? m.title }));
+    case "screen":
+      return updateMeeting(state, action.id, (m) => ({ ...m, screens: [...(m.screens ?? []), action.screen] }));
+    case "removeScreen":
+      return updateMeeting(state, action.id, (m) => ({ ...m, screens: (m.screens ?? []).filter((s) => s.path !== action.path) }));
     case "coverTasks":
       return updateMeeting(state, action.id, (m) => (m.cover ? { ...m, cover: { ...m.cover, tasks: action.tasks } } : m));
     case "postDone": {
@@ -287,6 +294,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.audioPath !== next.audioPath) meta.audioPath = next.audioPath ?? null;
   if (saved.cover !== next.cover) meta.cover = next.cover ?? null;
   if (saved.guests !== next.guests && next.guests) meta.guests = next.guests;
+  if (saved.screens !== next.screens && next.screens) meta.screens = next.screens;
   if (Object.keys(meta).length) changes.meta = meta;
   if (saved.utterances !== next.utterances) {
     const before = new Map(saved.utterances.map((u) => [u.id, u]));

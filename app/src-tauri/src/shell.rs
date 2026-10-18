@@ -22,8 +22,8 @@ const TRAY_RECORDING: &[u8] = include_bytes!("../icons/menubar/MenuBarRecording@
 
 /// The alert window: a 470 pt card plus room for its close button and shadow.
 const TOAST_SIZE: (f64, f64) = (512.0, 120.0);
-/// The recording indicator: a 40 × 112 pt pill plus room for its shadow.
-const INDICATOR_SIZE: (f64, f64) = (60.0, 132.0);
+/// The recording indicator: a 40 × ~150 pt pill plus room for its shadow.
+const INDICATOR_SIZE: (f64, f64) = (60.0, 172.0);
 /// The main window in compact mode (notes only, next to the call).
 const COMPACT_SIZE: (f64, f64) = (380.0, 600.0);
 /// The main window's minimum size outside compact mode (tauri.conf.json).
@@ -217,6 +217,12 @@ pub fn set_compact(app: AppHandle, on: bool) {
     }
     drop(saved);
     let _ = app.emit_to("main", "compact", on);
+}
+
+/// The indicator's camera button: the main window takes the screenshot (it knows the meeting).
+#[tauri::command]
+pub fn indicator_capture(app: AppHandle) {
+    let _ = app.emit_to("main", "capture-request", ());
 }
 
 /// The indicator's stop button: the main window stops the recording.

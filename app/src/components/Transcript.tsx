@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { ArrowDown, Copy, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
+import { ScreenThumbs } from "@/components/Screens";
 import { Flag, isYou, SpeakerFlag } from "@/components/SpeakerFlag";
 import { clock, longDate, speakerIds, speakerName } from "@/lib/format";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
 import type { Jump, State } from "@/lib/store";
-import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type PostStage, type Utterance } from "@/lib/types";
+import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type PostStage, type Screen, type Utterance } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -23,6 +24,7 @@ type Props = {
   onReassign: (utteranceId: string, speaker: number, version: number) => void;
   onRename: (speaker: number, name: string, version: number) => void;
   onEdit: (utteranceId: string, text: string) => void;
+  onRemoveScreen?: (s: Screen) => void;
 };
 
 /** Which utterance each note belongs to: the last one that started before the note was written. */
@@ -35,11 +37,22 @@ function noteAnchors(meeting: Meeting): Map<string, string[]> {
   return anchors;
 }
 
+/** Screenshots under the utterance being said when they were taken (before the first: the first). */
+function screenAnchors(meeting: Meeting): Map<string, Screen[]> {
+  const anchors = new Map<string, Screen[]>();
+  for (const s of meeting.screens ?? []) {
+    const target = [...meeting.utterances].reverse().find((u) => u.start <= s.t) ?? meeting.utterances[0];
+    if (target) anchors.set(target.id, [...(anchors.get(target.id) ?? []), s]);
+  }
+  return anchors;
+}
+
 export function Transcript(props: Props) {
   const { meeting, partial } = props;
   const live = (Object.entries(partial) as [Channel, string][]).filter(([, text]) => text);
   const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id), you: isYou(meeting, id) }));
   const anchors = noteAnchors(meeting);
+  const screens = screenAnchors(meeting);
   const scroller = useRef<HTMLDivElement>(null);
   // Follow the live text until the user scrolls up; "Torna al directe" brings it back.
   const following = useRef(true);
@@ -119,26 +132,28 @@ export function Transcript(props: Props) {
 
           <div className="mt-10 flex flex-col gap-1">
             {meeting.utterances.map((u, i) => (
-              <UtteranceRow
-                key={u.id}
-                utterance={u}
-                flash={flash === u.id}
-                showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker}
-                notes={anchors.get(u.id) ?? []}
-                hoveredNote={props.hoveredNote}
-                onHoverNote={props.onHoverNote}
-                flag={
-                  <SpeakerFlag
-                    speaker={u.speaker}
-                    speakers={speakers}
-                    guests={meeting.guests}
-                    version={meeting.speakersVersion ?? 0}
-                    onReassign={(s, version) => props.onReassign(u.id, s, version)}
-                    onRename={props.onRename}
-                  />
-                }
-                onEdit={(text) => props.onEdit(u.id, text)}
-              />
+              <Fragment key={u.id}>
+                <UtteranceRow
+                  utterance={u}
+                  flash={flash === u.id}
+                  showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker}
+                  notes={anchors.get(u.id) ?? []}
+                  hoveredNote={props.hoveredNote}
+                  onHoverNote={props.onHoverNote}
+                  flag={
+                    <SpeakerFlag
+                      speaker={u.speaker}
+                      speakers={speakers}
+                      guests={meeting.guests}
+                      version={meeting.speakersVersion ?? 0}
+                      onReassign={(s, version) => props.onReassign(u.id, s, version)}
+                      onRename={props.onRename}
+                    />
+                  }
+                  onEdit={(text) => props.onEdit(u.id, text)}
+                />
+                {screens.has(u.id) && <ScreenThumbs screens={screens.get(u.id)!} onRemove={props.onRemoveScreen} className="mb-2 mt-1 px-3" />}
+              </Fragment>
             ))}
 
             {live.map(([channel, text]) => {

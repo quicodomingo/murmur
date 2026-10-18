@@ -1,6 +1,7 @@
 pub mod aec;
 pub mod audio;
 pub mod calendar;
+pub mod capture;
 pub mod db;
 pub mod diarize;
 pub mod engine;
@@ -604,6 +605,10 @@ async fn delete_meeting(
     audio_path: Option<String>,
 ) -> Result<(), String> {
     with_db(&app, |db| db.delete(&id))?;
+    // Its screenshots (only the folder named after this meeting, inside the app's data).
+    if let Ok(dir) = screens_dir(&app, &id) {
+        let _ = std::fs::remove_dir_all(dir);
+    }
     // Its recording too. Only ever an .ogg the app wrote (the path comes from the meeting).
     if let Some(path) = audio_path.map(std::path::PathBuf::from) {
         if path.extension().is_some_and(|e| e == "ogg") && path.exists() {
@@ -612,6 +617,36 @@ async fn delete_meeting(
         }
     }
     Ok(())
+}
+
+/// `<app data>/screens/<meeting id>`: where a meeting's screenshots go.
+fn screens_dir(app: &AppHandle, meeting_id: &str) -> Result<std::path::PathBuf, String> {
+    if meeting_id.is_empty() || !meeting_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err("Reunió desconeguda".into());
+    }
+    Ok(app.path().app_data_dir().map_err(|e| e.to_string())?.join("screens").join(meeting_id))
+}
+
+/// A screenshot of the call (capture.rs) at `t` seconds into the meeting; returns its path.
+#[tauri::command]
+async fn capture_screen(app: AppHandle, meeting_id: String, t: f64) -> Result<String, String> {
+    let dir = screens_dir(&app, &meeting_id)?;
+    let path = tauri::async_runtime::spawn_blocking(move || capture::capture(&dir, (t * 1000.0) as u64))
+        .await
+        .map_err(|e| e.to_string())??;
+    let _ = app.emit("screen-captured", ());
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// Removes one screenshot (only files inside the screenshots folder).
+#[tauri::command]
+fn delete_screen(app: AppHandle, path: String) -> Result<(), String> {
+    let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("screens");
+    let path = std::path::PathBuf::from(path);
+    if !path.starts_with(&root) || path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err("Aquest fitxer no és una captura de Murmur".into());
+    }
+    std::fs::remove_file(path).map_err(|e| e.to_string())
 }
 
 /// Shows the selected microphone's level in the settings window ("mic-level" events).
@@ -764,6 +799,9 @@ pub fn run() {
             shell::set_indicator,
             shell::indicator_open,
             shell::set_compact,
+            shell::indicator_capture,
+            capture_screen,
+            delete_screen,
             shell::indicator_stop,
             print_page,
             calendar::calendar_access,

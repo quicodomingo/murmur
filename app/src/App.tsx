@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { ChevronDown, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { Camera, ChevronDown, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AboutDialog } from "@/components/AboutDialog";
@@ -191,12 +191,25 @@ export default function App() {
 
   // "Configuració…" and "Quant a Murmur" in the app menu; start/stop from the menu bar or an alert.
   const stopRef = useRef<() => void>(() => {});
+  // A screenshot of the call (indicator or compact mode), stored with the meeting being recorded.
+  const captureRef = useRef<() => void>(() => {});
+  captureRef.current = async () => {
+    if (!recording) return;
+    const t = recording.duration;
+    try {
+      const path = await backend.captureScreen(recording.id, t);
+      dispatch({ type: "screen", id: recording.id, screen: { t, path } });
+    } catch (e) {
+      toast.error(String(e));
+    }
+  };
   useEffect(() => {
     if (!backend.isTauri()) return;
     const unlisten = [
       backend.onOpenSettings(() => setShowSettings(true)),
       backend.onOpenAbout(() => setShowAbout(true)),
       backend.onRecordRequest((start) => (start ? startRef.current() : stopRef.current())),
+      backend.onCaptureRequest(() => captureRef.current()),
     ];
     return () => unlisten.forEach((u) => void u.then((f) => f()));
   }, []);
@@ -439,6 +452,12 @@ export default function App() {
         onReassign={(utteranceId, speaker, version) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker, version })}
         onRename={(speaker, name, version) => dispatch({ type: "rename", id: meeting.id, speaker, name, version })}
         onEdit={(utteranceId, text) => dispatch({ type: "edit", id: meeting.id, utteranceId, text })}
+        onRemoveScreen={(s) =>
+          backend
+            .deleteScreen(s.path)
+            .catch(() => {})
+            .finally(() => dispatch({ type: "removeScreen", id: meeting.id, path: s.path }))
+        }
       />
     );
   const renderNotes = (mode: "side" | "full") =>
@@ -477,6 +496,9 @@ export default function App() {
                 <span className="text-[12px] tabular-nums text-muted-foreground" aria-label="Temps de gravació">
                   {clock(recording.duration)}
                 </span>
+                <ToolbarButton label="Captura la pantalla de la reunió" onClick={() => captureRef.current()}>
+                  <Camera className="size-4" />
+                </ToolbarButton>
                 <ToolbarButton label="Atura la gravació" onClick={stop}>
                   <span className="size-2.5 rounded-[2px] bg-mm-recording-dot" />
                 </ToolbarButton>

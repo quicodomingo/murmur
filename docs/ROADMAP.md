@@ -82,6 +82,8 @@ Entre reunions (bloc 5):
 
 - [x] Calendari de macOS (inclou Google, iCloud i Exchange afegits al sistema): triar calendaris, avís «Comença d'aquí a 2 minuts» i títol de la reunió.
 - [x] Noms dels parlants a partir dels convidats de l'esdeveniment (menú del parlant).
+- [x] Indicador de gravació, mode compacte de notes i captures de pantalla manuals.
+- [ ] «Speaker tags»: noms de qui parla llegits de Meet (Chrome), Zoom i Teams amb el permís d'Accessibilitat (prova prèvia).
 - [x] Portada: tasques editables, notes com a font, avís de portada desactualitzada i «PDF o envia…».
 - [ ] Google Calendar directe (OAuth) per a Windows, si cal.
 - [ ] Intel·ligència: model local o clau pròpia d'OpenAI / Anthropic, desada al clauer del sistema. Només s'envia text, mai àudio.

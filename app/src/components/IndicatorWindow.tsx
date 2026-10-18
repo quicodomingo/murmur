@@ -1,17 +1,26 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { Camera } from "lucide-react";
 
 /**
  * The recording indicator (its own transparent window, label "indicator", shell.rs): a pill on
  * the right edge of the screen while recording, over the call. The red dot and the level bars
- * bring Murmur back; the square stops. It can be dragged anywhere by its edges.
+ * bring Murmur back; the camera takes a screenshot of the call; the square stops. It can be dragged anywhere by its edges.
  */
 export function IndicatorWindow() {
   const [level, setLevel] = useState(0);
+  /** Just took a screenshot: the camera button lights up for a moment. */
+  const [captured, setCaptured] = useState(false);
   useEffect(() => {
-    const unlisten = listen<{ rms: number }>("level", (e) => setLevel(e.payload.rms));
-    return () => void unlisten.then((u) => u());
+    const unlisten = [
+      listen<{ rms: number }>("level", (e) => setLevel(e.payload.rms)),
+      listen("screen-captured", () => {
+        setCaptured(true);
+        setTimeout(() => setCaptured(false), 900);
+      }),
+    ];
+    return () => unlisten.forEach((u) => void u.then((f) => f()));
   }, []);
   const sound = level > 0.003;
   const open = () => invoke("indicator_open").catch(() => {});
@@ -34,6 +43,15 @@ export function IndicatorWindow() {
               />
             ))}
           </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => invoke("indicator_capture").catch(() => {})}
+          title="Captura la pantalla de la reunió"
+          aria-label="Captura la pantalla de la reunió"
+          className={`grid size-7 place-items-center rounded-full transition-colors duration-200 hover:bg-white/[0.14] ${captured ? "bg-mm-recording-level text-mm-on-accent" : ""}`}
+        >
+          <Camera className="size-3.5" strokeWidth={2} />
         </button>
         <button
           type="button"

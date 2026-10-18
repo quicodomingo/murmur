@@ -18,7 +18,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api", "protocol-asset"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -46,6 +46,8 @@ objc2 = "0.6"
 block2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSDate", "NSArray", "NSString", "NSURL", "NSPredicate", "NSError"] }
 objc2-event-kit = { version = "0.3", features = ["EKEventStore", "EKCalendar", "EKCalendarItem", "EKEvent", "EKParticipant", "EKSource", "EKTypes", "EKObject", "block2", "objc2-app-kit"] }
+core-graphics = "0.24"
+core-foundation = "0.10"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["NSColor", "NSColorSpace", "std"] }
 
 

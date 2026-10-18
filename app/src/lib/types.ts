@@ -44,7 +44,11 @@ export type Meeting = {
   cover?: Cover | null;
   /** Guests of the calendar event it was recorded for: names offered for the speakers. */
   guests?: string[];
+  /** Screenshots taken from the recording indicator: meeting time (s) and file. */
+  screens?: Screen[];
 };
+
+export type Screen = { t: number; path: string };
 
 /** The meeting's cover. Times are seconds into the meeting (null: the model gave none or a bad one). */
 export type Cover = {

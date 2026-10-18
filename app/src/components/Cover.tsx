@@ -4,6 +4,7 @@ import { AlignLeft, Check, Plus, Printer, RefreshCw, Sparkles, X } from "lucide-
 
 import { LogoMark } from "@/components/Logo";
 
+import { ScreenThumbs } from "@/components/Screens";
 import { Flag, isYou, speakerTone } from "@/components/SpeakerFlag";
 import { TitleInput } from "@/components/Transcript";
 import { Button } from "@/components/ui/button";
@@ -216,6 +217,13 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
         <section aria-labelledby="task-h" className="mt-8">
           <SectionTitle id="task-h">Tasques</SectionTitle>
           <TaskList meeting={meeting} tasks={cover.tasks} ownerSpeaker={ownerSpeaker} onJump={onJump} onChange={onTasks} />
+        </section>
+      )}
+
+      {!!meeting.screens?.length && (
+        <section aria-labelledby="screens-h" className="mt-8">
+          <SectionTitle id="screens-h">Pantalles compartides</SectionTitle>
+          <ScreenThumbs screens={meeting.screens} onJump={onJump} />
         </section>
       )}
 

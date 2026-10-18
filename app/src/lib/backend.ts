@@ -17,6 +17,7 @@ import type {
   ModelId,
   ModelStatus,
   SearchHit,
+  Screen,
   Utterance,
 } from "./types";
 
@@ -41,7 +42,7 @@ export const stopRecording = () => invoke<void>("stop_recording");
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[] };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[] };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };
@@ -104,6 +105,12 @@ export const setCompact = (on: boolean) => invoke<void>("set_compact", { on });
 export const onCompact = (fn: (on: boolean) => void) => listen<boolean>("compact", (e) => fn(e.payload));
 /** "Reunió detectada": offer to record when another app starts using the microphone. */
 export const setMeetingDetection = (enabled: boolean) => invoke<void>("set_meeting_detection", { enabled });
+/** A screenshot of the call at `t` seconds (capture.rs); resolves with the file's path. */
+export const captureScreen = (meetingId: string, t: number) => invoke<string>("capture_screen", { meetingId, t });
+export const deleteScreen = (path: string) => invoke<void>("delete_screen", { path });
+/** The indicator's camera button asks the main window for a screenshot. */
+export const onCaptureRequest = (fn: () => void) => listen("capture-request", () => fn());
+
 /** The system print panel for this window (the cover; index.css hides the rest on paper). */
 export const printPage = () => invoke<void>("print_page");
 export const listMicrophones = () => invoke<string[]>("list_microphones");
