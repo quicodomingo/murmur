@@ -21,6 +21,11 @@ if [ "$(node -p "require('./$OUT/latest.json').version")" != "$VERSION" ]; then
   exit 1
 fi
 
+# The notes the app shows before updating are the ones given here.
+if [ -n "${RELEASE_NOTES:-}" ]; then
+  node -e 'const fs = require("fs"); const p = process.argv[1]; const j = JSON.parse(fs.readFileSync(p, "utf8")); j.notes = process.argv[2]; fs.writeFileSync(p, JSON.stringify(j, null, 2));' "$OUT/latest.json" "$RELEASE_NOTES"
+fi
+
 gh release create "v$VERSION" \
   --repo "$REPO" \
   --title "Murmur $VERSION" \
