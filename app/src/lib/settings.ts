@@ -35,6 +35,10 @@ export type Settings = {
   compactNotes: boolean;
   /** "Comença d'aquí a 2 minuts" for meetings in the calendar (once access is granted). */
   calendarAlerts: boolean;
+  /** Look for a new version of Murmur and its models when it opens. */
+  checkUpdates: boolean;
+  /** "Desconnecta": Murmur stops reading the calendar (macOS keeps the permission until the user removes it). */
+  calendarEnabled: boolean;
   /** Calendars to watch; null = all of them. */
   calendarIds: string[] | null;
   /** Also alert for events with no guests and no video call link. */
@@ -64,6 +68,8 @@ export const DEFAULT_SETTINGS: Settings = {
   recordingIndicator: true,
   compactNotes: true,
   calendarAlerts: true,
+  calendarEnabled: true,
+  checkUpdates: true,
   calendarIds: null,
   calendarNoGuests: false,
 };

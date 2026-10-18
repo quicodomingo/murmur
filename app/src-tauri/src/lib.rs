@@ -394,6 +394,48 @@ async fn download_model(app: AppHandle, state: State<'_, AppState>, id: String) 
     Ok(())
 }
 
+/// Installed models with a newer version in the catalog (empty if it can't be reached).
+#[tauri::command]
+async fn model_updates(app: AppHandle) -> Vec<models::ModelUpdate> {
+    let version = semver::Version::parse(&app.package_info().version.to_string()).unwrap_or(semver::Version::new(0, 0, 0));
+    tauri::async_runtime::spawn_blocking(move || match models::fetch_catalog() {
+        Ok(catalog) => models::updates(&models_dir(), &catalog, &version),
+        Err(e) => {
+            log::warn!("{e:#}");
+            vec![]
+        }
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Installs the catalog's version of a model; same progress events as a download.
+#[tauri::command]
+async fn update_model(app: AppHandle, state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let model = models::find(&id).map_err(|e| e.to_string())?;
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut downloads = state.downloads.lock().unwrap();
+        if downloads.contains_key(&id) {
+            return Ok(());
+        }
+        downloads.insert(id.clone(), cancel.clone());
+    }
+    std::thread::spawn(move || {
+        let result = models::fetch_catalog().and_then(|catalog| {
+            let next = catalog.models.get(model.id).ok_or_else(|| anyhow::anyhow!("El catàleg ja no té aquest model"))?;
+            model.update(&models_dir(), next, &cancel, |done, total| {
+                let _ = app.emit("model-download", DownloadProgress { id: id.clone(), done, total });
+            })
+        });
+        app.state::<AppState>().downloads.lock().unwrap().remove(&id);
+        let cancelled = cancel.load(Ordering::Relaxed);
+        let error = result.err().filter(|_| !cancelled).map(|e| format!("{e:#}"));
+        let _ = app.emit("model-download-done", DownloadDone { id, error, cancelled });
+    });
+    Ok(())
+}
+
 #[tauri::command]
 async fn cancel_model_download(state: State<'_, AppState>, id: String) -> Result<(), String> {
     if let Some(cancel) = state.downloads.lock().unwrap().get(&id) {
@@ -720,6 +762,8 @@ async fn write_export(path: String, contents: Vec<u8>) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -787,6 +831,8 @@ pub fn run() {
             model_status,
             download_model,
             cancel_model_download,
+            model_updates,
+            update_model,
             delete_model,
             punctuate,
             run_llm,

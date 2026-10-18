@@ -72,7 +72,7 @@ Entre reunions (bloc 5):
 - [x] Conformer per a sherpa-onnx publicat a [huggingface.co/quicodomingo/murmur-models](https://huggingface.co/quicodomingo/murmur-models) (CC BY 4.0, atribució a AINA; fp32 i int8). Prova: descàrrega completa en una carpeta buida (585 MB, 21 s) i transcripció idèntica a la dels models del projecte.
 - [ ] Puntuació de Softcatalà: guardada al repositori privat `quicodomingo/murmur-punctuation`. Preguntar-los la llicència; si la permet, fer-lo públic i posar-ne les URL a `models.rs`.
 - [ ] Decidir si es baixa el Conformer en int8 (228 MB en total en lloc de 585 MB): mesurar-ne la qualitat amb la referència manual.
-- [ ] Comprovació d'espai lliure abans de descarregar, i verificació (hash) dels fitxers.
+- [x] Comprovació d'espai lliure abans de descarregar, i verificació (hash) dels fitxers.
 - [ ] Calendaris a la primera obertura (opcional).
 - [x] Empaquetar, signar (Developer ID de We Are Mortensen S.L.) i notaritzar: `app/scripts/release.sh` fa l'app i un `.dmg` acceptats per Gatekeeper. Identificador `com.quicodomingo.murmur`.
 - [ ] Signar amb un Developer ID propi si Murmur ha de sortir a nom de Quico Domingo.
@@ -83,6 +83,8 @@ Entre reunions (bloc 5):
 - [x] Calendari de macOS (inclou Google, iCloud i Exchange afegits al sistema): triar calendaris, avís «Comença d'aquí a 2 minuts» i títol de la reunió.
 - [x] Noms dels parlants a partir dels convidats de l'esdeveniment (menú del parlant).
 - [x] Indicador de gravació, mode compacte de notes i captures de pantalla manuals.
+- [x] Actualitzacions de l'app i dels models en obrir Murmur (repositori `quicodomingo/murmur-releases`), descàrregues amb comprovació d'espai i SHA-256. Versió 0.2.0.
+- [ ] Primera publicació (0.2.0) i provar una actualització real amb la 0.2.1.
 - [ ] «Speaker tags»: noms de qui parla llegits de Meet (Chrome), Zoom i Teams amb el permís d'Accessibilitat (prova prèvia).
 - [x] Portada: tasques editables, notes com a font, avís de portada desactualitzada i «PDF o envia…».
 - [ ] Google Calendar directe (OAuth) per a Windows, si cal.

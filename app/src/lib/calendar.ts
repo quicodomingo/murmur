@@ -14,7 +14,7 @@ export const guestNames = (e: backend.CalendarEvent) => [
  * With several, the one that starts closest to now.
  */
 export async function currentEvent(settings: Settings): Promise<backend.CalendarEvent | null> {
-  if (!backend.isTauri() || (await backend.calendarAccess()) !== "granted") return null;
+  if (!backend.isTauri() || !settings.calendarEnabled || (await backend.calendarAccess()) !== "granted") return null;
   const now = Date.now();
   const events = await backend.calendarEvents(now, now + 5 * 60_000, settings.calendarIds);
   const candidates = events.filter((e) => e.end > now && (settings.calendarNoGuests || isMeeting(e)));

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { AudioLines, CalendarDays, Check, ChevronRight, Contrast, Lock, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
@@ -23,6 +24,8 @@ type Props = {
   recording: boolean;
   /** The open meeting, to try prompts on (only a finished one with a transcript). */
   meeting: Meeting | null;
+  /** "Comprova ara": the updates window (UpdatesDialog). */
+  onCheckUpdates: () => void;
 };
 
 const TABS = [
@@ -36,7 +39,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]["id"];
 
 /** Native-style Preferences window: icon tabs on top, grouped rows below. */
-export function SettingsDialog({ open, onOpenChange, settings, onChange, recording, meeting }: Props) {
+export function SettingsDialog({ open, onOpenChange, settings, onChange, recording, meeting, onCheckUpdates }: Props) {
   const [tab, setTab] = useState<Tab>("general");
   // Trying prompts keeps the language model loaded; free its memory when the window closes.
   const llmLoaded = useRef(false);
@@ -71,7 +74,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
 
         <div className="h-[min(62vh,520px)] overflow-y-auto bg-mm-settings-background px-8 py-5">
           {recording && ["audio", "transcription", "intelligence"].includes(tab) && <p className="mb-3 text-[12px] text-muted-foreground">Els canvis s'aplicaran a la propera gravació.</p>}
-          {tab === "general" && <GeneralTab settings={settings} onChange={onChange} onGoTo={setTab} />}
+          {tab === "general" && <GeneralTab settings={settings} onChange={onChange} onGoTo={setTab} onCheckUpdates={onCheckUpdates} />}
           {tab === "appearance" && <AppearanceTab settings={settings} onChange={onChange} />}
           {tab === "calendar" && <CalendarSettings settings={settings} onChange={onChange} />}
           {tab === "audio" && <AudioTab open={open} settings={settings} onChange={onChange} recording={recording} />}
@@ -86,12 +89,24 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
 // --- General -------------------------------------------------------------------------------
 
 /** How Murmur behaves: when it opens, how it invites you to record, what shows while recording. */
-function GeneralTab({ settings, onChange, onGoTo }: { settings: Settings; onChange: Props["onChange"]; onGoTo: (tab: Tab) => void }) {
+function GeneralTab({
+  settings,
+  onChange,
+  onGoTo,
+  onCheckUpdates,
+}: {
+  settings: Settings;
+  onChange: Props["onChange"];
+  onGoTo: (tab: Tab) => void;
+  onCheckUpdates: () => void;
+}) {
   const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
   const [calendar, setCalendar] = useState<backend.Access | null>(null);
   useEffect(() => {
     if (!backend.isTauri()) return;
     autostartEnabled().then(setAutostart).catch(() => setAutostart(null));
+    getVersion().then(setVersion).catch(() => {});
     backend.calendarAccess().then(setCalendar).catch(() => {});
   }, []);
   const toggleAutostart = async (on: boolean) => {
@@ -102,12 +117,25 @@ function GeneralTab({ settings, onChange, onGoTo }: { settings: Settings; onChan
       toast.error(String(e));
     }
   };
-  const connected = calendar === "granted";
+  const connected = calendar === "granted" && settings.calendarEnabled;
   return (
     <>
       <Group title="Inici">
         <Row label="Obre Murmur en iniciar la sessió" hint="L'app s'obrirà sola quan engeguis l'ordinador.">
           <Switch checked={!!autostart} disabled={autostart === null} onCheckedChange={toggleAutostart} />
+        </Row>
+      </Group>
+      <Group title="Actualitzacions">
+        <Row label={version ? `Murmur ${version}` : "Murmur"} hint="Busca versions noves de l'app i dels models, i les instal·la totes alhora.">
+          <button type="button" onClick={onCheckUpdates} disabled={!backend.isTauri()} className="h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50">
+            Comprova ara
+          </button>
+        </Row>
+        <Row
+          label="Comprova-ho en obrir Murmur"
+          hint="És l'única connexió que Murmur fa per iniciativa pròpia: GitHub veu la teva adreça IP i quina versió tens. No s'hi envia res més."
+        >
+          <Switch checked={settings.checkUpdates} onCheckedChange={(checkUpdates) => onChange({ checkUpdates })} />
         </Row>
       </Group>
       <Group title="Abans de la reunió">
@@ -168,6 +196,7 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
       .catch(() => {});
   };
   const connect = async () => {
+    onChange({ calendarEnabled: true });
     const a = await backend.requestCalendarAccess().catch(() => "denied" as const);
     setAccess(a);
     if (a !== "granted") return;
@@ -200,7 +229,7 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
       Murmur llegeix els calendaris que tens a l'app Calendari de macOS. Per afegir-hi Google Calendar, afegeix el compte a Configuració del Sistema › Comptes d'Internet.
     </p>
   );
-  if (access !== "granted") {
+  if (access !== "granted" || !settings.calendarEnabled) {
     return (
       <>
         <Group title="Connexió">
@@ -209,7 +238,9 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
             hint={
               access === "denied"
                 ? "Denegat. Activa Murmur a Configuració del Sistema › Privadesa i seguretat › Calendaris."
-                : "Per avisar-te quan comença una reunió i posar-li el títol de l'esdeveniment. Només el llegeix."
+                : access === "granted"
+                  ? "Desconnectat: Murmur no el llegeix. macOS encara li dona permís; el pots retirar a Configuració del Sistema."
+                  : "Per avisar-te quan comença una reunió i posar-li el títol de l'esdeveniment. Només el llegeix."
             }
           >
             <span className="flex items-center gap-2">
@@ -219,9 +250,17 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
                   Obre Configuració
                 </button>
               ) : (
-                <button type="button" className={button} disabled={access === null} onClick={connect}>
-                  Connecta…
-                </button>
+                <>
+                  {/* Disconnected: Murmur can't remove its own permission; System Settings can. */}
+                  {access === "granted" && (
+                    <button type="button" className={button} onClick={() => backend.openPrivacySettings("calendars")}>
+                      Retira el permís…
+                    </button>
+                  )}
+                  <button type="button" className={button} disabled={access === null} onClick={connect}>
+                    Connecta…
+                  </button>
+                </>
               )}
             </span>
           </Row>
@@ -242,10 +281,16 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
     <>
       <Group title="Connexió">
         <Row label="Calendari de macOS" hint="Connectat. Murmur només el llegeix: no hi crea ni hi canvia res.">
-          <span className="flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
-            <Check className="size-3.5" aria-hidden /> Permès
+          <span className="flex shrink-0 items-center gap-2">
+            <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+              <Check className="size-3.5" aria-hidden /> Permès
+            </span>
+            <button type="button" className={button} onClick={() => onChange({ calendarEnabled: false })}>
+              Desconnecta
+            </button>
           </span>
         </Row>
+
       </Group>
       <Group title="Esdeveniments">
         <Row label="Inclou els esdeveniments sense convidats" hint="Per defecte només compten com a reunions els que tenen convidats o un enllaç de videotrucada.">

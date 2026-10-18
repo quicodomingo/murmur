@@ -11,6 +11,7 @@ import { Cover } from "@/components/Cover";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { UpdatesDialog } from "@/components/UpdatesDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/Sidebar";
 import { Transcript } from "@/components/Transcript";
@@ -233,9 +234,9 @@ export default function App() {
   useEffect(() => {
     if (!backend.isTauri()) return;
     backend
-      .setCalendarWatch({ enabled: settings.calendarAlerts, calendarIds: settings.calendarIds, includeNoGuests: settings.calendarNoGuests })
+      .setCalendarWatch({ enabled: settings.calendarEnabled && settings.calendarAlerts, calendarIds: settings.calendarIds, includeNoGuests: settings.calendarNoGuests })
       .catch(() => {});
-  }, [settings.calendarAlerts, settings.calendarIds, settings.calendarNoGuests]);
+  }, [settings.calendarEnabled, settings.calendarAlerts, settings.calendarIds, settings.calendarNoGuests]);
 
   // Load the live models ahead of time (once they're on disk) so recording starts at once.
   useEffect(() => {
@@ -476,6 +477,15 @@ export default function App() {
       />
     );
 
+  // Updates: once when Murmur opens (after the first-run screens), and from the settings.
+  const [updates, setUpdates] = useState({ run: 0, manual: false });
+  const checkedOnOpen = useRef(false);
+  useEffect(() => {
+    if (checkedOnOpen.current || !state.loaded || onboarding.open || !transcriptionReady || !settings.checkUpdates) return;
+    checkedOnOpen.current = true;
+    setUpdates({ run: 1, manual: false });
+  }, [state.loaded, onboarding.open, transcriptionReady, settings.checkUpdates]);
+
   // Recording stopped: back to the full window, where the cover and processing show.
   useEffect(() => {
     if (compact && !recording) backend.setCompact(false).catch(() => {});
@@ -708,9 +718,14 @@ export default function App() {
         settings={settings}
         onChange={updateSettings}
         recording={!!recording}
+        onCheckUpdates={() => {
+          setShowSettings(false);
+          setUpdates((u) => ({ run: u.run + 1, manual: true }));
+        }}
         meeting={meeting && meeting.status === "done" && meeting.utterances.length ? meeting : null}
       />
       <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
+      {!recording && <UpdatesDialog run={updates.run} manual={updates.manual} onClose={() => {}} />}
       {onboarding.open && <Onboarding open onClose={closeOnboarding} onChange={updateSettings} startAtModels={onboarding.atModels} />}
       <Toaster position="bottom-center" />
     </TooltipProvider>

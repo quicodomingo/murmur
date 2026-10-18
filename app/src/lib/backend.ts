@@ -121,6 +121,11 @@ export const modelStatus = () => invoke<ModelStatus[]>("model_status");
 export const downloadModel = (id: ModelId) => invoke<void>("download_model", { id });
 export const cancelModelDownload = (id: ModelId) => invoke<void>("cancel_model_download", { id });
 export const deleteModel = (id: ModelId) => invoke<void>("delete_model", { id });
+/** Installed models with a newer version in the catalog (models.rs CATALOG_URL). */
+export type ModelUpdate = { id: ModelId; version: number; notes: string; bytes: number };
+export const modelUpdates = () => invoke<ModelUpdate[]>("model_updates");
+/** Installs the catalog's version: same progress events as a download. */
+export const updateModel = (id: ModelId) => invoke<void>("update_model", { id });
 export const onModelDownload = (fn: (e: { id: ModelId; done: number; total: number }) => void) =>
   listen<{ id: ModelId; done: number; total: number }>("model-download", (e) => fn(e.payload));
 export const onModelDownloadDone = (fn: (e: { id: ModelId; error: string | null; cancelled: boolean }) => void) =>

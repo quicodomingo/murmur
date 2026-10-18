@@ -111,6 +111,20 @@ export async function downloadModel(id: ModelId) {
   }
 }
 
+/** Installs the newer version of a model; resolves true when it's in place. */
+export async function updateModel(id: ModelId): Promise<boolean> {
+  const done = finished(id);
+  set({ ...state, downloading: { ...state.downloading, [id]: { done: 0, total: 0 } }, errors: { ...state.errors, [id]: undefined } });
+  try {
+    await backend.updateModel(id);
+  } catch (e) {
+    const { [id]: _failed, ...downloading } = state.downloading;
+    set({ ...state, downloading, errors: { ...state.errors, [id]: String(e) } });
+    return false;
+  }
+  return done;
+}
+
 export async function deleteModel(id: ModelId) {
   try {
     await backend.deleteModel(id);
