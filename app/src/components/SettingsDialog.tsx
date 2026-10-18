@@ -135,6 +135,9 @@ function GeneralTab({ settings, onChange }: { settings: Settings; onChange: Prop
 function CalendarSettings({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
   const [access, setAccess] = useState<backend.Access | null>(null);
   const [calendars, setCalendars] = useState<backend.CalendarInfo[]>([]);
+  /** Just connected: macOS is still loading the accounts, so the list may come empty at first. */
+  const [syncing, setSyncing] = useState(false);
+  const alive = useRef(true);
   const refresh = () => {
     if (!backend.isTauri()) return;
     backend
@@ -145,11 +148,31 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
       })
       .catch(() => {});
   };
+  const connect = async () => {
+    const a = await backend.requestCalendarAccess().catch(() => "denied" as const);
+    setAccess(a);
+    if (a !== "granted") return;
+    setSyncing(true);
+    // Ask again every second until the calendars show up (20 s at most).
+    for (let i = 0; i < 20 && alive.current; i++) {
+      const list = await backend.listCalendars().catch(() => []);
+      if (list.length) {
+        setCalendars(list);
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    if (alive.current) setSyncing(false);
+  };
   useEffect(() => {
+    alive.current = true;
     refresh();
     // Coming back from System Settings.
     window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
+    return () => {
+      alive.current = false;
+      window.removeEventListener("focus", refresh);
+    };
   }, []);
 
   const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted";
@@ -177,7 +200,7 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
                   Obre Configuració
                 </button>
               ) : (
-                <button type="button" className={button} disabled={access === null} onClick={() => backend.requestCalendarAccess().then(refresh)}>
+                <button type="button" className={button} disabled={access === null} onClick={connect}>
                   Connecta…
                 </button>
               )}
@@ -216,7 +239,15 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
           )}
         </div>
         <div className="divide-y divide-border rounded-[10px] border border-border bg-background">
-          {calendars.length === 0 && <Row label="No hi ha cap calendari" hint="Afegeix-ne un a l'app Calendari de macOS.">{null}</Row>}
+          {calendars.length === 0 &&
+            (syncing ? (
+              <div className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-[13px] text-muted-foreground" role="status">
+                <span className="size-3.5 animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
+                Sincronitzant els calendaris…
+              </div>
+            ) : (
+              <Row label="No hi ha cap calendari" hint="Afegeix-ne un a l'app Calendari de macOS.">{null}</Row>
+            ))}
           {calendars.map((c) => (
             <div key={c.id} className="flex min-h-11 items-center gap-3 px-3 py-2">
               {/* The calendar's own colour, as macOS shows it. */}

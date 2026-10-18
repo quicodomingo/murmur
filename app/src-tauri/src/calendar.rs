@@ -137,6 +137,8 @@ mod imp {
     }
 
     fn event_calendars(store: &EKEventStore) -> Vec<Retained<EKCalendar>> {
+        // Right after access is granted the accounts are still loading: ask for them now.
+        unsafe { store.refreshSourcesIfNecessary() };
         unsafe { store.calendarsForEntityType(EKEntityType::Event) }.to_vec()
     }
 
