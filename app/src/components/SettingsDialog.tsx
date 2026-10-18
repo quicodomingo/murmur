@@ -11,7 +11,6 @@ import { THEMES, type Theme } from "@/lib/appearance";
 import * as backend from "@/lib/backend";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
-import { askSystemAudio, systemAudioAsked } from "@/lib/permissions";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
 import type { LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -543,11 +542,25 @@ function PermissionsGroup({ open }: { open: boolean }) {
       </Row>
       <Row
         label="Àudio del sistema"
-        hint="Per sentir l'altra banda de les trucades. macOS no diu a les apps si l'has permès: si l'altra banda no es transcriu, comprova que Murmur és a Configuració del Sistema › Gravació de pantalla i àudio del sistema › Només àudio del sistema."
+        hint={
+          status.systemAudio === "denied"
+            ? "Denegat. Activa Murmur a Configuració del Sistema › Gravació de pantalla i àudio del sistema › Només àudio del sistema."
+            : status.systemAudio === "undetermined"
+              ? "Per sentir l'altra banda de les trucades. macOS t'ho preguntarà."
+              : "Per sentir l'altra banda de les trucades. Només l'àudio: Murmur no veu la pantalla."
+        }
       >
-        <button type="button" className={button} onClick={() => askSystemAudio().then(refresh)}>
-          {systemAudioAsked() ? "Obre Configuració" : "Permet…"}
-        </button>
+        {status.systemAudio === "granted" ? (
+          granted
+        ) : status.systemAudio === "undetermined" ? (
+          <button type="button" className={button} onClick={() => backend.requestSystemAudio().then(refresh)}>
+            Permet…
+          </button>
+        ) : (
+          <button type="button" className={button} onClick={() => backend.openPrivacySettings("systemAudio")}>
+            Obre Configuració
+          </button>
+        )}
       </Row>
       <Row label="Gravació de pantalla" hint="Només per a les captures que fas des de l'indicador. Murmur no grava mai la pantalla.">
         {status.screen ? (

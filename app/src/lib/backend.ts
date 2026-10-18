@@ -68,13 +68,13 @@ export const onRecordRequest = (fn: (start: boolean) => void) =>
   );
 /** macOS privacy permissions (permissions.rs). */
 export type Access = "undetermined" | "granted" | "denied";
-/** `screen`: screen recording, only needed for the screenshots. System audio can't be queried. */
-export type Permissions = { microphone: Access; screen: boolean };
+/** `systemAudio`: the Core Audio tap ("undetermined" also when macOS doesn't say). `screen`: only for screenshots. */
+export type Permissions = { microphone: Access; systemAudio: Access; screen: boolean };
 export const permissionStatus = () => invoke<Permissions>("permission_status");
 /** Shows the system's microphone dialog (only the first time) and resolves with the answer. */
 export const requestMicrophone = () => invoke<Access>("request_microphone");
-/** Opens the system audio tap a moment: the first time, macOS shows its permission prompt. */
-export const requestSystemAudio = () => invoke<void>("request_system_audio");
+/** Shows macOS's "System audio recording" dialog (only the first time) and resolves with the answer. */
+export const requestSystemAudio = () => invoke<Access>("request_system_audio");
 /** Screen recording (screenshots): the first time, macOS adds Murmur to the list and shows a prompt. */
 export const requestScreen = () => invoke<boolean>("request_screen");
 export const openPrivacySettings = (pane: "microphone" | "systemAudio" | "screen" | "calendars") => invoke<void>("open_privacy_settings", { pane });
