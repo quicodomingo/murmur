@@ -41,6 +41,11 @@ Sobre la transcripció:
 - [ ] Corregir noms i marques pel context (worpress → WordPress), amb el vocabulari personalitzat i els convidats del calendari.
 - [ ] Versió «neta» per llegir (sense «eh», «o sigui», repeticions), conservant l'original.
 - [ ] Suggerir el nom dels parlants pel context («com deia el Guillem»), sempre com a proposta, mai automàtic.
+- [ ] **Glossari** de paraules que la transcripció escriu malament (noms propis, marques, sigles: WordPress, WooCommerce, Shopify…), editable a Configuració › Transcripció i també des del text («Afegeix al glossari» en corregir una paraula). Tres usos:
+  1. En directe: *hotwords* de sherpa-onnx (cerca *modified beam search* amb bonificació per a aquestes paraules; els Transducer com el nostre Conformer ho admeten). Mesurar-ho al banc de proves: pot fer aparèixer la paraula on no toca.
+  2. En acabar: corregir les formes semblants («wordpres», «woo commerce») per la del glossari, amb coincidència aproximada i només per a paraules prou llargues.
+  3. A la portada: passar-lo al model de llenguatge perquè escrigui bé els noms.
+- [ ] **Speaker tags**: el nom de qui parla des de l'app de la trucada (Meet a Chrome, Zoom, Teams) amb el permís d'Accessibilitat, combinat amb la separació de veus (la veu agrupa; l'app posa el nom). Activable a Configuració › Transcripció. Prova prèvia: `examples/ax_probe.rs`.
 
 Sobre el contingut:
 - [x] Resum (portada).
@@ -85,7 +90,6 @@ Entre reunions (bloc 5):
 - [x] Indicador de gravació, mode compacte de notes i captures de pantalla manuals.
 - [x] Actualitzacions de l'app i dels models en obrir Murmur (repositori `quicodomingo/murmur-releases`), descàrregues amb comprovació d'espai i SHA-256. Versió 0.2.0.
 - [ ] Primera publicació (0.2.0) i provar una actualització real amb la 0.2.1.
-- [ ] «Speaker tags»: noms de qui parla llegits de Meet (Chrome), Zoom i Teams amb el permís d'Accessibilitat (prova prèvia).
 - [x] Portada: tasques editables, notes com a font, avís de portada desactualitzada i «PDF o envia…».
 - [ ] Google Calendar directe (OAuth) per a Windows, si cal.
 - [ ] Intel·ligència: model local o clau pròpia d'OpenAI / Anthropic, desada al clauer del sistema. Només s'envia text, mai àudio.
