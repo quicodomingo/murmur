@@ -107,6 +107,13 @@ function GeneralTab({ settings, onChange }: { settings: Settings; onChange: Prop
         <Row label="Indicador de gravació" hint="Mentre graves, una píndola a la dreta de la pantalla per tornar a Murmur o aturar la gravació. Es pot arrossegar.">
           <Switch checked={settings.recordingIndicator} onCheckedChange={(recordingIndicator) => onChange({ recordingIndicator })} />
         </Row>
+        <Row label="Mode compacte en clicar l'indicador" hint="Murmur es fa estreta, al costat de la trucada i sempre al davant, només amb les notes.">
+          <Switch
+            checked={settings.compactNotes}
+            disabled={!settings.recordingIndicator}
+            onCheckedChange={(compactNotes) => onChange({ compactNotes })}
+          />
+        </Row>
         <Row label="Reunió detectada" hint="Quan una altra app (Zoom, Meet, Teams…) comença a fer servir el micròfon, Murmur et proposa gravar.">
           <Switch checked={settings.detectMeetings} onCheckedChange={(detectMeetings) => onChange({ detectMeetings })} />
         </Row>

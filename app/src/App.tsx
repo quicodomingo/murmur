@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { ChevronDown, Copy, FileDown, FileText, FolderOpen, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { ChevronDown, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AboutDialog } from "@/components/AboutDialog";
@@ -206,8 +206,16 @@ export default function App() {
   }, [settings.detectMeetings]);
 
   useEffect(() => {
-    if (backend.isTauri()) backend.setIndicator(settings.recordingIndicator).catch(() => {});
-  }, [settings.recordingIndicator]);
+    if (backend.isTauri()) backend.setIndicator(settings.recordingIndicator, settings.compactNotes).catch(() => {});
+  }, [settings.recordingIndicator, settings.compactNotes]);
+
+  // Compact mode (from the indicator): only the notes, until the user leaves it or stops.
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    if (!backend.isTauri()) return;
+    const unlisten = backend.onCompact(setCompact);
+    return () => void unlisten.then((u) => u());
+  }, []);
 
   useEffect(() => {
     if (!backend.isTauri()) return;
@@ -448,6 +456,47 @@ export default function App() {
         onToggleFull={notesPrimary ? undefined : () => setNotes((n) => ({ ...n, full: !n.full }))}
       />
     );
+
+  // Recording stopped: back to the full window, where the cover and processing show.
+  useEffect(() => {
+    if (compact && !recording) backend.setCompact(false).catch(() => {});
+  }, [compact, recording]);
+
+  if (compact && meeting) {
+    const last = meeting.utterances.at(-1);
+    const live = state.partial.system || state.partial.mic;
+    return (
+      <TooltipProvider delayDuration={600}>
+        <div className="flex h-screen flex-col overflow-hidden bg-background">
+          <header data-tauri-drag-region className="flex h-[52px] shrink-0 items-center gap-2 border-b border-border pl-[84px] pr-2">
+            <span data-tauri-drag-region className="min-w-0 flex-1 truncate text-[13px] font-semibold">
+              {meeting.title}
+            </span>
+            {recording && (
+              <>
+                <span className="text-[12px] tabular-nums text-muted-foreground" aria-label="Temps de gravació">
+                  {clock(recording.duration)}
+                </span>
+                <ToolbarButton label="Atura la gravació" onClick={stop}>
+                  <span className="size-2.5 rounded-[2px] bg-mm-recording-dot" />
+                </ToolbarButton>
+              </>
+            )}
+            <ToolbarButton label="Surt del mode compacte" onClick={() => backend.setCompact(false).catch(() => {})}>
+              <Maximize2 className="size-4" />
+            </ToolbarButton>
+          </header>
+          <div className="min-h-0 flex-1">{renderNotes("full")}</div>
+          {(live || last) && (
+            <p className="line-clamp-2 shrink-0 border-t border-border px-4 py-2 text-[12px] leading-snug text-muted-foreground" aria-live="off">
+              {live || last?.text}
+            </p>
+          )}
+        </div>
+        <Toaster position="bottom-center" />
+      </TooltipProvider>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={600}>

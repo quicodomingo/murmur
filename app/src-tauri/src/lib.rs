@@ -763,6 +763,7 @@ pub fn run() {
             shell::set_calendar_watch,
             shell::set_indicator,
             shell::indicator_open,
+            shell::set_compact,
             shell::indicator_stop,
             print_page,
             calendar::calendar_access,

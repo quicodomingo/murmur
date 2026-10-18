@@ -31,6 +31,8 @@ export type Settings = {
   detectMeetings: boolean;
   /** A pill on the right edge of the screen while recording (open Murmur, stop). */
   recordingIndicator: boolean;
+  /** Clicking the indicator turns Murmur into a narrow notes window beside the call. */
+  compactNotes: boolean;
   /** "Comença d'aquí a 2 minuts" for meetings in the calendar (once access is granted). */
   calendarAlerts: boolean;
   /** Calendars to watch; null = all of them. */
@@ -60,6 +62,7 @@ export const DEFAULT_SETTINGS: Settings = {
   prompts: {},
   detectMeetings: true,
   recordingIndicator: true,
+  compactNotes: true,
   calendarAlerts: true,
   calendarIds: null,
   calendarNoGuests: false,

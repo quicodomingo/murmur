@@ -11,7 +11,7 @@ use serde::Serialize;
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{TrayIcon, TrayIconBuilder};
-use tauri::{AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::calendar;
 use crate::micwatch;
@@ -24,6 +24,10 @@ const TRAY_RECORDING: &[u8] = include_bytes!("../icons/menubar/MenuBarRecording@
 const TOAST_SIZE: (f64, f64) = (512.0, 120.0);
 /// The recording indicator: a 40 × 112 pt pill plus room for its shadow.
 const INDICATOR_SIZE: (f64, f64) = (60.0, 132.0);
+/// The main window in compact mode (notes only, next to the call).
+const COMPACT_SIZE: (f64, f64) = (380.0, 600.0);
+/// The main window's minimum size outside compact mode (tauri.conf.json).
+const MAIN_MIN_SIZE: (f64, f64) = (900.0, 600.0);
 /// Seconds an alert stays before going away on its own.
 const TOAST_SECONDS: u32 = 20;
 /// The calendar alert shows this long before a meeting starts (and up to a minute after).
@@ -56,6 +60,10 @@ pub struct Shell {
     indicator: AtomicBool,
     /// The indicator was placed once: later recordings keep where the user dragged it.
     indicator_placed: AtomicBool,
+    /// Clicking the indicator opens Murmur in compact mode (Settings › General).
+    compact_enabled: AtomicBool,
+    /// Where the main window was before compact mode (position, size), to put it back.
+    compact_frame: Mutex<Option<(LogicalPosition<f64>, LogicalSize<f64>)>>,
     /// Apps whose alert was closed: not shown again until they stop using the microphone.
     dismissed: Mutex<HashSet<String>>,
     next_id: Mutex<u64>,
@@ -151,17 +159,64 @@ fn show_indicator(app: &AppHandle, visible: bool) {
     let _ = w.show();
 }
 
-/// Settings › General › "Indicador de gravació".
+/// Settings › General › "Indicador de gravació" and "Mode compacte".
 #[tauri::command]
-pub fn set_indicator(app: AppHandle, enabled: bool) {
+pub fn set_indicator(app: AppHandle, enabled: bool, compact: bool) {
     shell(&app).indicator.store(enabled, Ordering::Relaxed);
+    shell(&app).compact_enabled.store(compact, Ordering::Relaxed);
     show_indicator(&app, enabled && shell(&app).recording.load(Ordering::Relaxed));
 }
 
-/// The indicator's pill: bring Murmur back.
+/// The indicator's pill: bring Murmur back, in compact mode if it's turned on.
 #[tauri::command]
 pub fn indicator_open(app: AppHandle) {
+    if shell(&app).compact_enabled.load(Ordering::Relaxed) {
+        set_compact(app.clone(), true);
+    }
     show_main(&app);
+}
+
+/// Compact mode: the main window becomes a narrow notes window, always in front, beside the
+/// indicator; leaving it puts the window back where it was.
+#[tauri::command]
+pub fn set_compact(app: AppHandle, on: bool) {
+    let Some(w) = app.get_webview_window("main") else { return };
+    let scale = w.scale_factor().unwrap_or(1.0);
+    let state = shell(&app);
+    let mut saved = state.compact_frame.lock().unwrap();
+    if on {
+        if saved.is_none() {
+            let (Ok(pos), Ok(size)) = (w.outer_position(), w.inner_size()) else { return };
+            *saved = Some((pos.to_logical(scale), size.to_logical(scale)));
+        }
+        let _ = w.unmaximize();
+        let _ = w.set_min_size(None::<LogicalSize<f64>>);
+        let _ = w.set_size(LogicalSize::new(COMPACT_SIZE.0, COMPACT_SIZE.1));
+        // To the left of the indicator, or at the right edge of the main screen.
+        let indicator = app
+            .get_webview_window("indicator")
+            .filter(|i| i.is_visible().unwrap_or(false))
+            .and_then(|i| i.outer_position().ok().map(|p| p.to_logical::<f64>(i.scale_factor().unwrap_or(1.0))));
+        if let Ok(Some(monitor)) = w.primary_monitor() {
+            let m = monitor.scale_factor();
+            let size = monitor.size().to_logical::<f64>(m);
+            let origin = monitor.position().to_logical::<f64>(m);
+            let x = indicator.map_or(origin.x + size.width - INDICATOR_SIZE.0, |p| p.x) - COMPACT_SIZE.0 - 8.0;
+            let y = indicator.map_or(origin.y + (size.height - COMPACT_SIZE.1) / 2.0, |p| p.y + INDICATOR_SIZE.1 / 2.0 - COMPACT_SIZE.1 / 2.0);
+            let y = y.clamp(origin.y + 30.0, origin.y + size.height - COMPACT_SIZE.1);
+            let _ = w.set_position(LogicalPosition::new(x.max(origin.x), y));
+        }
+        let _ = w.set_always_on_top(true);
+    } else {
+        let _ = w.set_always_on_top(false);
+        let _ = w.set_min_size(Some(LogicalSize::new(MAIN_MIN_SIZE.0, MAIN_MIN_SIZE.1)));
+        if let Some((pos, size)) = saved.take() {
+            let _ = w.set_size(size);
+            let _ = w.set_position(pos);
+        }
+    }
+    drop(saved);
+    let _ = app.emit_to("main", "compact", on);
 }
 
 /// The indicator's stop button: the main window stops the recording.

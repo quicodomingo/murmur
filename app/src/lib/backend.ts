@@ -98,7 +98,10 @@ export const setCalendarWatch = (watch: { enabled: boolean; calendarIds: string[
   invoke<void>("set_calendar_watch", { watch });
 
 /** The pill on the right edge of the screen while recording. */
-export const setIndicator = (enabled: boolean) => invoke<void>("set_indicator", { enabled });
+export const setIndicator = (enabled: boolean, compact: boolean) => invoke<void>("set_indicator", { enabled, compact });
+/** Compact mode: the main window narrows to the notes, beside the call (shell.rs set_compact). */
+export const setCompact = (on: boolean) => invoke<void>("set_compact", { on });
+export const onCompact = (fn: (on: boolean) => void) => listen<boolean>("compact", (e) => fn(e.payload));
 /** "Reunió detectada": offer to record when another app starts using the microphone. */
 export const setMeetingDetection = (enabled: boolean) => invoke<void>("set_meeting_detection", { enabled });
 /** The system print panel for this window (the cover; index.css hides the rest on paper). */
