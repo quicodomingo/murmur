@@ -13,7 +13,7 @@ const MODELS = [
   {
     role: "Transcripció",
     name: "Conformer català i castellà",
-    author: "Projecte AINA (BSC)",
+    author: "Projecte AINA (BSC), a partir d'un model d'NVIDIA",
     license: "CC BY 4.0",
     url: "https://huggingface.co/projecte-aina/stt_ca-es_conformer_transducer_large",
   },
@@ -21,19 +21,26 @@ const MODELS = [
   {
     role: "Parlants",
     name: "TitaNet small",
-    author: "NVIDIA",
-    license: "CC BY 4.0",
+    author: "NVIDIA NeMo",
+    license: "Apache 2.0",
     url: "https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nemo/models/titanet_small",
   },
   {
-    role: "Verificació de parlants",
-    name: "Segmentation 3.0 i ERes2Net",
-    author: "pyannote, 3D-Speaker (Alibaba)",
-    license: "MIT, Apache 2.0",
+    role: "Torns de paraula",
+    name: "Segmentation 3.0",
+    author: "pyannote",
+    license: "MIT",
     url: "https://huggingface.co/pyannote/segmentation-3.0",
   },
   {
-    role: "Puntuació i correcció",
+    role: "Verificació de parlants",
+    name: "ERes2Net",
+    author: "3D-Speaker (Alibaba)",
+    license: "Apache 2.0",
+    url: "https://github.com/modelscope/3D-Speaker",
+  },
+  {
+    role: "Puntuació i majúscules",
     name: "Fullstop català",
     author: "Softcatalà",
     license: "Llicència no indicada",
@@ -51,12 +58,17 @@ const MODELS = [
 const TOOLS = [
   { name: "sherpa-onnx", license: "Apache 2.0", url: "https://github.com/k2-fsa/sherpa-onnx" },
   { name: "ONNX Runtime", license: "MIT", url: "https://github.com/microsoft/onnxruntime" },
+  { name: "Tokenizers (Hugging Face)", license: "Apache 2.0", url: "https://github.com/huggingface/tokenizers" },
   { name: "llama.cpp", license: "MIT", url: "https://github.com/ggml-org/llama.cpp" },
   { name: "Tauri", license: "MIT, Apache 2.0", url: "https://github.com/tauri-apps/tauri" },
   { name: "Cancel·lació d'eco WebRTC (sonora)", license: "BSD-3-Clause", url: "https://crates.io/crates/sonora" },
   { name: "Opus", license: "BSD-3-Clause", url: "https://opus-codec.org/license/" },
   { name: "SQLite", license: "Domini públic", url: "https://sqlite.org/copyright.html" },
+  { name: "React", license: "MIT", url: "https://github.com/facebook/react" },
+  { name: "Radix UI i shadcn/ui", license: "MIT", url: "https://github.com/shadcn-ui/ui" },
   { name: "Tiptap", license: "MIT", url: "https://github.com/ueberdosis/tiptap" },
+  { name: "docx (exportació a Word)", license: "MIT", url: "https://github.com/dolanmiu/docx" },
+  { name: "Icones Lucide", license: "ISC", url: "https://github.com/lucide-icons/lucide" },
   { name: "Space Grotesk", license: "SIL OFL 1.1", url: "https://github.com/floriankarsten/space-grotesk" },
 ];
 
@@ -89,13 +101,13 @@ export function AboutDialog({ open: visible, onOpenChange }: { open: boolean; on
           <LogoIcon size={104} shadow />
           <DialogTitle className="sr-only">Quant a Murmur</DialogTitle>
           <Wordmark className="mt-[18px]" />
-          <div className="mt-2 text-[13px] text-muted-foreground">Versió {version ?? "0.1.0"}</div>
+          <div className="mt-2 text-[13px] text-muted-foreground">{version ? `Versió ${version}` : "\u00a0"}</div>
           <DialogDescription className="mt-3.5 max-w-[460px] text-[15px] leading-normal text-foreground">
             Transcripció de reunions en directe, amb el català al centre. Tot es processa en aquest Mac: l'àudio i el text no surten mai
             de l'ordinador. Local vol dir privat.
           </DialogDescription>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {["Res surt d'aquest Mac", "Sense núvol ni comptes", "Català, i més llengües"].map((t) => (
+            {["Res surt d'aquest Mac", "Sense núvol ni comptes", "Català i castellà"].map((t) => (
               <span key={t} className="rounded-full bg-mm-fill-subtle px-2.5 py-1 text-[12px] font-medium">
                 {t}
               </span>
