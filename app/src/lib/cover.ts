@@ -1,4 +1,4 @@
-import { clock, duration, longDate, speakerName } from "./format";
+import { clock, duration, longDate, speakerIds, speakerName } from "./format";
 import { notesDoc, notesFromDoc } from "./notes";
 import type { Cover, LlmResult, LlmTask, Meeting } from "./types";
 
@@ -186,6 +186,38 @@ export function coverBasis(document: string): string {
 
 /** The cover no longer matches the meeting (only covers that saved what they read). */
 export const coverOutdated = (m: Meeting) => !!m.cover?.basis && m.cover.basis !== coverBasis(coverDocument(m));
+
+/** Speakers called differently in `after` than in `before`: [old name, new name]. */
+export function renamedSpeakers(before: Meeting, after: Meeting): [string, string][] {
+  return speakerIds(after)
+    .map((id) => [speakerName(before, id), speakerName(after, id)] as [string, string])
+    .filter(([old, now]) => old && now && old !== now);
+}
+
+/** Default names ("Parlant 1", "Tu") of the speakers the user has named: [default, name]. */
+export function namedSpeakers(m: Meeting): [string, string][] {
+  return renamedSpeakers({ ...m, speakerNames: {} }, m);
+}
+
+/**
+ * The cover with the speakers' new names in its text ("Parlant 1 diu…" → "M. Àngels diu…"), so
+ * renaming doesn't need a new cover. Whole words only, as written.
+ */
+export function renameInCover(cover: Cover, renames: [string, string][]): Cover {
+  if (!renames.length) return cover;
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = renames.map(([old, now]) => [new RegExp(`(?<![\\p{L}\\p{N}])${escape(old)}(?![\\p{L}\\p{N}])`, "gu"), now] as const);
+  const fix = (s: string) => patterns.reduce((text, [re, now]) => text.replace(re, now), s);
+  return {
+    ...cover,
+    excerpt: cover.excerpt && fix(cover.excerpt),
+    tone: cover.tone && { ...cover.tone, reason: fix(cover.tone.reason) },
+    summary: cover.summary?.map(fix),
+    decisions: cover.decisions?.map((d) => ({ ...d, text: fix(d.text) })),
+    tasks: cover.tasks?.map((t) => ({ ...t, text: fix(t.text), owner: t.owner && fix(t.owner) })),
+    parts: cover.parts?.map((p) => ({ ...p, title: fix(p.title), points: p.points.map(fix) })),
+  };
+}
 
 /**
  * Generating again keeps what the user did on the cover: tasks added by hand, and the ticks of

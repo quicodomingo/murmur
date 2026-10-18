@@ -157,6 +157,8 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
 
 - El model llegeix la transcripció i, al final, les notes amb el minut en què es van escriure (també compten com a font de tasques i decisions).
 - Tasques: només accions que algú demana o es compromet a fer; si no n'hi ha, «En aquesta reunió no s'han demanat tasques». Es poden marcar, editar, assignar (qui ha parlat + convidats), eliminar i afegir; en tornar a generar es conserven les afegides a mà i les marcades.
+- Reanomenar un parlant canvia el nom dins la portada (`renameInCover`, paraules senceres), també si es fa mentre es genera, i en mostrar-la els noms genèrics («Parlant 1», «Tu») es substitueixen pels que s'han posat. No cal regenerar per un nom.
+- Les captures surten dins de la part de la reunió on es van fer i totes juntes al final («Totes les pantalles»).
 - La portada desa una empremta del que ha llegit (`basis`): si després canvien noms, parlants, text o notes (també durant la generació), avisa que ha quedat desactualitzada i ofereix tornar-la a generar.
 - «PDF o envia…»: el tauler d'impressió de macOS (Desa com a PDF, Mail, Missatges) sobre una còpia de la portada (`.mm-print`); la pàgina passa a mode clar mentre s'imprimeix.
 

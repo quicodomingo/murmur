@@ -10,7 +10,7 @@ import { TitleInput } from "@/components/Transcript";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import * as backend from "@/lib/backend";
-import { coverOutdated, talkTime } from "@/lib/cover";
+import { coverOutdated, namedSpeakers, renameInCover, talkTime } from "@/lib/cover";
 import { clock, duration, longDate, speakerIds } from "@/lib/format";
 import type { PostProcess } from "@/lib/store";
 import type { Cover as CoverData, LlmProgress, Meeting, PostStage } from "@/lib/types";
@@ -99,7 +99,8 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 // --- Ready ---------------------------------------------------------------------------------
 
 function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks, onPrint }: Props) {
-  const cover = meeting.cover!;
+  // Covers written before a speaker was named still say "Parlant 1": show the name.
+  const cover = renameInCover(meeting.cover!, namedSpeakers(meeting));
   const talk = talkTime(meeting);
   // Owners are names the model read in the transcript: match them to speakers for the colour.
   const ownerSpeaker = (owner: string) => {
@@ -220,19 +221,14 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
         </section>
       )}
 
-      {!!meeting.screens?.length && (
-        <section aria-labelledby="screens-h" className="mt-8">
-          <SectionTitle id="screens-h">Pantalles compartides</SectionTitle>
-          <ScreenThumbs screens={meeting.screens} onJump={onJump} />
-        </section>
-      )}
-
       {!!cover.parts?.length && (
         <section aria-labelledby="parts-h" className="mt-8">
           <SectionTitle id="parts-h">Parts de la reunió</SectionTitle>
           <ol>
             {cover.parts.map((p, i) => {
               const end = cover.parts![i + 1]?.t ?? meeting.duration;
+              // Screenshots taken during this part (the first part also gets any taken before it).
+              const shots = (meeting.screens ?? []).filter((s) => (i === 0 || s.t >= p.t) && (i === cover.parts!.length - 1 || s.t < end));
               return (
                 <li key={i} className="relative grid grid-cols-[52px_1fr] gap-x-3.5 pb-[18px]">
                   {i < cover.parts!.length - 1 && <span className="absolute bottom-0 left-[63px] top-[22px] w-px bg-border" aria-hidden />}
@@ -254,11 +250,19 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
                         ))}
                       </ul>
                     )}
+                    {shots.length > 0 && <ScreenThumbs screens={shots} onJump={onJump} className="mt-2" />}
                   </div>
                 </li>
               );
             })}
           </ol>
+        </section>
+      )}
+
+      {!!meeting.screens?.length && (
+        <section aria-labelledby="screens-h" className="mt-8">
+          <SectionTitle id="screens-h">Totes les pantalles</SectionTitle>
+          <ScreenThumbs screens={meeting.screens} onJump={onJump} />
         </section>
       )}
 
