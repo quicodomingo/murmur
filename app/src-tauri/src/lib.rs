@@ -203,7 +203,18 @@ async fn start_recording(
                 let _ = app.emit("level", Level { rms });
             }
             emit(pipeline.push(source, &samples));
-            emit(pipeline.tick());
+            // A busy Mac (a video call can take most of the CPU): audio piles up in the queue.
+            // Skip the provisional text, the costliest part, until it's caught up.
+            let waiting = audio_rx.len();
+            if waiting > BACKLOG_FRAMES {
+                pipeline.set_partials(false);
+            } else if waiting == 0 {
+                pipeline.set_partials(true);
+            }
+            // Pad stalled sources only once everything that arrived has been taken in.
+            if waiting == 0 {
+                emit(pipeline.tick());
+            }
         }
         let tapped = match pipeline.finish() {
             Ok((events, tapped)) => {
@@ -268,6 +279,9 @@ fn safe_id(id: &str) -> String {
 /// 0.116 measured on an M4 base (window 0.2, see diarize_probe), with margin for slower Macs.
 /// Only drives the estimate shown in the UI.
 const DIARIZE_RTF_ESTIMATE: f32 = 0.15;
+/// Captured frames waiting beyond which the recording is "behind" (mic callbacks come every
+/// ~10 ms, system audio every ~60 ms: about a second or more of audio).
+const BACKLOG_FRAMES: usize = 60;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

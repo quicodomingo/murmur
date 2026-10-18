@@ -224,11 +224,21 @@ mod system_audio {
             .ok_or_else(permission)?;
         let filter = SCContentFilter::new().with_display_excluding_windows(&display, &[]);
         let err = |e| anyhow!("No s'ha pogut configurar l'àudio del sistema: {e:?}");
-        // The video stream is mandatory in ScreenCaptureKit; keep it tiny since we ignore it.
+        // The video stream is mandatory in ScreenCaptureKit; keep it tiny and almost still since
+        // we ignore it. Without a frame interval it follows the screen: with a video call on it,
+        // WindowServer scaled the whole display down 60 times a second and starved the
+        // transcription.
+        let once_in_a_while = core_media_rs::cm_time::CMTime { value: 10, timescale: 1, flags: 1, epoch: 0 };
         let config = SCStreamConfiguration::new()
             .set_width(2)
             .map_err(err)?
             .set_height(2)
+            .map_err(err)?
+            .set_minimum_frame_interval(&once_in_a_while)
+            .map_err(err)?
+            .set_queue_depth(3)
+            .map_err(err)?
+            .set_shows_cursor(false)
             .map_err(err)?
             .set_captures_audio(true)
             .map_err(err)?

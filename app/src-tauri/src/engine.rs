@@ -222,6 +222,8 @@ pub struct LiveSession<'m> {
     samples_seen: usize,
     last_partial: usize,
     partial_shown: bool,
+    /// Provisional text while someone speaks; off while the recording is behind (a busy Mac).
+    partials: bool,
     next_id: u32,
 }
 
@@ -229,6 +231,11 @@ impl<'m> LiveSession<'m> {
     /// Caps how many speakers this channel can tell apart (1: everything is the same person).
     pub fn set_max_speakers(&mut self, max: usize) {
         self.speakers.max_speakers = max.max(1);
+    }
+
+    /// Turns the provisional text on or off (it costs about ten times the final text).
+    pub fn set_partials(&mut self, on: bool) {
+        self.partials = on;
     }
 
     pub fn new(
@@ -269,6 +276,7 @@ impl<'m> LiveSession<'m> {
             samples_seen: 0,
             last_partial: 0,
             partial_shown: false,
+            partials: true,
             next_id: 0,
         })
     }
@@ -350,7 +358,7 @@ impl<'m> LiveSession<'m> {
 
     fn partial(&mut self) -> Option<Event> {
         // Experiments that only look at final utterances can skip this cost.
-        if std::env::var_os("TRANSCRIPTOR_NO_PARTIALS").is_some() {
+        if !self.partials || std::env::var_os("TRANSCRIPTOR_NO_PARTIALS").is_some() {
             return None;
         }
         if !self.in_speech {

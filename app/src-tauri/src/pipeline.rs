@@ -6,7 +6,8 @@
 //!   a second session. A mic frame is only processed once the system audio for the same instant
 //!   has been seen, so the canceller always has its reference.
 //! - Sources that stop delivering (ScreenCaptureKit is silent while nothing plays) are padded
-//!   with silence by wall clock, so both channels keep the same timeline.
+//!   with silence by wall clock, so both channels keep the same timeline. Only once everything
+//!   that arrived has been taken in: audio still waiting in the queue isn't silence.
 //! - Mic sentences that repeat what the system channel just said (leaked echo) are dropped.
 
 use std::collections::VecDeque;
@@ -96,6 +97,13 @@ pub struct Pipeline<'m> {
 impl<'m> Pipeline<'m> {
     /// In a call the microphone is usually just the user: one speaker, "Tu". Without this, short
     /// phrases through echo cancellation get split into several made-up people.
+    /// Provisional text on both channels: off while the recording is behind, to catch up.
+    pub fn set_partials(&mut self, on: bool) {
+        for session in [self.mic.as_mut(), self.system.as_mut()].into_iter().flatten() {
+            session.set_partials(on);
+        }
+    }
+
     pub fn single_mic_speaker(&mut self) {
         if let Some(mic) = self.mic.as_mut() {
             mic.set_max_speakers(1);
@@ -183,7 +191,9 @@ impl<'m> Pipeline<'m> {
         self.process()
     }
 
-    /// Call regularly (e.g. every 100–250 ms): pads stalled sources with silence.
+    /// Call regularly (e.g. every 100–250 ms), and only when no captured audio is waiting to be
+    /// pushed: pads stalled sources with silence. With audio still queued (a busy Mac), "behind
+    /// the clock" means "not read yet", and padding would put silence where there was speech.
     pub fn tick(&mut self) -> Vec<Event> {
         let expected = (self.started.elapsed().as_secs_f32() * SAMPLE_RATE as f32) as usize;
         let mut events = vec![];

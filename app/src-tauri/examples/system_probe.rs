@@ -12,7 +12,7 @@ fn main() -> anyhow::Result<()> {
         .and_then(|s| s.parse().ok())
         .unwrap_or(8);
     let (tx, rx) = crossbeam_channel::unbounded();
-    let capture = start_capture(false, true, tx)?;
+    let capture = start_capture(false, None, true, tx)?;
     println!("capturing system audio for {secs}s…");
     let t0 = Instant::now();
     let mut audio = vec![];
