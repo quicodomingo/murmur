@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ArrowDown, Copy, StickyNote } from "lucide-react";
+import { ArrowDown, Copy, Play, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
 import { ScreenThumbs } from "@/components/Screens";
 import { Flag, isYou, SpeakerFlag } from "@/components/SpeakerFlag";
 import { clock, longDate, speakerIds, speakerName } from "@/lib/format";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
+import { hasAudio, playAt, usePlayer } from "@/lib/player";
 import type { Jump, State } from "@/lib/store";
 import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type PostStage, type Screen, type Utterance } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,18 @@ export function Transcript(props: Props) {
   const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id), you: isYou(meeting, id) }));
   const anchors = noteAnchors(meeting);
   const screens = screenAnchors(meeting);
+  // While the audio plays: the utterance being heard is marked, and the transcript follows it.
+  const player = usePlayer();
+  const listening = player.meetingId === meeting.id && (player.playing || player.time > 0);
+  const heard = listening ? [...meeting.utterances].reverse().find((u) => u.start <= player.time + 0.05)?.id : undefined;
+  const audio = hasAudio(meeting);
+  useEffect(() => {
+    if (!heard || !player.playing) return;
+    const row = scroller.current?.querySelector<HTMLElement>(`[data-utterance-id="${heard}"]`);
+    const box = scroller.current?.getBoundingClientRect();
+    const r = row?.getBoundingClientRect();
+    if (row && box && r && (r.top < box.top + 40 || r.bottom > box.bottom - 40)) row.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [heard, player.playing]);
   const scroller = useRef<HTMLDivElement>(null);
   // Follow the live text until the user scrolls up; "Torna al directe" brings it back.
   const following = useRef(true);
@@ -136,6 +149,8 @@ export function Transcript(props: Props) {
                 <UtteranceRow
                   utterance={u}
                   flash={flash === u.id}
+                  heard={heard === u.id}
+                  onPlay={audio ? () => void playAt(meeting, u.start) : undefined}
                   showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker}
                   notes={anchors.get(u.id) ?? []}
                   hoveredNote={props.hoveredNote}
@@ -221,6 +236,10 @@ export function TitleInput({ title, onChange, compact }: { title: string; onChan
 type RowProps = {
   utterance: Utterance;
   flash: boolean;
+  /** Being heard right now in the player. */
+  heard: boolean;
+  /** Plays the audio from this utterance (only when the meeting has audio). */
+  onPlay?: () => void;
   showFlag: boolean;
   notes: string[];
   hoveredNote: string | null;
@@ -229,7 +248,7 @@ type RowProps = {
   onEdit: (text: string) => void;
 };
 
-function UtteranceRow({ utterance: u, flash, showFlag, notes, hoveredNote, onHoverNote, flag, onEdit }: RowProps) {
+function UtteranceRow({ utterance: u, flash, heard, onPlay, showFlag, notes, hoveredNote, onHoverNote, flag, onEdit }: RowProps) {
   const [editing, setEditing] = useState(false);
   const linked = notes.includes(hoveredNote ?? "");
 
@@ -245,6 +264,7 @@ function UtteranceRow({ utterance: u, flash, showFlag, notes, hoveredNote, onHov
         "group relative rounded-lg px-3 py-1.5 transition-colors duration-700 hover:bg-mm-fill-subtle",
         showFlag && "mt-3",
         linked && "bg-mm-fill-subtle",
+        heard && "bg-mm-fill-subtle shadow-[inset_2px_0_0_var(--mm-text-primary)]",
         flash && "bg-yellow-100 duration-150 dark:bg-yellow-500/20",
       )}
     >
@@ -262,7 +282,19 @@ function UtteranceRow({ utterance: u, flash, showFlag, notes, hoveredNote, onHov
       {showFlag && (
         <div className="mb-1 flex items-center gap-2">
           {flag}
-          <span className="text-[12px] tabular-nums text-mm-timestamp">{clock(u.start)}</span>
+          {onPlay ? (
+            <button
+              type="button"
+              onClick={onPlay}
+              aria-label={`Escolta des del minut ${clock(u.start)}`}
+              className="group/time flex items-center gap-1 rounded-sm text-[12px] tabular-nums text-mm-timestamp hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              {clock(u.start)}
+              <Play className="size-2.5 opacity-0 transition-opacity group-hover/time:opacity-100 group-focus-visible/time:opacity-100" fill="currentColor" strokeWidth={0} aria-hidden />
+            </button>
+          ) : (
+            <span className="text-[12px] tabular-nums text-mm-timestamp">{clock(u.start)}</span>
+          )}
           {u.edited && <span className="text-[11px] text-text-secondary">editat</span>}
         </div>
       )}

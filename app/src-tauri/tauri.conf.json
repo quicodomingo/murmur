@@ -31,7 +31,8 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$APPDATA/screens/**"
+          "$APPDATA/screens/**",
+          "$APPCACHE/playback/**"
         ]
       }
     },

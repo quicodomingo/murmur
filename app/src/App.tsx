@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ask } from "@tauri-apps/plugin-dialog";
+import { ask, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { Camera, ChevronDown, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AboutDialog } from "@/components/AboutDialog";
@@ -10,6 +10,7 @@ import { Onboarding } from "@/components/Onboarding";
 import { Cover } from "@/components/Cover";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
+import { PlayerBar } from "@/components/PlayerBar";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { UpdatesDialog } from "@/components/UpdatesDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -24,6 +25,7 @@ import { exportMeeting, type ExportFormat } from "@/lib/export";
 import { useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
+import { hasAudio, playAt, stopUnless } from "@/lib/player";
 import { useSettings } from "@/lib/settings";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
@@ -420,10 +422,24 @@ export default function App() {
     window.addEventListener("pointermove", back);
     window.addEventListener("keydown", back);
   };
+  /** A minute on the cover: to that point of the transcript, and the audio plays from there. */
   const jumpTo = (t: number) => {
     if (!meeting) return;
     setView({ cover: false });
     dispatch({ type: "jump", meetingId: meeting.id, t });
+    if (hasAudio(meeting)) void playAt(meeting, t);
+  };
+  /** "Exporta l'àudio…": an .m4a anyone can play. */
+  const exportAudio = async (m: Meeting) => {
+    if (!m.audioPath) return;
+    const dest = await save({ title: "Exporta l'àudio", defaultPath: `${m.title.replace(/[/:]/g, "-")}.m4a`, filters: [{ name: "Àudio", extensions: ["m4a"] }] });
+    if (!dest) return;
+    try {
+      await backend.exportAudio(m.id, m.audioPath, dest);
+      toast("Àudio exportat");
+    } catch (e) {
+      toast.error(String(e));
+    }
   };
   const renderCover = () =>
     meeting && (
@@ -476,6 +492,9 @@ export default function App() {
         onToggleFull={notesPrimary ? undefined : () => setNotes((n) => ({ ...n, full: !n.full }))}
       />
     );
+
+  // The player follows the open meeting: opening another one stops it.
+  useEffect(() => stopUnless(state.selectedId), [state.selectedId]);
 
   // Updates: once when Murmur opens (after the first-run screens), and from the settings.
   const [updates, setUpdates] = useState({ run: 0, manual: false });
@@ -570,6 +589,11 @@ export default function App() {
                   >
                     <FolderOpen className="size-3.5" /> {meeting.audioPath ? "Mostra l'àudio al Finder" : "No s'ha desat l'àudio"}
                   </DropdownMenuItem>
+                  {hasAudio(meeting) && (
+                    <DropdownMenuItem onSelect={() => exportAudio(meeting)}>
+                      <FileAudio className="size-3.5" /> Exporta l'àudio (.m4a)…
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" disabled={meeting.status === "recording"} onSelect={() => remove(meeting)}>
                     <Trash2 className="size-3.5" /> Elimina la reunió…
@@ -710,6 +734,7 @@ export default function App() {
               </>
             )}
           </div>
+          {meeting && hasAudio(meeting) && <PlayerBar meeting={meeting} />}
         </div>
       </div>
       <SettingsDialog

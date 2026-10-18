@@ -10,6 +10,7 @@ pub mod micwatch;
 pub mod models;
 pub mod punctuate;
 pub mod permissions;
+pub mod playback;
 pub mod pipeline;
 pub mod recorder;
 pub mod shell;
@@ -680,6 +681,37 @@ async fn capture_screen(app: AppHandle, meeting_id: String, t: f64) -> Result<St
     Ok(path.to_string_lossy().into_owned())
 }
 
+/// A meeting's recording as an .m4a anyone can play (playback.rs), kept in the cache; returns its path.
+#[tauri::command]
+async fn playback_audio(app: AppHandle, meeting_id: String, audio_path: String) -> Result<String, String> {
+    let ogg = recording_path(&audio_path)?;
+    let dir = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("playback");
+    let out = dir.join(format!("{}.m4a", screens_dir(&app, &meeting_id).map(|_| meeting_id)?));
+    let target = out.clone();
+    tauri::async_runtime::spawn_blocking(move || playback::ensure_m4a(&ogg, &target))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| format!("{e:#}"))?;
+    Ok(out.to_string_lossy().into_owned())
+}
+
+/// "Exporta l'àudio…": the same .m4a, saved where the user chose.
+#[tauri::command]
+async fn export_audio(app: AppHandle, meeting_id: String, audio_path: String, dest: String) -> Result<(), String> {
+    let m4a = playback_audio(app, meeting_id, audio_path).await?;
+    std::fs::copy(m4a, dest).map(|_| ()).map_err(|e| format!("No s'ha pogut desar l'àudio: {e}"))
+}
+
+/// A meeting's saved recording: only ever an existing .ogg (the path comes from the meeting).
+fn recording_path(path: &str) -> Result<std::path::PathBuf, String> {
+    let path = std::path::PathBuf::from(path);
+    if path.extension().is_some_and(|e| e == "ogg") && path.is_file() {
+        Ok(path)
+    } else {
+        Err("No es troba l'àudio d'aquesta reunió".into())
+    }
+}
+
 /// Removes one screenshot (only files inside the screenshots folder).
 #[tauri::command]
 fn delete_screen(app: AppHandle, path: String) -> Result<(), String> {
@@ -847,6 +879,8 @@ pub fn run() {
             shell::set_compact,
             shell::indicator_capture,
             capture_screen,
+            playback_audio,
+            export_audio,
             delete_screen,
             shell::indicator_stop,
             print_page,

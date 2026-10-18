@@ -107,6 +107,9 @@ export const onCompact = (fn: (on: boolean) => void) => listen<boolean>("compact
 export const setMeetingDetection = (enabled: boolean) => invoke<void>("set_meeting_detection", { enabled });
 /** A screenshot of the call at `t` seconds (capture.rs); resolves with the file's path. */
 export const captureScreen = (meetingId: string, t: number) => invoke<string>("capture_screen", { meetingId, t });
+/** The recording as an .m4a anyone can play (playback.rs), made once and kept in the cache. */
+export const playbackAudio = (meetingId: string, audioPath: string) => invoke<string>("playback_audio", { meetingId, audioPath });
+export const exportAudio = (meetingId: string, audioPath: string, dest: string) => invoke<void>("export_audio", { meetingId, audioPath, dest });
 export const deleteScreen = (path: string) => invoke<void>("delete_screen", { path });
 /** The indicator's camera button asks the main window for a screenshot. */
 export const onCaptureRequest = (fn: () => void) => listen("capture-request", () => fn());
