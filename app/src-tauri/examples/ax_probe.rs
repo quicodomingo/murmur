@@ -16,7 +16,7 @@ type AXUIElementRef = *const c_void;
 
 #[link(name = "ApplicationServices", kind = "framework")]
 unsafe extern "C" {
-    fn AXIsProcessTrusted() -> bool;
+    fn AXIsProcessTrustedWithOptions(options: *const c_void) -> bool;
     fn AXUIElementCreateApplication(pid: i32) -> AXUIElementRef;
     fn AXUIElementCopyAttributeValue(element: AXUIElementRef, attribute: CFStringRef, value: *mut CFTypeRef) -> i32;
     fn AXUIElementSetAttributeValue(element: AXUIElementRef, attribute: CFStringRef, value: CFTypeRef) -> i32;
@@ -71,7 +71,12 @@ fn walk(element: AXUIElementRef, depth: usize, count: &mut usize) {
 
 fn main() {
     let app = std::env::args().nth(1).unwrap_or_else(|| "Google Chrome".into());
-    if !unsafe { AXIsProcessTrusted() } {
+    // Asks macOS to show its prompt and add this terminal to the Accessibility list.
+    let prompt = core_foundation::dictionary::CFDictionary::from_CFType_pairs(&[(
+        CFString::new("AXTrustedCheckOptionPrompt"),
+        CFBoolean::true_value(),
+    )]);
+    if !unsafe { AXIsProcessTrustedWithOptions(prompt.as_concrete_TypeRef() as *const c_void) } {
         eprintln!("Falta el permís d'Accessibilitat per a aquest terminal (Configuració del Sistema › Privadesa i seguretat › Accessibilitat).");
         std::process::exit(1);
     }
