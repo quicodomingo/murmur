@@ -6,6 +6,7 @@
 use std::ffi::c_void;
 use std::ptr::NonNull;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use anyhow::{Result, anyhow};
 use core_foundation::array::CFArray;
@@ -16,7 +17,8 @@ use core_foundation::string::CFString;
 use crossbeam_channel::Sender;
 use objc2::AnyThread;
 use objc2_core_audio::{
-    AudioDeviceCreateIOProcID, AudioDeviceDestroyIOProcID, AudioDeviceIOProcID, AudioDeviceStart, AudioDeviceStop,
+    AudioDeviceCreateIOProcID, AudioDeviceDestroyIOProcID, AudioObjectAddPropertyListener, AudioObjectRemovePropertyListener,
+    kAudioDevicePropertyNominalSampleRate, AudioDeviceIOProcID, AudioDeviceStart, AudioDeviceStop,
     AudioHardwareCreateAggregateDevice, AudioHardwareCreateProcessTap, AudioHardwareDestroyAggregateDevice,
     AudioHardwareDestroyProcessTap, AudioObjectGetPropertyData, AudioObjectID, AudioObjectPropertyAddress, CATapDescription,
     kAudioDevicePropertyDeviceUID, kAudioHardwarePropertyDefaultSystemOutputDevice,
@@ -31,8 +33,28 @@ use crate::audio::{Frame, Resampler, Source};
 /// What the IO callback needs, on Core Audio's real-time thread.
 struct State {
     tx: Sender<Frame>,
-    resampler: Mutex<Resampler>,
+    /// The device's sample rate. It can change mid-recording: when a call app turns on macOS's
+    /// voice processing, the output drops to 24 kHz, and converting as if it were still 48 kHz
+    /// sped the other side up ×2 (unrecognisable).
+    rate: AtomicU32,
+    /// The resampler and the rate it was made for.
+    resampler: Mutex<(u32, Resampler)>,
+    /// Checking the rate against the clock: last callback, seconds and frames counted.
+    measured: Mutex<Measure>,
 }
+
+/// The rate that frames actually arrive at, checked every few seconds: if it's far from the
+/// device's (a change macOS didn't report), the nearest standard rate is used instead.
+const CHECK_EVERY_S: f64 = 4.0;
+/// A longer wait between callbacks is a pause (nothing playing), left out of the count.
+const GAP_S: f64 = 0.1;
+
+struct Measure {
+    last: Option<std::time::Instant>,
+    seconds: f64,
+    frames: u64,
+}
+const RATES: [u32; 8] = [8_000, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000, 96_000];
 
 /// A running tap. Dropping it stops the capture and removes the tap and its device.
 pub struct SystemTap {
@@ -130,10 +152,23 @@ pub fn start(tx: Sender<Frame>) -> Result<SystemTap> {
                 "preparar l'àudio del sistema",
             )?;
 
+            // The audio arrives at the device's rate (the tap is drift-compensated to it).
+            let nominal: f64 = get(device, kAudioDevicePropertyNominalSampleRate, None).unwrap_or(format.mSampleRate);
+            if std::env::var_os("MURMUR_DEBUG_TAP").is_some() {
+                eprintln!(
+                    "tap format: {} Hz, {} ch, flags {:#x}, {} bits · aggregate nominal {nominal} Hz",
+                    format.mSampleRate, format.mChannelsPerFrame, format.mFormatFlags, format.mBitsPerChannel
+                );
+            }
+            let rate = nominal.round() as u32;
             let state = Box::into_raw(Box::new(State {
                 tx,
-                resampler: Mutex::new(Resampler::new(format.mSampleRate as u32)),
+                rate: AtomicU32::new(rate),
+                resampler: Mutex::new((rate, Resampler::new(rate))),
+                measured: Mutex::new(Measure { last: None, seconds: 0.0, frames: 0 }),
             }));
+            let mut addr = address(kAudioDevicePropertyNominalSampleRate);
+            AudioObjectAddPropertyListener(device, NonNull::from(&mut addr), Some(rate_changed), state as *mut c_void);
             let mut proc_id: AudioDeviceIOProcID = None;
             let started = check(AudioDeviceCreateIOProcID(device, Some(io_proc), state as *mut c_void, NonNull::from(&mut proc_id)), "llegir l'àudio del sistema")
                 .and_then(|_| check(AudioDeviceStart(device, proc_id), "començar l'àudio del sistema"));
@@ -154,6 +189,18 @@ pub fn start(tx: Sender<Frame>) -> Result<SystemTap> {
     }
 }
 
+/// The device changed its sample rate (see `State::rate`).
+unsafe extern "C-unwind" fn rate_changed(device: AudioObjectID, _count: u32, _addresses: NonNull<AudioObjectPropertyAddress>, client: *mut c_void) -> i32 {
+    let state = unsafe { &*(client as *const State) };
+    if let Ok(rate) = unsafe { get::<f64>(device, kAudioDevicePropertyNominalSampleRate, None) } {
+        if std::env::var_os("MURMUR_DEBUG_TAP").is_some() {
+            eprintln!("tap: device rate now {rate} Hz");
+        }
+        state.rate.store(rate.round() as u32, Ordering::Relaxed);
+    }
+    0
+}
+
 /// Core Audio's real-time callback: f32 samples from the tap → mono → 16 kHz → the pipeline.
 unsafe extern "C-unwind" fn io_proc(
     _device: AudioObjectID,
@@ -167,23 +214,52 @@ unsafe extern "C-unwind" fn io_proc(
     let state = unsafe { &*(client as *const State) };
     let list = unsafe { input.as_ref() };
     let buffers: &[AudioBuffer] = unsafe { std::slice::from_raw_parts(list.mBuffers.as_ptr(), list.mNumberBuffers as usize) };
-    let Some(first) = buffers.first().filter(|b| !b.mData.is_null()) else { return 0 };
-    let mono: Vec<f32> = if buffers.len() > 1 {
-        // One buffer per channel: average them.
-        let frames = first.mDataByteSize as usize / 4;
-        (0..frames)
-            .map(|i| {
-                buffers.iter().map(|b| unsafe { *(b.mData as *const f32).add(i) }).sum::<f32>() / buffers.len() as f32
-            })
-            .collect()
-    } else {
-        let channels = (first.mNumberChannels as usize).max(1);
-        let samples = unsafe { std::slice::from_raw_parts(first.mData as *const f32, first.mDataByteSize as usize / 4) };
-        samples.chunks(channels).map(|c| c.iter().sum::<f32>() / c.len() as f32).collect()
-    };
+    // The tap's stream comes after any input of the output device (a headset's mic): the last.
+    let Some(first) = buffers.last().filter(|b| !b.mData.is_null()) else { return 0 };
+    let channels = (first.mNumberChannels as usize).max(1);
+    let samples = unsafe { std::slice::from_raw_parts(first.mData as *const f32, first.mDataByteSize as usize / 4) };
+    let mono: Vec<f32> = samples.chunks(channels).map(|c| c.iter().sum::<f32>() / c.len() as f32).collect();
+    if std::env::var_os("MURMUR_DEBUG_TAP").is_some() {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static FRAMES: AtomicU64 = AtomicU64::new(0);
+        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+        let start = START.get_or_init(std::time::Instant::now);
+        let total = FRAMES.fetch_add(mono.len() as u64, Ordering::Relaxed) + mono.len() as u64;
+        if total % 48_000 < mono.len() as u64 {
+            eprintln!("tap: {} buffers × {} ch, {:.0} frames/s", buffers.len(), first.mNumberChannels, total as f64 / start.elapsed().as_secs_f64());
+        }
+    }
+    if let Ok(mut measured) = state.measured.lock() {
+        // Count the frames of each callback against the time since the previous one, skipping
+        // pauses, so silence without callbacks doesn't look like a slower rate.
+        let now = std::time::Instant::now();
+        if let Some(gap) = measured.last.map(|t| now.duration_since(t).as_secs_f64()).filter(|g| *g < GAP_S) {
+            measured.seconds += gap;
+            measured.frames += mono.len() as u64;
+        }
+        measured.last = Some(now);
+        if measured.seconds >= CHECK_EVERY_S {
+            let real = measured.frames as f64 / measured.seconds;
+            let expected = state.rate.load(Ordering::Relaxed) as f64;
+            // Only a real stream (not a burst after a pause): close to a standard rate.
+            let nearest = RATES.iter().copied().min_by_key(|r| (*r as f64 - real).abs() as u64).unwrap_or(48_000);
+            if (real - expected).abs() > expected * 0.15 && (real - nearest as f64).abs() < nearest as f64 * 0.05 {
+                if std::env::var_os("MURMUR_DEBUG_TAP").is_some() {
+                    eprintln!("tap: frames arrive at {real:.0}/s, not {expected}: using {nearest} Hz");
+                }
+                state.rate.store(nearest, Ordering::Relaxed);
+            }
+            measured.seconds = 0.0;
+            measured.frames = 0;
+        }
+    }
     let mut out = Vec::with_capacity(mono.len() / 2);
-    if let Ok(mut resampler) = state.resampler.lock() {
-        resampler.process(&mono, &mut out);
+    if let Ok(mut current) = state.resampler.lock() {
+        let rate = state.rate.load(Ordering::Relaxed);
+        if current.0 != rate && rate > 0 {
+            *current = (rate, Resampler::new(rate));
+        }
+        current.1.process(&mono, &mut out);
     }
     if !out.is_empty() {
         let _ = state.tx.send((Source::System, out));
@@ -194,6 +270,8 @@ unsafe extern "C-unwind" fn io_proc(
 impl Drop for SystemTap {
     fn drop(&mut self) {
         unsafe {
+            let mut addr = address(kAudioDevicePropertyNominalSampleRate);
+            AudioObjectRemovePropertyListener(self.device, NonNull::from(&mut addr), Some(rate_changed), self.state as *mut c_void);
             AudioDeviceStop(self.device, self.proc_id);
             AudioDeviceDestroyIOProcID(self.device, self.proc_id);
             AudioHardwareDestroyAggregateDevice(self.device);
