@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Publishes the release made by app/scripts/release.sh: a GitHub release on
-# quicodomingo/murmur-releases with the .dmg (new installs) and the update package + latest.json
-# (installed apps find it at releases/latest/download/latest.json).
+# quicodomingo/murmur-releases (public) with the .dmg (new installs) and the update package +
+# latest.json (installed apps find it at releases/latest/download/latest.json), and the same
+# version with its .dmg on the private code repo (quicodomingo/murmur), after pushing the code.
 #
 #   RELEASE_NOTES="Què hi ha de nou" app/scripts/publish.sh
 #
@@ -32,3 +33,14 @@ gh release create "v$VERSION" \
   --notes "${RELEASE_NOTES:-Murmur $VERSION}" \
   "$OUT/Murmur-$VERSION.dmg" "$OUT/Murmur.app.tar.gz" "$OUT/Murmur.app.tar.gz.sig" "$OUT/latest.json"
 echo "Publicat: https://github.com/$REPO/releases/tag/v$VERSION"
+
+# The private repo, for collaborators: the code at this version and its .dmg.
+PRIVATE=${PRIVATE_REPO:-quicodomingo/murmur}
+git push --quiet origin HEAD
+gh release create "v$VERSION" \
+  --repo "$PRIVATE" \
+  --target "$(git rev-parse HEAD)" \
+  --title "Murmur $VERSION" \
+  --notes "${RELEASE_NOTES:-Murmur $VERSION}" \
+  "$OUT/Murmur-$VERSION.dmg"
+echo "També al repositori privat: https://github.com/$PRIVATE/releases/tag/v$VERSION"
