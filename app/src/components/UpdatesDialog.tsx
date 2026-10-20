@@ -14,6 +14,8 @@ const MODEL_LABELS: Record<ModelId, string> = {
   transcription: "Model de transcripció",
   punctuation: "Model de puntuació",
   llm: "Model de llenguatge",
+  english: "Model d'anglès",
+  whisper: "Whisper",
 };
 
 type Item = {

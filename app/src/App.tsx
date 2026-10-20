@@ -22,14 +22,14 @@ import * as backend from "@/lib/backend";
 import { currentEvent, guestNames } from "@/lib/calendar";
 import { clock, duration, toMarkdown } from "@/lib/format";
 import { exportMeeting, type ExportFormat } from "@/lib/export";
-import { useModels } from "@/lib/models";
+import { modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
 import { hasAudio, playAt, stopUnless } from "@/lib/player";
 import { useSettings } from "@/lib/settings";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
-import type { Meeting, SearchHit } from "@/lib/types";
+import type { Meeting, ModelId, SearchHit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const ONBOARDED_KEY = "murmur.onboarded.v1";
@@ -179,18 +179,19 @@ export default function App() {
       onLevel: setLevel,
       onDone: () => dispatch({ type: "stopped" }),
       onError: (message) => toast.error(message),
-      onFinalPass: (e) => post.speakersStarted(e.meetingId, e.estimateSeconds),
+      onFinalPass: (e) => post.rustStageStarted(e.meetingId, e.stage, e.estimateSeconds),
       onFinalPassSpeakers: (e) => {
         dispatch({ type: "speakersVerified", id: e.meetingId, base: e.base, assignments: e.assignments });
         toast("Parlants verificats");
       },
+      onFinalPassText: (e) => dispatch({ type: "retranscribed", id: e.meetingId, base: e.base, texts: e.texts }),
       onFinalPassDone: (e) => {
-        if (e.error) toast.error(`No s'han pogut verificar els parlants: ${e.error}`);
-        post.speakersDone(e.meetingId);
+        if (e.error) toast.error(e.error);
+        post.rustDone(e.meetingId);
       },
     });
     return () => void unlisten.then((u) => u());
-  }, [dispatch, post.speakersStarted, post.speakersDone]);
+  }, [dispatch, post.rustStageStarted, post.rustDone]);
 
   // "Configuració…" and "Quant a Murmur" in the app menu; start/stop from the menu bar or an alert.
   const stopRef = useRef<() => void>(() => {});
@@ -241,9 +242,12 @@ export default function App() {
   }, [settings.calendarEnabled, settings.calendarAlerts, settings.calendarIds, settings.calendarNoGuests]);
 
   // Load the live models ahead of time (once they're on disk) so recording starts at once.
+  const liveModel: ModelId = settings.language === "en" ? "english" : "transcription";
+  const liveModelReady = !!models.status[liveModel]?.installed;
   useEffect(() => {
-    if (backend.isTauri() && models.status.transcription?.installed) backend.prepare().catch((e) => toast.error(String(e)));
-  }, [models.status.transcription?.installed]);
+    if (backend.isTauri() && models.status.transcription?.installed && liveModelReady)
+      backend.prepare(settings.language).catch((e) => toast.error(String(e)));
+  }, [models.status.transcription?.installed, liveModelReady, settings.language]);
 
   // ⌘N: new meeting (the sidebar button shows the shortcut).
   const startRef = useRef<() => void>(() => {});
@@ -284,6 +288,10 @@ export default function App() {
       setOnboarding({ open: true, atModels: true });
       return;
     }
+    if (!liveModelReady) {
+      toast.error("Per gravar en anglès cal descarregar el model d'anglès.", { action: { label: "Configuració", onClick: () => setShowSettings(true) } });
+      return;
+    }
     setBusy(true);
     // Ask for the microphone and system audio like other apps do; record what's allowed.
     const sources = await ensurePermissions({ mic: settings.mic, system: settings.system }).catch(() => ({ mic: settings.mic, system: settings.system }));
@@ -295,7 +303,9 @@ export default function App() {
     const event = await currentEvent(settings).catch(() => null);
     const m = newMeeting(sources, event?.title.trim(), event ? guestNames(event) : undefined);
     dispatch({ type: "new", meeting: m });
-    post.planRecording(m.id, settings.verifySpeakers);
+    // Whisper only for a single language (told "Catalan", it would turn Spanish into Catalan).
+    const finalText = settings.language !== "ca-es" && modelInstalled("whisper");
+    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language: settings.language });
     startedAt.current = Date.now();
     try {
       const path = await backend.startRecording({
@@ -309,6 +319,8 @@ export default function App() {
         threshold: settings.threshold,
         verifySpeakers: settings.verifySpeakers,
         roomSpeakers: settings.roomSpeakers,
+        language: settings.language,
+        finalText,
       });
       if (path) dispatch({ type: "audio", id: m.id, path });
     } catch (e) {
@@ -317,7 +329,7 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  }, [dispatch, settings, post.planRecording, transcriptionReady]);
+  }, [dispatch, settings, post.planRecording, transcriptionReady, liveModelReady]);
   startRef.current = () => {
     if (!recording && !busy) start();
   };

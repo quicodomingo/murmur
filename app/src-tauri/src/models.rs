@@ -102,7 +102,43 @@ pub const LLM: OptionalModel = OptionalModel {
     }],
 };
 
-pub const ALL: [&OptionalModel; 3] = [&TRANSCRIPTION, &PUNCTUATION, &LLM];
+/// Live transcription of meetings in English: NVIDIA Parakeet TDT-CTC 110M (CC BY 4.0), its CTC
+/// head exported by sherpa-onnx. Writes punctuation and capitals itself.
+pub const ENGLISH: OptionalModel = OptionalModel {
+    id: "english",
+    dir: "parakeet-en",
+    required: false,
+    files: &[
+        ModelFile {
+            name: "model.onnx",
+            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet_tdt_ctc_110m-en-36000/resolve/main/model.onnx"),
+            bytes: 458_161_021,
+            sha256: "936806cf3dd0db5aba53f8c7410bb5632d7a8ad6b2c51009f5e4fc0890ec76bf",
+        },
+        ModelFile {
+            name: "tokens.txt",
+            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet_tdt_ctc_110m-en-36000/resolve/main/tokens.txt"),
+            bytes: 9_953,
+            sha256: "450e56bd2f036fe5b6aa821865838cc5aa9d8b0106134ce9a9ba0664abe6cd10",
+        },
+    ],
+};
+
+/// Final pass of single-language meetings (Catalan, Spanish or English): OpenAI Whisper
+/// large-v3-turbo (MIT) for whisper.cpp, 5-bit (run by the murmur-whisper sidecar).
+pub const WHISPER: OptionalModel = OptionalModel {
+    id: "whisper",
+    dir: "whisper-ggml",
+    required: false,
+    files: &[ModelFile {
+        name: "ggml-large-v3-turbo-q5_0.bin",
+        url: Some("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin"),
+        bytes: 574_041_195,
+        sha256: "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+    }],
+};
+
+pub const ALL: [&OptionalModel; 5] = [&TRANSCRIPTION, &PUNCTUATION, &LLM, &ENGLISH, &WHISPER];
 
 pub fn find(id: &str) -> Result<&'static OptionalModel> {
     ALL.into_iter()

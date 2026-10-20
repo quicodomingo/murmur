@@ -30,12 +30,12 @@ fn main() -> anyhow::Result<()> {
             mic[8 * SAMPLE_RATE + i] += 0.8 * s;
         }
     }
-    let models = Models::load(&models_dir())?;
+    let models = Models::load(&models_dir(), transcriptor_lib::engine::LiveModel::CatalanSpanish)?;
     let recorder = args
         .get(3)
         .map(|p| Recorder::create(std::path::Path::new(p), 2))
         .transpose()?;
-    let mut pipeline = Pipeline::new(&models, true, true, 5, 0.65, recorder, None)?;
+    let mut pipeline = Pipeline::new(&models, true, true, 5, 0.65, recorder, vec![])?;
     let mut events = vec![];
     // Callbacks arrive in uneven sizes and the system stream runs slightly ahead.
     let (sys_step, mic_step) = (1024, 441);

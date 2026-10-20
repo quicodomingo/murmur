@@ -12,7 +12,7 @@ fn main() -> anyhow::Result<()> {
     let samples = wave.samples();
 
     let t0 = Instant::now();
-    let models = Models::load(&models_dir())?;
+    let models = Models::load(&models_dir(), transcriptor_lib::engine::LiveModel::CatalanSpanish)?;
     println!("models: {:.1}s", t0.elapsed().as_secs_f32());
 
     let mut session = LiveSession::new(&models, Channel::System, 5, 0.65)?;

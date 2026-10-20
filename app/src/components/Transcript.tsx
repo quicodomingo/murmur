@@ -362,12 +362,13 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
 
 const BANNER: Record<PostStage, { title: string; hint: string }> = {
   speakers: { title: "Verificant parlants…", hint: "Es torna a analitzar tota la reunió per separar millor les veus. Pots continuar llegint i editant." },
+  text: { title: "Millorant la transcripció…", hint: "Whisper torna a escoltar la reunió i reescriu el text, amb puntuació i majúscules. Les frases que hagis corregit no es toquen." },
   punctuation: { title: "Posant puntuació…", hint: "Punts, comes i majúscules. Les frases que hagis corregit no es toquen." },
   cover: { title: "Preparant la portada…", hint: "El model de llenguatge local llegeix la transcripció. Pots continuar llegint i editant." },
 };
 
 /**
- * Shown while the recording is processed (speakers, punctuation, cover). The stages report no
+ * Shown while the recording is processed (speakers, Whisper's text, punctuation, cover). The stages report no
  * progress, so the bar follows the measured speed and waits at 95% until the stage really ends.
  */
 function FinalPassBanner({ stage, estimateSeconds, startedAt }: { stage: PostStage; estimateSeconds: number; startedAt: number }) {

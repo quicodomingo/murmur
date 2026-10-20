@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { applyAppearance, type Mode, type Theme } from "./appearance";
+import type { Language } from "./types";
 
 export type Settings = {
+  /** What the meetings are spoken in: the live model, and Whisper after stopping in a single language. */
+  language: Language;
   /** Aparença: colour theme and light/dark mode ("system" follows macOS). */
   theme: Theme;
   mode: Mode;
@@ -46,6 +49,7 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
+  language: "ca-es",
   theme: "acid",
   mode: "system",
   mic: true,

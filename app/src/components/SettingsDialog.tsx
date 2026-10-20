@@ -12,7 +12,7 @@ import * as backend from "@/lib/backend";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
-import type { LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
+import type { Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -607,10 +607,39 @@ function InputLevel({ device }: { device: string | null }) {
 
 // --- Transcripció --------------------------------------------------------------------------
 
+const LANGUAGES: { value: Language; label: string; hint: string }[] = [
+  { value: "ca", label: "Català", hint: "En acabar, Whisper torna a escoltar la reunió i reescriu el text amb puntuació i majúscules (uns 6 minuts per hora de reunió). Si es parla castellà, tria «Català + castellà»: Whisper el passaria al català." },
+  { value: "es", label: "Castellà", hint: "En acabar, Whisper torna a escoltar la reunió i reescriu el text amb puntuació i majúscules (uns 6 minuts per hora de reunió)." },
+  { value: "ca-es", label: "Català + castellà", hint: "Entén totes dues llengües, també barrejades en una mateixa frase. No hi passa Whisper, que només treballa en una llengua." },
+  { value: "en", label: "Anglès", hint: "En directe transcriu Parakeet, d'NVIDIA. En acabar, Whisper torna a escoltar la reunió i reescriu el text (uns 6 minuts per hora de reunió)." },
+];
+
 function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
   const models = useModels();
+  const language = LANGUAGES.find((l) => l.value === settings.language) ?? LANGUAGES[2];
+  /** A language that needs a model fetches it straight away. */
+  const setLanguage = (value: Language) => {
+    onChange({ language: value });
+    const needed: ModelId[] = [...(value === "en" ? (["english"] as const) : []), ...(value !== "ca-es" ? (["whisper"] as const) : [])];
+    for (const id of needed) enableWithModel(models, id, true, () => {});
+  };
   return (
     <>
+      <Group title="Idioma">
+        <div className="px-3 py-2.5">
+          <div className="text-[13px]" id="language-label">
+            Idioma de les reunions
+          </div>
+          <div className="mt-2 flex">
+            <Segmented value={settings.language} options={LANGUAGES} onChange={setLanguage} labelledBy="language-label" />
+          </div>
+          <div className="mt-1.5 break-words text-[11px] leading-snug text-muted-foreground">{language.hint}</div>
+        </div>
+        {settings.language === "en" && (
+          <ModelRow id="english" name="Parakeet, d'NVIDIA (anglès en directe)" enabled onDisable={() => onChange({ language: "ca-es" })} />
+        )}
+        {settings.language !== "ca-es" && <ModelRow id="whisper" name="Whisper large-v3-turbo, d'OpenAI" enabled onDisable={() => {}} />}
+      </Group>
       <Group title="Parlants en directe">
         <Row
           label="Hi ha més gent amb mi a la sala"
@@ -661,7 +690,7 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
         >
           <Switch checked={settings.verifySpeakers} onCheckedChange={(verifySpeakers) => onChange({ verifySpeakers })} />
         </Row>
-        <Row label="Puntuació i majúscules" hint="Posa punts, comes i majúscules a tota la transcripció. Triga uns segons.">
+        <Row label="Puntuació i majúscules" hint="Posa punts, comes i majúscules a les reunions en català i castellà (amb Whisper o en anglès ja hi són). Triga uns segons.">
           <Switch checked={settings.punctuate} onCheckedChange={(on) => enableWithModel(models, "punctuation", on, () => onChange({ punctuate: on }))} />
         </Row>
         <ModelRow id="punctuation" name="Model de puntuació de Softcatalà" enabled={settings.punctuate} onDisable={() => onChange({ punctuate: false })} />
@@ -944,9 +973,19 @@ function PromptEditor({
 
 // --- Building blocks -----------------------------------------------------------------------
 
-function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  labelledBy,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  labelledBy?: string;
+}) {
   return (
-    <div role="radiogroup" className="flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
+    <div role="radiogroup" aria-labelledby={labelledBy} className="flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
       {options.map((o) => (
         <button
           key={o.value}

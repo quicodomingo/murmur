@@ -53,7 +53,7 @@ fn main() -> anyhow::Result<()> {
     let erle = 10.0 * (energy(&mic[a.clone()]) / energy(&cleaned[a]).max(1e-12)).log10();
     println!("echo reduction (echo-only part): {erle:.1} dB");
 
-    let models = Models::load(&models_dir())?;
+    let models = Models::load(&models_dir(), transcriptor_lib::engine::LiveModel::CatalanSpanish)?;
     println!("mic raw    : {}", models.transcribe(&mic));
     println!("mic cleaned: {}", models.transcribe(&cleaned));
     Ok(())

@@ -27,7 +27,7 @@ fn main() -> anyhow::Result<()> {
         "got {:.1}s of audio, rms {rms:.4}",
         audio.len() as f32 / SAMPLE_RATE as f32
     );
-    let models = Models::load(&models_dir())?;
+    let models = Models::load(&models_dir(), transcriptor_lib::engine::LiveModel::CatalanSpanish)?;
     println!("text: {}", models.transcribe(&audio));
     Ok(())
 }

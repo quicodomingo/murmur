@@ -67,6 +67,8 @@ export type Action =
   | { type: "audio"; id: string; path: string | null }
   | { type: "postStage"; id: string; stage: PostStage; steps: PostStage[]; estimateSeconds: number }
   | { type: "speakersVerified"; id: string; base: number; assignments: Assignment[] }
+  /** Whisper's text for one channel (`base`), keyed by each utterance's start. */
+  | { type: "retranscribed"; id: string; base: number; texts: { start: number; text: string }[] }
   /** Texts sent to the punctuation model (`from`) and what came back; edited meanwhile = skipped. */
   | { type: "punctuated"; id: string; changes: { utteranceId: string; from: string; to: string }[] }
   | { type: "cover"; id: string; cover: Cover | null; title: string | null }
@@ -163,6 +165,18 @@ export function reducer(state: State, action: Action): State {
     }
     case "speakersVerified":
       return updateMeeting(state, action.id, (m) => relabel(m, action.base, action.assignments));
+    case "retranscribed": {
+      const byStart = new Map(action.texts.map((t) => [t.start.toFixed(2), t.text]));
+      const inChannel = (speaker: number) => (action.base >= SYSTEM_SPEAKER_BASE) === (speaker >= SYSTEM_SPEAKER_BASE);
+      return updateMeeting(state, action.id, (m) => ({
+        ...m,
+        // Lines the user corrected keep their text.
+        utterances: m.utterances.map((u) => {
+          const text = inChannel(u.speaker) && !u.edited ? byStart.get(u.start.toFixed(2)) : undefined;
+          return text && text !== u.text ? { ...u, text } : u;
+        }),
+      }));
+    }
     case "punctuated": {
       const byId = new Map(action.changes.map((c) => [c.utteranceId, c]));
       return updateMeeting(state, action.id, (m) => ({

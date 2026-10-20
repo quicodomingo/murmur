@@ -9,6 +9,8 @@ import type {
   FinalPassDone,
   FinalPassSpeakers,
   FinalPassStarted,
+  FinalPassText,
+  Language,
   LlmProgress,
   LlmResult,
   LlmTask,
@@ -23,7 +25,7 @@ import type {
 
 export const isTauri = () => "__TAURI_INTERNALS__" in window;
 
-export const prepare = () => invoke<void>("prepare");
+export const prepare = (language: Language) => invoke<void>("prepare", { language });
 
 export const startRecording = (opts: {
   meetingId: string;
@@ -36,6 +38,9 @@ export const startRecording = (opts: {
   threshold: number;
   verifySpeakers: boolean;
   roomSpeakers: boolean;
+  language: Language;
+  /** Whisper writes the text again after stopping (single-language meetings). */
+  finalText: boolean;
 }) => invoke<string | null>("start_recording", opts);
 
 export const stopRecording = () => invoke<void>("stop_recording");
@@ -153,6 +158,7 @@ export async function subscribe(handlers: {
   onError: (message: string) => void;
   onFinalPass: (e: FinalPassStarted) => void;
   onFinalPassSpeakers: (e: FinalPassSpeakers) => void;
+  onFinalPassText: (e: FinalPassText) => void;
   onFinalPassDone: (e: FinalPassDone) => void;
 }): Promise<UnlistenFn> {
   const unlisten = await Promise.all([
@@ -162,6 +168,7 @@ export async function subscribe(handlers: {
     listen<string>("transcript-error", (e) => handlers.onError(e.payload)),
     listen<FinalPassStarted>("final-pass", (e) => handlers.onFinalPass(e.payload)),
     listen<FinalPassSpeakers>("final-pass-speakers", (e) => handlers.onFinalPassSpeakers(e.payload)),
+    listen<FinalPassText>("final-pass-text", (e) => handlers.onFinalPassText(e.payload)),
     listen<FinalPassDone>("final-pass-done", (e) => handlers.onFinalPassDone(e.payload)),
   ]);
   return () => unlisten.forEach((u) => u());

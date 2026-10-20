@@ -13,15 +13,15 @@ fn main() -> anyhow::Result<()> {
         .samples()
         .to_vec();
     let tap = std::env::temp_dir().join("transcriptor-final-pass-probe.pcm");
-    let models = Models::load(&models_dir())?;
-    let mut pipeline = Pipeline::new(&models, false, true, 5, 0.65, None, Some(tap.clone()))?;
+    let models = Models::load(&models_dir(), transcriptor_lib::engine::LiveModel::CatalanSpanish)?;
+    let mut pipeline = Pipeline::new(&models, false, true, 5, 0.65, None, vec![(transcriptor_lib::engine::Channel::System, tap.clone())])?;
     let mut finals = vec![];
     for chunk in audio.chunks(1600) {
         finals.extend(pipeline.push(Source::System, chunk));
     }
     let (rest, tapped) = pipeline.finish()?;
     finals.extend(rest);
-    let tapped = tapped.expect("tap");
+    let tapped = tapped.into_iter().next().expect("tap");
     let samples = read_tap(&tapped.path)?;
     println!(
         "tap: {:.1}s of audio, {} utterances",

@@ -13,6 +13,7 @@ pub mod permissions;
 pub mod playback;
 pub mod pipeline;
 pub mod recorder;
+pub mod retranscribe;
 pub mod shell;
 pub mod storage;
 #[cfg(target_os = "macos")]
@@ -28,7 +29,7 @@ use crossbeam_channel::{RecvTimeoutError, Sender, unbounded};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use engine::{Models, SAMPLE_RATE, models_dir};
+use engine::{Channel, LiveModel, Models, SAMPLE_RATE, models_dir};
 use pipeline::Pipeline;
 
 #[derive(Default)]
@@ -59,11 +60,13 @@ struct Level {
     rms: f32,
 }
 
-fn models(state: &AppState) -> Result<Arc<Models>, String> {
+/// The live models for a meeting's language; switching language replaces them (one set in memory).
+fn models(state: &AppState, kind: LiveModel) -> Result<Arc<Models>, String> {
     let mut slot = state.models.lock().unwrap();
-    if slot.is_none() {
+    if slot.as_ref().is_none_or(|m| m.kind != kind) {
+        *slot = None;
         *slot = Some(Arc::new(
-            Models::load(&models_dir()).map_err(|e| format!("{e:#}"))?,
+            Models::load(&models_dir(), kind).map_err(|e| format!("{e:#}"))?,
         ));
     }
     Ok(slot.clone().unwrap())
@@ -71,8 +74,8 @@ fn models(state: &AppState) -> Result<Arc<Models>, String> {
 
 /// Loads models ahead of time so the first recording starts instantly.
 #[tauri::command]
-async fn prepare(state: State<'_, AppState>) -> Result<(), String> {
-    models(&state).map(|_| ())
+async fn prepare(state: State<'_, AppState>, language: String) -> Result<(), String> {
+    models(&state, LiveModel::for_language(&language)).map(|_| ())
 }
 
 #[tauri::command]
@@ -89,11 +92,15 @@ async fn start_recording(
     recordings_dir: Option<String>,
     verify_speakers: bool,
     room_speakers: bool,
+    language: String,
+    final_text: bool,
 ) -> Result<Option<String>, String> {
     if state.recording.lock().unwrap().is_some() {
         return Err("Ja s'està gravant".into());
     }
-    let models = models(&state)?;
+    // Whisper only for one language: told "Catalan", it turns Spanish into Catalan.
+    let final_language = (final_text && matches!(language.as_str(), "ca" | "es" | "en")).then(|| language.clone());
+    let models = models(&state, LiveModel::for_language(&language))?;
     let (audio_tx, audio_rx) = unbounded::<audio::Frame>();
     let (stop_tx, stop_rx) = unbounded::<()>();
     let (ready_tx, ready_rx) = unbounded::<Result<(), String>>();
@@ -148,13 +155,40 @@ async fn start_recording(
         ),
         None => None,
     };
-    // Audio of the channel whose speakers the final pass re-checks (only when it will run).
-    let tap_path = verify_speakers
-        .then(|| app.path().app_cache_dir().ok())
-        .flatten()
+    // Audio for the final pass: the channel whose speakers it re-checks (the other side of a call
+    // when there is one; otherwise everyone is on the mic), and every channel for Whisper.
+    let speakers_channel = if system { Channel::System } else { Channel::Mic };
+    let mut tap_channels = vec![];
+    if verify_speakers {
+        tap_channels.push(speakers_channel);
+    }
+    if final_language.is_some() {
+        for (on, channel) in [(mic, Channel::Mic), (system, Channel::System)] {
+            if on && !tap_channels.contains(&channel) {
+                tap_channels.push(channel);
+            }
+        }
+    }
+    let tap_dir = app
+        .path()
+        .app_cache_dir()
+        .ok()
         .map(|d| d.join("final-pass"))
-        .and_then(|d| std::fs::create_dir_all(&d).ok().map(|_| d))
-        .map(|d| d.join(format!("{}.pcm", safe_id(&meeting_id))));
+        .and_then(|d| std::fs::create_dir_all(&d).ok().map(|_| d));
+    let taps: Vec<(Channel, std::path::PathBuf)> = match tap_dir {
+        Some(dir) => tap_channels
+            .into_iter()
+            .map(|c| {
+                let name = if c == Channel::System { "system" } else { "mic" };
+                (c, dir.join(format!("{}-{name}.pcm", safe_id(&meeting_id))))
+            })
+            .collect(),
+        None => vec![],
+    };
+    let plan = FinalPlan {
+        speakers: verify_speakers.then_some((speakers_channel, max_speakers)),
+        language: final_language,
+    };
     let stopped = Arc::new(AtomicBool::new(false));
     let stopped_worker = stopped.clone();
     let final_pass_meeting = meeting_id.clone();
@@ -167,7 +201,7 @@ async fn start_recording(
             max_speakers,
             threshold,
             recorder,
-            tap_path,
+            taps,
         ) {
             Ok(p) => p,
             Err(e) => {
@@ -225,20 +259,18 @@ async fn start_recording(
             }
             Err(e) => {
                 let _ = app.emit("transcript-error", format!("{e:#}"));
-                None
+                vec![]
             }
         };
         let _ = app.emit("transcript-done", ());
         shell::set_recording(&app, false);
         // Runs on its own thread so stopping returns at once; the UI shows its progress.
         // Without it, "final-pass-done" still follows so the UI can go on (punctuation, cover).
-        match tapped {
-            Some(tapped) => {
-                std::thread::spawn(move || {
-                    final_pass(app, final_pass_meeting, tapped, max_speakers)
-                });
+        match tapped.is_empty() {
+            false => {
+                std::thread::spawn(move || final_pass(app, final_pass_meeting, tapped, plan));
             }
-            None => {
+            true => {
                 let _ = app.emit(
                     "final-pass-done",
                     FinalPassDone { meeting_id: final_pass_meeting, error: None },
@@ -303,6 +335,14 @@ struct FinalPassSpeakers {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+struct FinalPassText {
+    meeting_id: String,
+    base: usize,
+    texts: Vec<retranscribe::Text>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct FinalPassDone {
     meeting_id: String,
     error: Option<String>,
@@ -314,51 +354,91 @@ fn print_page(window: tauri::WebviewWindow) -> Result<(), String> {
     window.print().map_err(|e| e.to_string())
 }
 
-/// After a recording: re-check who spoke when over the whole tapped channel.
-fn final_pass(app: AppHandle, meeting_id: String, tapped: pipeline::Tapped, max_speakers: usize) {
-    let result = (|| -> anyhow::Result<()> {
-        if tapped.spans.is_empty() {
-            return Ok(());
-        }
-        let samples = pipeline::read_tap(&tapped.path)?;
-        let seconds = samples.len() as f32 / SAMPLE_RATE as f32;
+/// What the final pass does after a recording.
+struct FinalPlan {
+    /// Re-check who spoke when on this channel, with the user's maximum number of speakers.
+    speakers: Option<(Channel, usize)>,
+    /// Write the text again with Whisper in this language ("ca", "es", "en").
+    language: Option<String>,
+}
+
+/// After a recording: re-check who spoke when, then improve the text with Whisper.
+fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>, plan: FinalPlan) {
+    let started = |stage: &'static str, seconds: f32| {
         let _ = app.emit(
             "final-pass",
-            FinalPassStarted {
-                meeting_id: meeting_id.clone(),
-                stage: "speakers",
-                estimate_seconds: seconds * DIARIZE_RTF_ESTIMATE,
-            },
+            FinalPassStarted { meeting_id: meeting_id.clone(), stage, estimate_seconds: seconds },
         );
-        let turns = diarize::diarize(&models_dir(), &samples, diarize::Options::default())?;
-        let mut assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
-        // More voices than the user expects: redo the clustering with their maximum.
-        if diarize::speaker_count(&assignments) > max_speakers {
-            let opts = diarize::Options {
-                num_speakers: Some(max_speakers),
-                ..Default::default()
+    };
+    let mut errors = vec![];
+
+    if let Some((channel, max_speakers)) = plan.speakers {
+        let result = (|| -> anyhow::Result<()> {
+            let Some(tapped) = tapped.iter().find(|t| t.channel == channel && !t.spans.is_empty()) else {
+                return Ok(());
             };
-            let turns = diarize::diarize(&models_dir(), &samples, opts)?;
-            assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
+            let samples = pipeline::read_tap(&tapped.path)?;
+            started("speakers", samples.len() as f32 / SAMPLE_RATE as f32 * DIARIZE_RTF_ESTIMATE);
+            let turns = diarize::diarize(&models_dir(), &samples, diarize::Options::default())?;
+            let mut assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
+            // More voices than the user expects: redo the clustering with their maximum.
+            if diarize::speaker_count(&assignments) > max_speakers {
+                let opts = diarize::Options {
+                    num_speakers: Some(max_speakers),
+                    ..Default::default()
+                };
+                let turns = diarize::diarize(&models_dir(), &samples, opts)?;
+                assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
+            }
+            let assignments =
+                diarize::absorb_small_speakers(&models_dir(), &samples, &tapped.spans, assignments, tapped.base)?;
+            let _ = app.emit(
+                "final-pass-speakers",
+                FinalPassSpeakers {
+                    meeting_id: meeting_id.clone(),
+                    base: tapped.base,
+                    assignments,
+                },
+            );
+            Ok(())
+        })();
+        if let Err(e) = result {
+            errors.push(format!("No s'han pogut verificar els parlants: {e:#}"));
         }
-        let assignments =
-            diarize::absorb_small_speakers(&models_dir(), &samples, &tapped.spans, assignments, tapped.base)?;
-        let _ = app.emit(
-            "final-pass-speakers",
-            FinalPassSpeakers {
-                meeting_id: meeting_id.clone(),
-                base: tapped.base,
-                assignments,
-            },
-        );
-        Ok(())
-    })();
-    let _ = std::fs::remove_file(&tapped.path);
+    }
+
+    if let Some(language) = &plan.language {
+        let result = (|| -> anyhow::Result<()> {
+            let channels: Vec<&pipeline::Tapped> = tapped.iter().filter(|t| !t.spans.is_empty()).collect();
+            if channels.is_empty() {
+                return Ok(());
+            }
+            let speech: f32 = channels.iter().flat_map(|t| &t.spans).map(|s| s.end - s.start).sum();
+            started("text", 5.0 + speech * retranscribe::RTF_ESTIMATE);
+            let jobs: Vec<(&std::path::Path, &[diarize::Span])> =
+                channels.iter().map(|t| (t.path.as_path(), t.spans.as_slice())).collect();
+            let results = retranscribe::transcribe(&models_dir(), language, &jobs, |_| {})?;
+            for (tapped, texts) in channels.iter().zip(results) {
+                let _ = app.emit(
+                    "final-pass-text",
+                    FinalPassText { meeting_id: meeting_id.clone(), base: tapped.base, texts },
+                );
+            }
+            Ok(())
+        })();
+        if let Err(e) = result {
+            errors.push(format!("No s'ha pogut millorar la transcripció: {e:#}"));
+        }
+    }
+
+    for t in &tapped {
+        let _ = std::fs::remove_file(&t.path);
+    }
     let _ = app.emit(
         "final-pass-done",
         FinalPassDone {
             meeting_id,
-            error: result.err().map(|e| format!("{e:#}")),
+            error: (!errors.is_empty()).then(|| errors.join(". ")),
         },
     );
 }

@@ -4,9 +4,9 @@
   "version": "0.2.0",
   "identifier": "com.quicodomingo.murmur",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run whisper && npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run whisper && npm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -49,6 +49,7 @@
       "icons/icon.ico"
     ],
     "category": "Productivity",
+    "externalBin": ["binaries/murmur-whisper"],
     "copyright": "© 2026 Quico Domingo",
     "macOS": {
       "signingIdentity": "Developer ID Application: We Are Mortensen S.L. (NYQHV4FSKC)",

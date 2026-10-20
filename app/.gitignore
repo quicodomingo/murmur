@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Built by `npm run whisper` (app/whisper)
+whisper/target
+src-tauri/binaries

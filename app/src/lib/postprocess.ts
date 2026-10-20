@@ -18,13 +18,13 @@ import {
 import { modelInstalled } from "./models";
 import type { Settings } from "./settings";
 import type { Action, State } from "./store";
-import type { Meeting, PostStage } from "./types";
+import type { Language, Meeting, PostStage } from "./types";
 
 /**
- * What runs after a recording, in order: the speaker check (started by Rust on its own, see
- * lib.rs final_pass), then punctuation and the cover, driven from here because they work on the
- * transcript as the user sees it (names, edits). Each optional stage runs only if it's turned on
- * and its model is downloaded.
+ * What runs after a recording, in order: the speaker check and Whisper's new text (started by
+ * Rust on its own, see lib.rs final_pass), then punctuation and the cover, driven from here
+ * because they work on the transcript as the user sees it (names, edits). Each optional stage
+ * runs only if it's turned on and its model is downloaded.
  */
 export function usePostProcess(state: State, dispatch: Dispatch<Action>, settings: Settings) {
   const latest = useRef(state);
@@ -34,23 +34,32 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
   /** Stages planned for each meeting, decided when its recording starts. */
   const plans = useRef(new Map<string, PostStage[]>());
 
-  const optionalStages = (): PostStage[] => {
+  /** `rustStages`: what Rust does first. Whisper's text and English already come punctuated, and
+   * the punctuation model only knows Catalan. */
+  const optionalStages = (rustStages: PostStage[], language: Language): PostStage[] => {
     const s = config.current;
     const stages: PostStage[] = [];
-    if (s.punctuate && modelInstalled("punctuation")) stages.push("punctuation");
+    const catalan = language === "ca" || language === "ca-es";
+    if (s.punctuate && catalan && !rustStages.includes("text") && modelInstalled("punctuation")) stages.push("punctuation");
     if (s.summarize && modelInstalled("llm")) stages.push("cover");
     return stages;
   };
 
-  /** A recording starts: remember whether Rust will check its speakers when it stops. */
-  const planRecording = useCallback((id: string, verifySpeakers: boolean) => {
-    plans.current.set(id, [...(verifySpeakers ? (["speakers"] as const) : []), ...optionalStages()]);
+  /** Language of each meeting being recorded or finished, until its stages are done. */
+  const languages = useRef(new Map<string, Language>());
+
+  /** A recording starts: remember what Rust will do when it stops (speakers, Whisper). */
+  const planRecording = useCallback((id: string, opts: { verifySpeakers: boolean; finalText: boolean; language: Language }) => {
+    const rust: PostStage[] = [...(opts.verifySpeakers ? (["speakers"] as const) : []), ...(opts.finalText ? (["text"] as const) : [])];
+    languages.current.set(id, opts.language);
+    plans.current.set(id, [...rust, ...optionalStages(rust, opts.language)]);
   }, []);
 
-  const speakersStarted = useCallback(
-    (id: string, estimateSeconds: number) => {
-      const steps = plans.current.get(id) ?? ["speakers"];
-      dispatch({ type: "postStage", id, stage: "speakers", steps, estimateSeconds });
+  /** Rust started one of its stages. */
+  const rustStageStarted = useCallback(
+    (id: string, stage: "speakers" | "text", estimateSeconds: number) => {
+      const steps = plans.current.get(id) ?? [stage];
+      dispatch({ type: "postStage", id, stage, steps, estimateSeconds });
     },
     [dispatch],
   );
@@ -119,14 +128,17 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
     [dispatch],
   );
 
-  /** Rust finished (or skipped) the speaker check: go on with the rest. */
-  const speakersDone = useCallback(
+  /** Rust finished (or skipped) its stages: go on with the rest. */
+  const rustDone = useCallback(
     (id: string) => {
-      const planned = plans.current.get(id);
+      const planned = plans.current.get(id) ?? [];
+      const language = languages.current.get(id) ?? config.current.language;
       plans.current.delete(id);
+      languages.current.delete(id);
+      const rust = planned.filter((s) => s === "speakers" || s === "text");
       // Settings or models may have changed while recording: check again.
-      const rest = optionalStages();
-      const steps = [...(planned?.includes("speakers") ? (["speakers"] as const) : []), ...rest];
+      const rest = optionalStages(rust, language);
+      const steps = [...rust, ...rest];
       if (!rest.length) {
         dispatch({ type: "postDone", id });
         return;
@@ -139,5 +151,5 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
   /** "Genera la portada" on an existing meeting. */
   const generateCover = useCallback((id: string) => run(id, ["cover"], ["cover"]), [run]);
 
-  return { planRecording, speakersStarted, speakersDone, generateCover };
+  return { planRecording, rustStageStarted, rustDone, generateCover };
 }

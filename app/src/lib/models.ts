@@ -21,6 +21,8 @@ export const MODEL_NAMES: Record<ModelId, string> = {
   transcription: "El model de transcripció",
   punctuation: "El model de puntuació",
   llm: "El model de llenguatge",
+  english: "El model d'anglès",
+  whisper: "Whisper",
 };
 
 let state: ModelsState = { status: {}, downloading: {}, errors: {}, queued: [], loaded: !backend.isTauri() };

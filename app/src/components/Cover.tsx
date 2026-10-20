@@ -437,6 +437,7 @@ function span(seconds: number): string {
 
 const STAGE_LABELS: Record<PostStage, string> = {
   speakers: "Verificació de parlants",
+  text: "Transcripció amb Whisper",
   punctuation: "Puntuació i majúscules",
   cover: "Títol, resum, tasques i parts",
 };

@@ -90,17 +90,25 @@ export type EngineEvent =
   | { type: "partial"; channel: Channel; text: string }
   | { type: "final"; id: number; channel: Channel; start: number; end: number; speaker: number; text: string };
 
+/**
+ * The language of a meeting: picks the live model (engine.rs LiveModel) and, in a single
+ * language, the Whisper final pass (retranscribe.rs). "ca-es": Catalan and Spanish mixed.
+ */
+export type Language = "ca" | "es" | "ca-es" | "en";
+
 /** What runs after a recording, in this order. */
-export type PostStage = "speakers" | "punctuation" | "cover";
+export type PostStage = "speakers" | "text" | "punctuation" | "cover";
 
 /** Final pass events (lib.rs final_pass). */
-export type FinalPassStarted = { meetingId: string; stage: "speakers"; estimateSeconds: number };
+export type FinalPassStarted = { meetingId: string; stage: "speakers" | "text"; estimateSeconds: number };
 export type Assignment = { start: number; speaker: number };
 export type FinalPassSpeakers = { meetingId: string; base: number; assignments: Assignment[] };
+/** Whisper's text for the utterances of one channel, keyed by their start. */
+export type FinalPassText = { meetingId: string; base: number; texts: { start: number; text: string }[] };
 export type FinalPassDone = { meetingId: string; error: string | null };
 
 /** Optional models (models.rs). */
-export type ModelId = "transcription" | "punctuation" | "llm";
+export type ModelId = "transcription" | "punctuation" | "llm" | "english" | "whisper";
 export type ModelStatus = { id: ModelId; installed: boolean; bytes: number; downloaded: number; downloadable: boolean; required: boolean };
 
 /** What the local language model is doing (lib.rs run_llm). */

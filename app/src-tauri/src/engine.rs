@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, anyhow};
 use serde::Serialize;
 use sherpa_onnx::{
-    OfflineRecognizer, OfflineRecognizerConfig, OfflineTransducerModelConfig, SileroVadModelConfig,
+    OfflineNemoEncDecCtcModelConfig, OfflineRecognizer, OfflineRecognizerConfig,
+    OfflineTransducerModelConfig, SileroVadModelConfig,
     SpeakerEmbeddingExtractor, SpeakerEmbeddingExtractorConfig, VadModelConfig,
     VoiceActivityDetector,
 };
@@ -67,22 +68,50 @@ fn path_str(p: PathBuf) -> Result<String> {
 
 /// Models loaded once and shared by sessions.
 pub struct Models {
+    pub kind: LiveModel,
     recognizer: OfflineRecognizer,
     embedder: SpeakerEmbeddingExtractor,
     vad_model: String,
 }
 
+/// Which speech model transcribes live, by the meeting's language.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LiveModel {
+    /// The AINA Conformer: Catalan and Spanish, also mixed in one sentence.
+    CatalanSpanish,
+    /// NVIDIA Parakeet TDT-CTC 110M (models.rs ENGLISH).
+    English,
+}
+
+impl LiveModel {
+    /// `language`: "ca", "es", "ca-es" or "en" (Settings.language in the UI).
+    pub fn for_language(language: &str) -> Self {
+        if language == "en" { Self::English } else { Self::CatalanSpanish }
+    }
+}
+
 impl Models {
-    pub fn load(dir: &Path) -> Result<Self> {
-        let asr = dir.join("conformer-ca-es-sherpa");
+    pub fn load(dir: &Path, kind: LiveModel) -> Result<Self> {
         let mut config = OfflineRecognizerConfig::default();
-        config.model_config.transducer = OfflineTransducerModelConfig {
-            encoder: Some(path_str(asr.join("encoder.onnx"))?),
-            decoder: Some(path_str(asr.join("decoder.onnx"))?),
-            joiner: Some(path_str(asr.join("joiner.onnx"))?),
-        };
-        config.model_config.tokens = Some(path_str(asr.join("tokens.txt"))?);
-        config.model_config.model_type = Some("nemo_transducer".into());
+        match kind {
+            LiveModel::CatalanSpanish => {
+                let asr = dir.join("conformer-ca-es-sherpa");
+                config.model_config.transducer = OfflineTransducerModelConfig {
+                    encoder: Some(path_str(asr.join("encoder.onnx"))?),
+                    decoder: Some(path_str(asr.join("decoder.onnx"))?),
+                    joiner: Some(path_str(asr.join("joiner.onnx"))?),
+                };
+                config.model_config.tokens = Some(path_str(asr.join("tokens.txt"))?);
+                config.model_config.model_type = Some("nemo_transducer".into());
+            }
+            LiveModel::English => {
+                let asr = crate::models::ENGLISH.path(dir);
+                config.model_config.nemo_ctc = OfflineNemoEncDecCtcModelConfig {
+                    model: Some(path_str(asr.join("model.onnx"))?),
+                };
+                config.model_config.tokens = Some(path_str(asr.join("tokens.txt"))?);
+            }
+        }
         config.model_config.num_threads = 4;
         config.decoding_method = Some("greedy_search".into());
         let recognizer =
@@ -96,6 +125,7 @@ impl Models {
         .context("No s'ha pogut carregar el model de parlants")?;
 
         Ok(Self {
+            kind,
             recognizer,
             embedder,
             vad_model: path_str(dir.join("silero_vad.onnx"))?,

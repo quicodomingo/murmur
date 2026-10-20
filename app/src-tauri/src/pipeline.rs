@@ -46,8 +46,8 @@ fn words(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// The channel whose speakers the final pass re-checks: its audio (16-bit PCM in a temp file) and
-/// the utterances heard on it.
+/// A channel the final pass works on: its audio (16-bit PCM in a temp file) and the utterances
+/// heard on it.
 struct Tap {
     channel: Channel,
     writer: BufWriter<File>,
@@ -55,8 +55,9 @@ struct Tap {
     spans: Vec<Span>,
 }
 
-/// What the final pass needs once recording stops.
+/// What the final pass needs once recording stops, per tapped channel.
 pub struct Tapped {
+    pub channel: Channel,
     pub path: PathBuf,
     pub spans: Vec<Span>,
     /// First speaker id of the tapped channel (0 for the mic, SYSTEM_SPEAKER_BASE for system).
@@ -73,7 +74,7 @@ pub fn read_tap(path: &std::path::Path) -> Result<Vec<f32>> {
 }
 
 pub struct Pipeline<'m> {
-    tap: Option<Tap>,
+    taps: Vec<Tap>,
     mic: Option<LiveSession<'m>>,
     system: Option<LiveSession<'m>>,
     aec: Option<EchoCanceller>,
@@ -117,24 +118,20 @@ impl<'m> Pipeline<'m> {
         max_speakers: usize,
         threshold: f32,
         recorder: Option<Recorder>,
-        tap_path: Option<PathBuf>,
+        taps: Vec<(Channel, PathBuf)>,
     ) -> Result<Self> {
-        // The other side of a call when there is one; otherwise everyone is on the mic.
-        let tap = match tap_path {
-            Some(path) if mic || system => Some(Tap {
-                channel: if system {
-                    Channel::System
-                } else {
-                    Channel::Mic
-                },
-                writer: BufWriter::new(File::create(&path)?),
-                path,
-                spans: vec![],
-            }),
-            _ => None,
-        };
+        let taps = taps
+            .into_iter()
+            .filter(|(channel, _)| match channel {
+                Channel::Mic => mic,
+                Channel::System => system,
+            })
+            .map(|(channel, path)| {
+                Ok(Tap { channel, writer: BufWriter::new(File::create(&path)?), path, spans: vec![] })
+            })
+            .collect::<Result<_>>()?;
         Ok(Self {
-            tap,
+            taps,
             mic: if mic {
                 Some(LiveSession::new(
                     models,
@@ -211,7 +208,7 @@ impl<'m> Pipeline<'m> {
         events
     }
 
-    pub fn finish(mut self) -> Result<(Vec<Event>, Option<Tapped>)> {
+    pub fn finish(mut self) -> Result<(Vec<Event>, Vec<Tapped>)> {
         self.draining = true;
         let mut events = self.process();
         if let Some(s) = self.system.as_mut() {
@@ -237,22 +234,12 @@ impl<'m> Pipeline<'m> {
             )?;
             rec.finish()?;
         }
-        let tapped = match self.tap.take() {
-            Some(mut tap) => {
-                tap.writer.flush()?;
-                let base = if tap.channel == Channel::System {
-                    SYSTEM_SPEAKER_BASE
-                } else {
-                    0
-                };
-                Some(Tapped {
-                    path: tap.path,
-                    spans: tap.spans,
-                    base,
-                })
-            }
-            None => None,
-        };
+        let mut tapped = vec![];
+        for mut tap in std::mem::take(&mut self.taps) {
+            tap.writer.flush()?;
+            let base = if tap.channel == Channel::System { SYSTEM_SPEAKER_BASE } else { 0 };
+            tapped.push(Tapped { channel: tap.channel, path: tap.path, spans: tap.spans, base });
+        }
         Ok((events, tapped))
     }
 
@@ -291,16 +278,18 @@ impl<'m> Pipeline<'m> {
 
     /// Drops mic sentences that repeat a system sentence spoken at about the same time.
     fn write_tap(&mut self, channel: Channel, frame: &[f32]) {
-        let Some(tap) = self.tap.as_mut().filter(|t| t.channel == channel) else {
+        let Some(at) = self.taps.iter().position(|t| t.channel == channel) else {
             return;
         };
+        let tap = &mut self.taps[at];
         let bytes: Vec<u8> = frame
             .iter()
             .flat_map(|s| ((s.clamp(-1.0, 1.0) * 32767.0) as i16).to_le_bytes())
             .collect();
         if let Err(e) = tap.writer.write_all(&bytes) {
             log::error!("final-pass audio stopped: {e}");
-            self.tap = None;
+            let _ = std::fs::remove_file(&tap.path);
+            self.taps.remove(at);
         }
     }
 
@@ -342,21 +331,9 @@ impl<'m> Pipeline<'m> {
                     Channel::Mic => {}
                 }
             }
-            if let (
-                Event::Final {
-                    channel,
-                    start,
-                    end,
-                    ..
-                },
-                Some(tap),
-            ) = (&event, self.tap.as_mut())
-            {
-                if *channel == tap.channel {
-                    tap.spans.push(Span {
-                        start: *start,
-                        end: *end,
-                    });
+            if let Event::Final { channel, start, end, .. } = &event {
+                if let Some(tap) = self.taps.iter_mut().find(|t| t.channel == *channel) {
+                    tap.spans.push(Span { start: *start, end: *end });
                 }
             }
             out.push(event);

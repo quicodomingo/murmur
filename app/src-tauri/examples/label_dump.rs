@@ -10,8 +10,8 @@ fn main() -> anyhow::Result<()> {
     let threshold: f32 = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(0.65);
     let wave = sherpa_onnx::Wave::read(&args[1]).expect("read");
     let audio = &wave.samples()[..(secs * 16_000).min(wave.samples().len())];
-    let models = Models::load(&models_dir())?;
-    let mut pipeline = Pipeline::new(&models, false, true, 5, threshold, None, None)?;
+    let models = Models::load(&models_dir(), transcriptor_lib::engine::LiveModel::CatalanSpanish)?;
+    let mut pipeline = Pipeline::new(&models, false, true, 5, threshold, None, vec![])?;
     let mut events = vec![];
     for chunk in audio.chunks(1600) {
         events.extend(pipeline.push(Source::System, chunk));

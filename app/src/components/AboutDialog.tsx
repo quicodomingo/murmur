@@ -17,6 +17,20 @@ const MODELS = [
     license: "CC BY 4.0",
     url: "https://huggingface.co/projecte-aina/stt_ca-es_conformer_transducer_large",
   },
+  {
+    role: "Transcripció en anglès",
+    name: "Parakeet TDT-CTC 110M",
+    author: "NVIDIA",
+    license: "CC BY 4.0",
+    url: "https://huggingface.co/nvidia/parakeet-tdt_ctc-110m",
+  },
+  {
+    role: "Transcripció final",
+    name: "Whisper large-v3-turbo",
+    author: "OpenAI",
+    license: "MIT",
+    url: "https://huggingface.co/openai/whisper-large-v3-turbo",
+  },
   { role: "Detecció de veu", name: "Silero VAD", author: "Silero", license: "MIT", url: "https://github.com/snakers4/silero-vad" },
   {
     role: "Parlants",
@@ -60,6 +74,7 @@ const TOOLS = [
   { name: "ONNX Runtime", license: "MIT", url: "https://github.com/microsoft/onnxruntime" },
   { name: "Tokenizers (Hugging Face)", license: "Apache 2.0", url: "https://github.com/huggingface/tokenizers" },
   { name: "llama.cpp", license: "MIT", url: "https://github.com/ggml-org/llama.cpp" },
+  { name: "whisper.cpp", license: "MIT", url: "https://github.com/ggml-org/whisper.cpp" },
   { name: "Tauri", license: "MIT, Apache 2.0", url: "https://github.com/tauri-apps/tauri" },
   { name: "Cancel·lació d'eco WebRTC (sonora)", license: "BSD-3-Clause", url: "https://crates.io/crates/sonora" },
   { name: "Opus", license: "BSD-3-Clause", url: "https://opus-codec.org/license/" },

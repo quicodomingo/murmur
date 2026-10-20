@@ -23,7 +23,11 @@ En aturar la gravació, reprocessar l'àudio desat:
 - [x] Trucades: el micròfon és «Tu», i la verificació uneix els parlants amb menys de 10 s de veu (a Meet, una sola persona sortia en 2–4 grups segons l'alineació de l'àudio).
 - [ ] Validar els parlants amb una segona reunió etiquetada, i amb una trucada de 2+ persones a l'altra banda.
 - [ ] Partir les frases que barregen parlants als canvis de torn de la verificació (10 de 34 frases ho fan).
-- [ ] Transcripció final: decidir entre el Conformer actual o Whisper AINA (cal convertir-lo a MLX / whisper.cpp; amb faster-whisper a CPU va massa lent).
+- [x] **Idioma de la reunió** (Configuració › Transcripció): Català, Castellà, Català + castellà (per defecte) o Anglès. En anglès, el directe el fa Parakeet TDT-CTC 110M d'NVIDIA (ja amb puntuació).
+- [x] **Passada final amb Whisper** large-v3-turbo (whisper.cpp + Metal, procés a part `murmur-whisper`) quan la reunió és d'una sola llengua: torna a escriure cada frase amb puntuació i majúscules, sense tocar parlants ni frases corregides a mà. RTF ~0,1 a l'M4 (uns 6 min per hora). Amb «Català + castellà» no hi passa: forçat a una llengua, Whisper tradueix l'altra.
+- [ ] Provar la passada de Whisper en una reunió real sencera i en una trucada (micròfon + sistema), i mesurar-ne el temps en un M1.
+- [ ] Comparar Whisper turbo amb el Whisper català d'AINA (cal convertir-lo a whisper.cpp) amb una referència manual (WER).
+- [ ] Triar l'idioma per reunió (ara és un sol valor a Configuració), o endevinar-lo del calendari.
 - [x] **Prova de LLM local** (reunió real de 20 min = 6.426 tokens ≈ 19K tokens/hora; M4 base, llama.cpp + Metal). Resultats a `results/llm/`:
   - Gemma 4 E2B: ràpid (lectura 345 t/s, escriptura 36 t/s) però català fluix i es deixa contingut.
   - **Gemma 4 E4B: el millor equilibri** (lectura 180 t/s, escriptura 21 t/s, ~2–2,5 min per hora de reunió): cobreix tota la reunió, no s'inventa dates. Català millorable.
