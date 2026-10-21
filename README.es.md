@@ -111,7 +111,7 @@ cd app && npx tsc --noEmit && npm run check-locales
 | `tools/` | Scripts para exportar los modelos de NeMo a ONNX |
 | `docs/` | Hoja de ruta, sistema de diseño, traducciones y guía para publicar (en catalán) |
 
-`CLAUDE.md` explica la arquitectura en detalle. Está en catalán.
+[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) explica cómo funciona por dentro y qué se ha medido para decidirlo, y [CLAUDE.md](CLAUDE.md) tiene las reglas para trabajar en el código (para personas y agentes de código). Los dos están en catalán.
 
 ## Traducciones
 

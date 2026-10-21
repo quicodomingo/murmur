@@ -10,3 +10,6 @@ results/
 
 # Superdesign temp files
 .superdesign/tmp/
+
+# Personal instructions for Claude Code
+CLAUDE.local.md
