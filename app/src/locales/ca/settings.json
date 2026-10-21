@@ -35,7 +35,10 @@
     "indicator": "Indicador de gravació",
     "indicatorHint": "Una píndola a la dreta de la pantalla per tornar a Murmur, fer una captura o aturar la gravació. Es pot arrossegar.",
     "compact": "Mode compacte en clicar l'indicador",
-    "compactHint": "Murmur es fa estreta, al costat de la trucada i sempre al davant, només amb les notes."
+    "compactHint": "Murmur es fa estreta, al costat de la trucada i sempre al davant, només amb les notes.",
+    "showWhatsNew": "Mostra les novetats després d'actualitzar",
+    "showWhatsNewHint": "Un resum del que porta cada versió nova, el primer cop que obres Murmur.",
+    "showWhatsNewNow": "Mostra-les"
   },
   "calendar": {
     "footnote": "Murmur llegeix els calendaris que tens a l'app Calendari de macOS. Per afegir-hi Google Calendar, afegeix el compte a Configuració del Sistema › Comptes d'Internet.",

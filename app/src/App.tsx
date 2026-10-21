@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { ask, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
@@ -12,8 +13,9 @@ import { Cover } from "@/components/Cover";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
 import { PlayerBar } from "@/components/PlayerBar";
-import { SettingsDialog } from "@/components/SettingsDialog";
+import { SettingsDialog, type Tab as SettingsTab } from "@/components/SettingsDialog";
 import { UpdatesDialog } from "@/components/UpdatesDialog";
+import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/Sidebar";
 import { Transcript } from "@/components/Transcript";
@@ -34,6 +36,7 @@ import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
 import type { Language, Meeting, ModelId, SearchHit } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { markSeen, pendingReleases, releasesBetween, type WhatsNewRelease } from "@/lib/whatsnew";
 
 const ONBOARDED_KEY = "murmur.onboarded.v1";
 
@@ -118,6 +121,8 @@ export default function App() {
   const [state, dispatch, forget] = useMeetings();
   const [settings, updateSettings] = useSettings();
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>();
+  const [whatsNew, setWhatsNew] = useState<{ releases: WhatsNewRelease[]; manual: boolean; version: string } | null>(null);
   const [showAbout, setShowAbout] = useState(false);
   // First-run screens: once, and whenever the transcription model is missing.
   const [onboarding, setOnboarding] = useState<{ open: boolean; atModels: boolean }>({ open: false, atModels: false });
@@ -143,6 +148,15 @@ export default function App() {
       /* show it */
     }
     if (!onboarded || !models.status.transcription?.installed) setOnboarding({ open: true, atModels: onboarded });
+    // After an update: what the new version brings (a new install has the welcome screens).
+    getVersion()
+      .then((version) => {
+        const releases = pendingReleases(version, !onboarded);
+        if (!releases.length) return;
+        if (settings.showWhatsNew) setWhatsNew({ releases, manual: false, version });
+        else markSeen(version);
+      })
+      .catch(() => {});
     // Only on start-up.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [models.loaded]);
@@ -758,7 +772,10 @@ export default function App() {
       </div>
       <SettingsDialog
         open={showSettings}
-        onOpenChange={setShowSettings}
+        onOpenChange={(open) => {
+          setShowSettings(open);
+          if (!open) setSettingsTab(undefined);
+        }}
         settings={settings}
         onChange={updateSettings}
         recording={!!recording}
@@ -766,9 +783,37 @@ export default function App() {
           setShowSettings(false);
           setUpdates((u) => ({ run: u.run + 1, manual: true }));
         }}
+        onShowWhatsNew={() => {
+          getVersion()
+            .then((version) => {
+              const releases = releasesBetween(null, version);
+              if (!releases.length) return;
+              setShowSettings(false);
+              setWhatsNew({ releases, manual: true, version });
+            })
+            .catch(() => {});
+        }}
+        initialTab={settingsTab}
         meeting={meeting && meeting.status === "done" && meeting.utterances.length ? meeting : null}
       />
       <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
+      {whatsNew && !onboarding.open && (
+        <WhatsNewDialog
+          releases={whatsNew.releases}
+          manual={whatsNew.manual}
+          onLink={(tab) => {
+            markSeen(whatsNew.version);
+            setWhatsNew(null);
+            setSettingsTab(tab);
+            setShowSettings(true);
+          }}
+          onClose={(dontShowAgain) => {
+            markSeen(whatsNew.version);
+            if (dontShowAgain) updateSettings({ showWhatsNew: false });
+            setWhatsNew(null);
+          }}
+        />
+      )}
       {!recording && <UpdatesDialog run={updates.run} manual={updates.manual} onClose={() => {}} />}
       {onboarding.open && <Onboarding open onClose={closeOnboarding} onChange={updateSettings} startAtModels={onboarding.atModels} />}
       <Toaster position="bottom-center" />

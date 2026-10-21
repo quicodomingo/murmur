@@ -29,9 +29,15 @@ La clau pública és a `app/src-tauri/tauri.conf.json` › `plugins.updater.pubk
 
    Sense una versió més alta, les apps instal·lades no hi veuen res de nou.
 
-2. **Fes el commit** dels canvis i de la versió.
+2. **Escriu les novetats** de la versió (la pantalla «Novetats de Murmur» que surt després d'actualitzar):
+   - Afegeix la versió i la data a `RELEASES` (`app/src/lib/whatsnew.ts`).
+   - Afegeix el text a `app/src/locales/{ca,es,en}/whatsnew.json` › `releases` › `"<versió>"`: de 2 a 5 novetats, cadascuna amb `title` i `text` (una o dues frases), i, si cal, un enllaç a una pestanya de la configuració (`link`: `general`, `appearance`, `calendar`, `audio`, `transcription` o `intelligence`, i el seu `linkLabel`).
+   - `npm run check-locales` ha de passar. Una versió sense novetats no mostra res (per a correccions petites, no cal).
+   - Les `RELEASE_NOTES` del pas 3 són una frase de resum d'aquestes novetats.
 
-3. **Compila, signa i notaritza** (uns 5 minuts):
+3. **Fes el commit** dels canvis i de la versió.
+
+4. **Compila, signa i notaritza** (uns 5 minuts):
    ```bash
    cd app
    RELEASE_NOTES="Una frase amb el més important de la versió." ./scripts/release.sh
@@ -43,23 +49,23 @@ La clau pública és a `app/src-tauri/tauri.conf.json` › `plugins.updater.pubk
 
    Si la notarització falla, l'script mostra el registre d'Apple. Si diu `No Keychain password item found for profile: murmur`, el clauer està bloquejat o cal tornar a desar les credencials.
 
-4. **Prova-la al teu Mac**: tanca Murmur (també des de la barra de menús) i
+5. **Prova-la al teu Mac**: tanca Murmur (també des de la barra de menús) i
    ```bash
    rm -rf /Applications/Murmur.app && ditto src-tauri/target/release/bundle/macos/Murmur.app /Applications/Murmur.app
    ```
    Obre-la amb les reunions que ja tens (una versió que només funcioni amb dades noves és el pitjor error possible).
 
-5. **Publica-la**:
+6. **Publica-la**:
    ```bash
    RELEASE_NOTES="Una frase amb el més important de la versió." ./scripts/publish.sh
    ```
    Crea la *release* `v<versió>` al repositori públic amb els quatre fitxers, puja el codi al privat (`git push`) i hi crea la mateixa *release* amb el `.dmg`. Les notes van a GitHub i a `latest.json`: són el que l'app mostra a la finestra «Actualitzant Murmur».
 
-6. **Comprova-ho**:
+7. **Comprova-ho**:
    ```bash
    curl -sL https://github.com/quicodomingo/murmur-releases/releases/latest/download/latest.json
    ```
-   Ha de mostrar la versió nova. En una app amb la versió anterior, «Comprova ara» l'ha d'oferir, instal·lar-la i reiniciar-se.
+   Ha de mostrar la versió nova. En una app amb la versió anterior, «Comprova ara» l'ha d'oferir, instal·lar-la i reiniciar-se, i en tornar a obrir-se ha de mostrar les novetats.
 
 ### Si alguna cosa va malament
 

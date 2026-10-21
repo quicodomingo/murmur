@@ -1,0 +1,34 @@
+{
+  "title": "What's New in Murmur {{version}}",
+  "released": "Released {{date}}. Here's what's new.",
+  "alsoIn": "Also in version {{version}} · {{date}}",
+  "dontShow": "Don't show this again",
+  "dontShowHint": "You can turn it back on in Settings › General.",
+  "ok": "Got It",
+  "releases": {
+    "0.3.0": [
+      {
+        "title": "Meetings in Catalan, Spanish or English",
+        "text": "Choose the language people speak. With “Catalan + Spanish” it understands both, even mixed in the same sentence.",
+        "link": "transcription",
+        "linkLabel": "Choose the Language"
+      },
+      {
+        "title": "Whisper goes over the transcript",
+        "text": "If the meeting is in a single language, Whisper listens to it again when it ends and adds punctuation, capitals and properly spelled names. About 6 minutes per hour of meeting."
+      },
+      {
+        "title": "Murmur, now in Spanish and English too",
+        "text": "The interface follows your system language. You can change it whenever you like.",
+        "link": "general",
+        "linkLabel": "Change Murmur's Language"
+      },
+      {
+        "title": "The cover, in the language you choose",
+        "text": "Murmur's language or the meeting's.",
+        "link": "intelligence",
+        "linkLabel": "Choose the Cover Language"
+      }
+    ]
+  }
+}

@@ -106,6 +106,9 @@ Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16,
 - Un sol botó, sempre **Comença a gravar**, amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable. No el logotip: les seves dues barres semblen un botó de pausa.
 - A sota, una barra de compte enrere de 3 pt (`toastProgress` sobre `toastBorder`); quan s'acaba, l'avís desapareix sol.
 
+### Novetats de Murmur
+Diàleg de 480 pt que surt en obrir una versió nova. Capçalera amb la icona de 44 pt, «Novetats de Murmur *versió*» (15 pt semibold) i la data de la versió (12 pt, `textSecondary`). Llista sense icones: títol 13 pt medium, una o dues frases 12 pt en `textSecondary` i, si cal, un enllaç en `link` que obre la pestanya de la configuració; separadors fins entre novetats. Les versions saltades, plegades a sota en una caixa amb contorn («També a la versió…»). Peu amb separador: casella «No ho tornis a mostrar» amb la nota de com reactivar-ho, i el botó «Entesos» en `accent` / `onAccent`.
+
 ### Onboarding
 Finestra de 720×540 que surt el primer cop que s'obre l'app. Peu fix de 68 pt amb els punts de progrés a l'esquerra (el pas actual és una píndola de 18 pt en `textPrimary`; la resta, punts de 6 pt en `separator`) i els botons a la dreta: secundari de text en `textSecondary`, principal en `accent` / `onAccent`.
 

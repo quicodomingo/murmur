@@ -24,14 +24,17 @@ export function duration(seconds: number, lng?: UiLanguage): string {
   return t("format:hoursMinutes", { h: Math.floor(m / 60), m: String(m % 60).padStart(2, "0"), lng });
 }
 
-export function longDate(ms: number, lng?: UiLanguage): string {
-  const d = new Date(ms);
+/** "16 d'octubre de 2026", "16 de octubre de 2026", "October 16, 2026". */
+export function dateOnly(ms: number, lng?: UiLanguage): string {
   const tag = tagOf(lng);
-  let date = d.toLocaleDateString(tag, { day: "numeric", month: "long", year: "numeric" });
+  const date = new Date(ms).toLocaleDateString(tag, { day: "numeric", month: "long", year: "numeric" });
   // The browser writes "16 d’octubre del 2026"; Murmur's style is "16 d'octubre de 2026".
-  if (tag === "ca-ES") date = date.replace(/’/g, "'").replace(/ del (\d{4})$/, " de $1");
-  const time = d.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" });
-  return t("format:dateTime", { date, time, lng });
+  return tag === "ca-ES" ? date.replace(/’/g, "'").replace(/ del (\d{4})$/, " de $1") : date;
+}
+
+export function longDate(ms: number, lng?: UiLanguage): string {
+  const time = new Date(ms).toLocaleTimeString(tagOf(lng), { hour: "2-digit", minute: "2-digit" });
+  return t("format:dateTime", { date: dateOnly(ms, lng), time, lng });
 }
 
 export type DayGroup = "today" | "yesterday" | "thisWeek" | "earlier";

@@ -27,6 +27,10 @@ type Props = {
   meeting: Meeting | null;
   /** "Comprova ara": the updates window (UpdatesDialog). */
   onCheckUpdates: () => void;
+  /** "Mostra-les": this version's notes (WhatsNewDialog). */
+  onShowWhatsNew: () => void;
+  /** The tab to show when it opens (a link from the version notes). */
+  initialTab?: Tab;
 };
 
 const TABS = [
@@ -40,12 +44,15 @@ const TABS = [
 
 /** A decimal in the interface language: 0,65 in Catalan and Spanish, 0.65 in English. */
 const decimal = (n: number, digits: number) => n.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
-type Tab = (typeof TABS)[number]["id"];
+export type Tab = (typeof TABS)[number]["id"];
 
 /** Native-style Preferences window: icon tabs on top, grouped rows below. */
-export function SettingsDialog({ open, onOpenChange, settings, onChange, recording, meeting, onCheckUpdates }: Props) {
+export function SettingsDialog({ open, onOpenChange, settings, onChange, recording, meeting, onCheckUpdates, onShowWhatsNew, initialTab }: Props) {
   const { t } = useTranslation("settings");
   const [tab, setTab] = useState<Tab>("general");
+  useEffect(() => {
+    if (open && initialTab) setTab(initialTab);
+  }, [open, initialTab]);
   // Trying prompts keeps the language model loaded; free its memory when the window closes.
   const llmLoaded = useRef(false);
   useEffect(() => {
@@ -79,7 +86,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
 
         <div className="h-[min(62vh,520px)] overflow-y-auto bg-mm-settings-background px-8 py-5">
           {recording && ["audio", "transcription", "intelligence"].includes(tab) && <p className="mb-3 text-[12px] text-muted-foreground">{t("nextRecording")}</p>}
-          {tab === "general" && <GeneralTab settings={settings} onChange={onChange} onGoTo={setTab} onCheckUpdates={onCheckUpdates} />}
+          {tab === "general" && <GeneralTab settings={settings} onChange={onChange} onGoTo={setTab} onCheckUpdates={onCheckUpdates} onShowWhatsNew={onShowWhatsNew} />}
           {tab === "appearance" && <AppearanceTab settings={settings} onChange={onChange} />}
           {tab === "calendar" && <CalendarSettings settings={settings} onChange={onChange} />}
           {tab === "audio" && <AudioTab open={open} settings={settings} onChange={onChange} recording={recording} />}
@@ -99,11 +106,13 @@ function GeneralTab({
   onChange,
   onGoTo,
   onCheckUpdates,
+  onShowWhatsNew,
 }: {
   settings: Settings;
   onChange: Props["onChange"];
   onGoTo: (tab: Tab) => void;
   onCheckUpdates: () => void;
+  onShowWhatsNew: () => void;
 }) {
   const { t } = useTranslation("settings");
   const [autostart, setAutostart] = useState<boolean | null>(null);
@@ -159,6 +168,14 @@ function GeneralTab({
           hint={t("general.checkOnOpenHint")}
         >
           <Switch checked={settings.checkUpdates} onCheckedChange={(checkUpdates) => onChange({ checkUpdates })} />
+        </Row>
+        <Row label={t("general.showWhatsNew")} hint={t("general.showWhatsNewHint")}>
+          <div className="flex shrink-0 items-center gap-3">
+            <button type="button" onClick={onShowWhatsNew} className="text-[12px] text-mm-link hover:underline">
+              {t("general.showWhatsNewNow")}
+            </button>
+            <Switch checked={settings.showWhatsNew} onCheckedChange={(showWhatsNew) => onChange({ showWhatsNew })} />
+          </div>
         </Row>
       </Group>
       <Group title={t("general.beforeMeeting")}>

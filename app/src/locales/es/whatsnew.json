@@ -1,0 +1,34 @@
+{
+  "title": "Novedades de Murmur {{version}}",
+  "released": "Versión del {{date}}. Esto es lo que hay de nuevo.",
+  "alsoIn": "También en la versión {{version}} · {{date}}",
+  "dontShow": "No volver a mostrar",
+  "dontShowHint": "Se puede volver a activar en Ajustes › General.",
+  "ok": "Entendido",
+  "releases": {
+    "0.3.0": [
+      {
+        "title": "Reuniones en catalán, castellano o inglés",
+        "text": "Elige en qué lengua se habla. Con «Catalán + castellano» entiende las dos, también mezcladas en una misma frase.",
+        "link": "transcription",
+        "linkLabel": "Elegir el idioma"
+      },
+      {
+        "title": "Whisper repasa la transcripción",
+        "text": "Si la reunión es en una sola lengua, al terminar Whisper la vuelve a escuchar y añade puntuación, mayúsculas y nombres bien escritos. Unos 6 minutos por hora de reunión."
+      },
+      {
+        "title": "Murmur, también en castellano e inglés",
+        "text": "La interfaz sigue el idioma del sistema. Puedes cambiarla cuando quieras.",
+        "link": "general",
+        "linkLabel": "Cambiar el idioma de Murmur"
+      },
+      {
+        "title": "La portada, en el idioma que elijas",
+        "text": "En el de Murmur o en el de la reunión.",
+        "link": "intelligence",
+        "linkLabel": "Elegir el idioma de la portada"
+      }
+    ]
+  }
+}

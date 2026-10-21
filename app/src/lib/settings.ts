@@ -47,6 +47,8 @@ export type Settings = {
   calendarAlerts: boolean;
   /** Look for a new version of Murmur and its models when it opens. */
   checkUpdates: boolean;
+  /** After an update, show what the new version brings (lib/whatsnew.ts). */
+  showWhatsNew: boolean;
   /** "Desconnecta": Murmur stops reading the calendar (macOS keeps the permission until the user removes it). */
   calendarEnabled: boolean;
   /** Calendars to watch; null = all of them. */
@@ -83,6 +85,7 @@ export const DEFAULT_SETTINGS: Settings = {
   calendarAlerts: true,
   calendarEnabled: true,
   checkUpdates: true,
+  showWhatsNew: true,
   calendarIds: null,
   calendarNoGuests: false,
 };
