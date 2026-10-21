@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { applyAppearance, type Mode, type Theme } from "./appearance";
 import { isTauri, setUiLanguage } from "./backend";
+import type { CoverLanguagePref } from "./cover";
 import { applyLanguage, resolveLanguage, type UiLanguagePref } from "./i18n";
 import type { Language } from "./types";
 
@@ -32,6 +33,8 @@ export type Settings = {
   punctuate: boolean;
   /** After a recording: the cover, written by the local language model (models.rs LLM). */
   summarize: boolean;
+  /** The cover's language: the interface's, or the one the meeting was recorded in (lib/cover.ts). */
+  coverLanguage: CoverLanguagePref;
   /** Edited prompts, by id (lib/cover.ts PROMPTS); missing ones use the default text. */
   prompts: Record<string, string>;
   /** Offer to record when another app starts using the microphone (meeting detection). */
@@ -72,6 +75,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // Both need a download, so they're off until the user turns them on.
   punctuate: false,
   summarize: false,
+  coverLanguage: "interface",
   prompts: {},
   detectMeetings: true,
   recordingIndicator: true,

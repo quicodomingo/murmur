@@ -149,7 +149,11 @@
     "summarize": "Genera la portada en acabar la gravació",
     "summarizeHint": "Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions, les tasques i les parts. Triga uns 2–3 minuts per a una reunió de 20 minuts; pots continuar treballant mentrestant.",
     "gemmaModel": "Gemma 4 E4B, de Google",
-    "privacy": "Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis."
+    "privacy": "Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis.",
+    "coverLanguage": "Idioma de la portada",
+    "coverLanguageHint": "En l'idioma de la reunió, «Català + castellà» s'escriu en català. Les reunions gravades abans d'aquesta versió fan servir el de la interfície.",
+    "coverLanguageInterface": "El de Murmur",
+    "coverLanguageMeeting": "El de la reunió"
   },
   "model": {
     "deleteMessage": "S'esborrarà {{name}} ({{size}}). El pots tornar a descarregar quan vulguis.",

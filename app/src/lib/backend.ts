@@ -50,7 +50,7 @@ export const stopRecording = () => invoke<void>("stop_recording");
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[] };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[] };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };

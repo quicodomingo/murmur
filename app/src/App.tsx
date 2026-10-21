@@ -32,7 +32,7 @@ import { hasAudio, playAt, stopUnless } from "@/lib/player";
 import { useSettings } from "@/lib/settings";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
-import type { Meeting, ModelId, SearchHit } from "@/lib/types";
+import type { Language, Meeting, ModelId, SearchHit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const ONBOARDED_KEY = "murmur.onboarded.v1";
@@ -75,7 +75,7 @@ function localSearch(meetings: Meeting[], query: string): SearchHit[] {
   });
 }
 
-function newMeeting(sources: { mic: boolean; system: boolean }, title?: string, guests?: string[]): Meeting {
+function newMeeting(sources: { mic: boolean; system: boolean }, language: Language, title?: string, guests?: string[]): Meeting {
   const now = new Date();
   const time = now.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
   return {
@@ -90,6 +90,7 @@ function newMeeting(sources: { mic: boolean; system: boolean }, title?: string, 
     notes: [],
     sources,
     guests: guests?.length ? guests : undefined,
+    language,
   };
 }
 
@@ -307,7 +308,7 @@ export default function App() {
     }
     // Named after the calendar event going on now, if there's one.
     const event = await currentEvent(settings).catch(() => null);
-    const m = newMeeting(sources, event?.title.trim(), event ? guestNames(event) : undefined);
+    const m = newMeeting(sources, settings.language, event?.title.trim(), event ? guestNames(event) : undefined);
     dispatch({ type: "new", meeting: m });
     // Whisper only for a single language (told "Catalan", it would turn Spanish into Catalan).
     const finalText = settings.language !== "ca-es" && modelInstalled("whisper");

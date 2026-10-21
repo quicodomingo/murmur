@@ -760,6 +760,17 @@ function IntelligenceTab({
           <Switch checked={settings.summarize} onCheckedChange={(on) => enableWithModel(models, "llm", on, () => onChange({ summarize: on }))} />
         </Row>
         <ModelRow id="llm" name={t("intelligence.gemmaModel")} enabled={settings.summarize} onDisable={() => onChange({ summarize: false })} />
+        <Row label={<span id="cover-language-label">{t("intelligence.coverLanguage")}</span>} hint={t("intelligence.coverLanguageHint")}>
+          <Segmented
+            value={settings.coverLanguage}
+            options={[
+              { value: "interface", label: t("intelligence.coverLanguageInterface") },
+              { value: "meeting", label: t("intelligence.coverLanguageMeeting") },
+            ]}
+            onChange={(coverLanguage) => onChange({ coverLanguage })}
+            labelledBy="cover-language-label"
+          />
+        </Row>
       </Group>
       <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
         <Lock className="mt-px size-3 shrink-0" aria-hidden />
@@ -1054,7 +1065,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Row({ label, hint, children }: { label: React.ReactNode; hint?: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-11 items-center gap-4 px-3 py-2">
       <div className="min-w-0 flex-1">

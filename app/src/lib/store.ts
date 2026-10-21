@@ -310,6 +310,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.status !== next.status) meta.status = next.status;
   if (saved.speakerNames !== next.speakerNames) meta.speakerNames = next.speakerNames;
   if (saved.sources !== next.sources) meta.sources = next.sources;
+  if (saved.language !== next.language && next.language) meta.language = next.language;
   if (saved.audioPath !== next.audioPath) meta.audioPath = next.audioPath ?? null;
   if (saved.cover !== next.cover) meta.cover = next.cover ?? null;
   if (saved.guests !== next.guests && next.guests) meta.guests = next.guests;

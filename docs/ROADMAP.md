@@ -87,6 +87,7 @@ Entre reunions (bloc 5):
 - [ ] Signar amb un Developer ID propi si Murmur ha de sortir a nom de Quico Domingo.
 - [ ] Actualitzacions automàtiques (plugin updater de Tauri).
 - [x] **Interfície en català, castellà i anglès** (i18next, `app/src/locales/`; menús natius, avisos i errors a `i18n.rs`; permisos de macOS en `.lproj`). Per defecte, l'idioma del sistema; Configuració › General › Idioma. La portada s'escriu en l'idioma de la interfície. Guia: `docs/TRADUCCIONS.md`.
+- [x] Idioma de la portada: el de la interfície o el de la reunió (Configuració › Intel·ligència). Cada reunió desa el seu idioma.
 - [ ] Revisar les traduccions amb algú nadiu (sobretot els noms dels menús de macOS en castellà) i provar els textos dels permisos en un Mac en castellà i en anglès.
 - [x] README per a GitHub (anglès, `README.md`; català, `README.ca.md`).
 - [ ] Codi obert: triar la llicència, afegir `LICENSE` i fer públic el repositori.

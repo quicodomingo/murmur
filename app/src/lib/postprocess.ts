@@ -5,6 +5,7 @@ import * as backend from "./backend";
 import {
   buildCover,
   coverDocument,
+  coverLanguageFor,
   coverEstimate,
   isDefaultTitle,
   keepTaskEdits,
@@ -92,18 +93,19 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
         if (stage === "cover") {
           meeting = { ...meeting, ...latest.current.open[id], utterances: meeting.utterances };
           if (!meeting.utterances.length) continue;
-          const document = coverDocument(meeting);
-          const tasks = llmTasks(config.current.prompts);
+          const lng = coverLanguageFor(meeting, config.current.coverLanguage);
+          const document = coverDocument(meeting, lng);
+          const tasks = llmTasks(config.current.prompts, undefined, lng);
           dispatch({ type: "postStage", id, stage, steps, estimateSeconds: coverEstimate(document, tasks.length) });
           try {
             const results = await backend.runLlm({
               job: id,
-              system: promptText("system", config.current.prompts),
+              system: promptText("system", config.current.prompts, lng),
               document,
               tasks,
               keepLoaded: false,
             });
-            const built = buildCover(results, meeting);
+            const built = buildCover(results, meeting, lng);
             const title = built.title;
             // Speakers renamed while it was being written: the cover gets their new names. Other
             // changes made meanwhile (text, notes, reassigned lines) show it's out of date.

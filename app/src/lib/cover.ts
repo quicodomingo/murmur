@@ -1,7 +1,7 @@
 import { clock, defaultSpeakerNames, duration, longDate, speakerIds, speakerName } from "./format";
 import { locale, t, UI_LANGUAGES, uiLanguage, type UiLanguage } from "./i18n";
 import { notesDoc, notesFromDoc } from "./notes";
-import type { Cover, LlmResult, LlmTask, Meeting } from "./types";
+import type { Cover, Language, LlmResult, LlmTask, Meeting } from "./types";
 
 // The cover is written by the local language model (Gemma 4 E4B, lib.rs run_llm): it reads the
 // transcript once and answers one prompt per part. Every answer is JSON constrained by a schema,
@@ -48,7 +48,7 @@ export function toneLabel(value: string): string {
 }
 
 type Schema = object | null;
-const SCHEMAS: Record<PromptId, { maxTokens: number; schema: () => Schema }> = {
+const SCHEMAS: Record<PromptId, { maxTokens: number; schema: (lng?: UiLanguage) => Schema }> = {
   system: { maxTokens: 0, schema: () => null },
   title: {
     maxTokens: 220,
@@ -56,7 +56,7 @@ const SCHEMAS: Record<PromptId, { maxTokens: number; schema: () => Schema }> = {
   },
   tone: {
     maxTokens: 140,
-    schema: () => ({ type: "object", properties: { tone: { type: "string", enum: toneLabels() }, reason: str }, required: ["tone", "reason"] }),
+    schema: (lng) => ({ type: "object", properties: { tone: { type: "string", enum: toneLabels(lng) }, reason: str }, required: ["tone", "reason"] }),
   },
   summary: {
     maxTokens: 550,
@@ -128,24 +128,37 @@ export const PROMPTS: PromptDef[] = PROMPT_IDS.map((id) => ({
     return t(`cover:promptLabels.${id}`);
   },
   get text() {
-    return t(`cover:prompts.${id}`, { tones: toneLabels().join(", ") });
+    return defaultPrompt(id);
   },
   get schema() {
     return SCHEMAS[id].schema();
   },
 }));
 
-export const promptText = (id: PromptId, overrides: Record<string, string>) =>
-  overrides[id]?.trim() || PROMPTS.find((p) => p.id === id)!.text;
+/** A prompt's default text in a language (the cover's, which may not be the interface's). */
+const defaultPrompt = (id: PromptId, lng?: UiLanguage) => t(`cover:prompts.${id}`, { tones: toneLabels(lng).join(", "), lng });
 
-export function llmTasks(overrides: Record<string, string>, only?: PromptId[]): LlmTask[] {
+export const promptText = (id: PromptId, overrides: Record<string, string>, lng?: UiLanguage) =>
+  overrides[id]?.trim() || defaultPrompt(id, lng);
+
+export function llmTasks(overrides: Record<string, string>, only?: PromptId[], lng?: UiLanguage): LlmTask[] {
   return PROMPTS.filter((p) => p.schema && (!only || only.includes(p.id))).map((p) => ({
     id: p.id,
-    prompt: promptText(p.id, overrides),
+    prompt: promptText(p.id, overrides, lng),
     maxTokens: p.maxTokens,
-    schema: JSON.stringify(p.schema),
+    schema: JSON.stringify(SCHEMAS[p.id].schema(lng)),
   }));
 }
+
+/** Settings › Intel·ligència: the cover in the interface language, or in the meeting's. */
+export type CoverLanguagePref = "interface" | "meeting";
+
+/** A meeting language's cover language: Catalan and Spanish mixed is written in Catalan. */
+const fromMeetingLanguage: Record<Language, UiLanguage> = { ca: "ca", es: "es", "ca-es": "ca", en: "en" };
+
+/** The language to write a meeting's cover in. Meetings recorded before it was saved use the interface's. */
+export const coverLanguageFor = (m: Meeting, pref: CoverLanguagePref): UiLanguage =>
+  pref === "meeting" && m.language ? fromMeetingLanguage[m.language] : uiLanguage();
 
 /**
  * What the model reads: a short header and one line per speaker turn, in the interface language
@@ -279,8 +292,8 @@ const optional = (s: unknown) => {
 };
 
 /** Turns the model's answers into a cover (and the title it proposed, if any). */
-export function buildCover(results: LlmResult[], meeting: Meeting): { cover: Cover; title: string | null } {
-  const cover: Cover = { generatedAt: Date.now(), lang: uiLanguage() };
+export function buildCover(results: LlmResult[], meeting: Meeting, lng: UiLanguage = uiLanguage()): { cover: Cover; title: string | null } {
+  const cover: Cover = { generatedAt: Date.now(), lang: lng };
   let title: string | null = null;
   const errors: Record<string, string> = {};
   const max = meeting.duration;

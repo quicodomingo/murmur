@@ -48,6 +48,8 @@ export type Meeting = {
   guests?: string[];
   /** Screenshots taken from the recording indicator: meeting time (s) and file. */
   screens?: Screen[];
+  /** What it was spoken in when recorded (settings.language then); none for older meetings. */
+  language?: Language;
 };
 
 export type Screen = { t: number; path: string };

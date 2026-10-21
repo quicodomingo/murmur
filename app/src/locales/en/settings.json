@@ -149,7 +149,11 @@
     "summarize": "Generate the Cover When Recording Ends",
     "summarizeHint": "A language model reads the transcript and writes the title, summary, decisions, tasks and sections. It takes about 2–3 minutes for a 20-minute meeting; you can keep working meanwhile.",
     "gemmaModel": "Gemma 4 E4B, by Google",
-    "privacy": "Everything happens on this computer: the transcript never leaves it. Models are only downloaded if you turn the feature on, and you can delete them whenever you want."
+    "privacy": "Everything happens on this computer: the transcript never leaves it. Models are only downloaded if you turn the feature on, and you can delete them whenever you want.",
+    "coverLanguage": "Cover language",
+    "coverLanguageHint": "In the meeting's language, “Catalan + Spanish” is written in Catalan. Meetings recorded before this version use the interface language.",
+    "coverLanguageInterface": "Interface",
+    "coverLanguageMeeting": "Meeting"
   },
   "model": {
     "deleteMessage": "{{name}} ({{size}}) will be deleted. You can download it again whenever you want.",

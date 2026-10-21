@@ -149,7 +149,11 @@
     "summarize": "Generar la portada al terminar la grabación",
     "summarizeHint": "Un modelo de lenguaje lee la transcripción y hace el título, el resumen, las decisiones, las tareas y las partes. Tarda unos 2–3 minutos para una reunión de 20 minutos; puedes seguir trabajando mientras tanto.",
     "gemmaModel": "Gemma 4 E4B, de Google",
-    "privacy": "Todo se hace en este ordenador: la transcripción no sale de aquí. Los modelos solo se descargan si activas la función, y puedes borrarlos cuando quieras."
+    "privacy": "Todo se hace en este ordenador: la transcripción no sale de aquí. Los modelos solo se descargan si activas la función, y puedes borrarlos cuando quieras.",
+    "coverLanguage": "Idioma de la portada",
+    "coverLanguageHint": "En el idioma de la reunión, «Catalán + castellano» se escribe en catalán. Las reuniones grabadas antes de esta versión usan el de la interfaz.",
+    "coverLanguageInterface": "El de Murmur",
+    "coverLanguageMeeting": "El de la reunión"
   },
   "model": {
     "deleteMessage": "Se borrará {{name}} ({{size}}). Puedes volver a descargarlo cuando quieras.",

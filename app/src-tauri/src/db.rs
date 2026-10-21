@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS meetings (
     legacy_notes  TEXT,
     cover         TEXT,
     guests        TEXT,
-    screens       TEXT
+    screens       TEXT,
+    language      TEXT
 );
 
 CREATE TABLE IF NOT EXISTS utterances (
@@ -117,6 +118,8 @@ pub struct MetaPatch {
     pub guests: Option<Value>,
     /// Screenshots taken during the meeting: [{t, path}].
     pub screens: Option<Value>,
+    /// What it was spoken in when recorded (ca, es, ca-es, en): the cover can be written in it.
+    pub language: Option<String>,
 }
 
 /// A field that was sent, even as null (plain `Option` would read null as absent).
@@ -216,7 +219,7 @@ impl Db {
             .conn
             .query_row(
                 "SELECT id, title, created_at, duration, status, speaker_names, sources, audio_path,
-                        notes_doc, legacy_notes, cover, guests, screens
+                        notes_doc, legacy_notes, cover, guests, screens, language
                  FROM meetings WHERE id = ?1",
                 [id],
                 |r| {
@@ -235,6 +238,7 @@ impl Db {
                         "cover": parse(r.get(10)?),
                         "guests": parse(r.get(11)?).unwrap_or(json!([])),
                         "screens": parse(r.get(12)?).unwrap_or(json!([])),
+                        "language": r.get::<_, Option<String>>(13)?,
                     }))
                 },
             )
@@ -279,8 +283,8 @@ impl Db {
         };
         tx.execute(
             "INSERT INTO meetings (id, title, created_at, duration, status, speaker_names, sources,
-                                   audio_path, notes_doc, legacy_notes, cover, guests, screens)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                                   audio_path, notes_doc, legacy_notes, cover, guests, screens, language)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             params![
                 id,
                 meeting
@@ -307,6 +311,7 @@ impl Db {
                 text("cover"),
                 text("guests"),
                 text("screens"),
+                meeting.get("language").and_then(Value::as_str),
             ],
         )?;
         let utterances: Vec<Utterance> =
@@ -376,6 +381,12 @@ impl Db {
                 tx.execute(
                     "UPDATE meetings SET screens = ?2 WHERE id = ?1",
                     params![id, v.to_string()],
+                )?;
+            }
+            if let Some(v) = meta.language {
+                tx.execute(
+                    "UPDATE meetings SET language = ?2 WHERE id = ?1",
+                    params![id, v],
                 )?;
             }
             if let Some(v) = meta.guests {
@@ -469,6 +480,9 @@ fn migrate(conn: &Connection) -> Result<()> {
     if !has("meetings", "screens")? {
         conn.execute("ALTER TABLE meetings ADD COLUMN screens TEXT", [])?;
     }
+    if !has("meetings", "language")? {
+        conn.execute("ALTER TABLE meetings ADD COLUMN language TEXT", [])?;
+    }
     Ok(())
 }
 
@@ -542,7 +556,7 @@ mod tests {
     fn meeting() -> Value {
         json!({
             "id": "m1", "title": "Reunió amb el banc", "createdAt": 1000.0, "duration": 60.0,
-            "status": "done", "speakerNames": {"0": "Marta"}, "sources": {"mic": true, "system": true},
+            "status": "done", "speakerNames": {"0": "Marta"}, "sources": {"mic": true, "system": true}, "language": "ca-es",
             "notes": [], "notesDoc": {"type": "doc"},
             "utterances": [
                 {"id": "u1", "start": 0.0, "end": 2.0, "speaker": 0, "text": "Hem de parlar del TPV."},
@@ -558,6 +572,7 @@ mod tests {
         let m = db.get("m1").unwrap().unwrap();
         assert_eq!(m["title"], "Reunió amb el banc");
         assert_eq!(m["speakerNames"]["0"], "Marta");
+        assert_eq!(m["language"], "ca-es");
         assert_eq!(m["utterances"].as_array().unwrap().len(), 2);
         assert_eq!(db.list().unwrap().len(), 1);
     }

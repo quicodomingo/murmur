@@ -157,6 +157,7 @@ cd src-tauri && cargo run --release --example simulate -- ../../data/reunio-3min
 ## Portada (`lib/cover.ts`, `Cover.tsx`)
 
 - El model llegeix la transcripció i, al final, les notes amb el minut en què es van escriure (també compten com a font de tasques i decisions).
+- Idioma (Configuració › Intel·ligència › Idioma de la portada, `settings.coverLanguage`): el de la interfície (per defecte) o el de la reunió. Cada reunió desa en quin idioma es va gravar (`meeting.language`, columna `language`); «Català + castellà» s'escriu en català, i les reunions anteriors a la columna fan servir el de la interfície. Les instruccions, l'esquema del to i la capçalera que llegeix el model van en aquest idioma (`coverLanguageFor` a `lib/cover.ts`).
 - Tasques: només accions que algú demana o es compromet a fer; si no n'hi ha, «En aquesta reunió no s'han demanat tasques». Es poden marcar, editar, assignar (qui ha parlat + convidats), eliminar i afegir; en tornar a generar es conserven les afegides a mà i les marcades.
 - Reanomenar un parlant canvia el nom dins la portada (`renameInCover`, paraules senceres), també si es fa mentre es genera, i en mostrar-la els noms genèrics («Parlant 1», «Tu») es substitueixen pels que s'han posat. No cal regenerar per un nom.
 - Les captures surten dins de la part de la reunió on es van fer i totes juntes al final («Totes les pantalles»).
