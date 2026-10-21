@@ -6,26 +6,28 @@
 
 <p align="center">
   Meeting transcription that never leaves your Mac.<br />
-  Catalan, Spanish and English, live, with who said what.
+  Catalan, Spanish and English, live, with speaker identification.
 </p>
 
 <p align="center">
   <a href="https://github.com/quicodomingo/murmur-releases/releases/latest">Download for macOS</a> ·
-  <a href="README.ca.md">Català</a>
+  <a href="README.ca.md">Català</a> ·
+  <a href="README.es.md">Español</a>
 </p>
 
 ![Murmur transcribing a meeting live, in light and dark mode](docs/design/screens/negre-i-acid/1-reunio-en-directe.png)
 
-Murmur is a Mac app that transcribes your meetings as they happen. It runs fully on your computer, so no audio goes to a server. It also tells speakers apart, lets you take notes tied to the moment they were written, and when the meeting ends it can write a summary with decisions and tasks.
+Murmur is a Mac app that transcribes your meetings as they happen. It runs fully on your computer, so no audio goes to a server. It also tells speakers apart, lets you take notes and screenshots tied to the moment they were written, and when the meeting ends it can write a summary/frontpage with tone, decisions and tasks.
 
 It started as a tool for meetings in **Catalan**, where most transcription services struggle, especially when people switch between Catalan and Spanish in the same sentence.
 
 ## Features
 
 - **Live transcription** in Catalan, Spanish, Catalan + Spanish mixed, or English.
-- **Your mic and the call, separately.** Murmur records your microphone and the system audio (Zoom, Meet, Teams…) as two channels and removes the echo, so it works with speakers too, not just headphones. It only captures audio, never the screen.
+- **Your mic and the call, separately.** Murmur records your microphone and the system audio (Zoom, Meet, Teams…) as two channels and removes the echo, so it works with speakers too, not just headphones. It never records the screen: it only takes a screenshot when you ask for one.
 - **Speakers.** Voices are grouped live. When the meeting ends, a second pass over the whole recording checks who said what. Rename “Speaker 1” to a real name, or pick one from the calendar event's guests.
 - **Final pass with Whisper.** For single-language meetings, Whisper large-v3-turbo listens again after you stop and rewrites the text with punctuation, capitals and proper names. It doesn't touch the lines you corrected by hand.
+- **Floating bar while you record.** A small pill on the edge of the screen stays on top of your call: it shows the audio level, brings Murmur back, stops the recording and takes a screenshot of the shared screen. Each screenshot is tied to the moment of the conversation, so it appears next to what was being said, and in the right part of the meeting cover. Click the pill to turn Murmur into a narrow notes window beside the call.
 - **Notes** with headings, lists and checkboxes. Each block remembers the minute it was written and shows up next to the transcript.
 - **Meeting cover**, optional: a title, summary, tone, decisions and tasks, written by a local language model (Gemma 4 E4B). Tasks can be checked off, edited and assigned.
 - **Calendar.** Murmur reminds you two minutes before a meeting starts, and the recording takes the event's title and guests. It works with any calendar added to macOS: iCloud, Google, Exchange.
