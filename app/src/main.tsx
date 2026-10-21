@@ -8,9 +8,12 @@ import { IndicatorWindow } from "./components/IndicatorWindow";
 import { ToastWindow } from "./components/ToastWindow";
 import "./index.css";
 import { initAppearance } from "./lib/appearance";
+import { initI18n } from "./lib/i18n";
 
 // Theme and mode from the settings (Aparença), applied before the first render.
 initAppearance();
+// Interface language, likewise before the first render.
+initI18n();
 
 // A web page's right-click menu ("Reload", "Inspect Element") feels out of place in a native app.
 // Keep it for editable text (copy/paste) and in dev builds (inspector).

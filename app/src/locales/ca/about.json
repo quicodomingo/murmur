@@ -1,0 +1,38 @@
+{
+  "title": "Quant a Murmur",
+  "version": "Versió {{version}}",
+  "description": "Transcripció de reunions en directe, amb el català al centre. Tot es processa en aquest Mac: l'àudio i el text no surten mai de l'ordinador. Local vol dir privat.",
+  "chips": {
+    "local": "Res surt d'aquest Mac",
+    "noCloud": "Sense núvol ni comptes",
+    "languages": "Català i castellà"
+  },
+  "openSource": "Models i eines de codi obert",
+  "thanks": "Murmur existeix gràcies a aquests projectes. Gràcies a tothom qui hi contribueix.",
+  "roles": {
+    "transcription": "Transcripció",
+    "english": "Transcripció en anglès",
+    "final": "Transcripció final",
+    "vad": "Detecció de veu",
+    "speakers": "Parlants",
+    "turns": "Torns de paraula",
+    "verification": "Verificació de parlants",
+    "punctuation": "Puntuació i majúscules",
+    "cover": "Resum i portada"
+  },
+  "conformerName": "Conformer català i castellà",
+  "conformerAuthor": "Projecte AINA (BSC), a partir d'un model d'NVIDIA",
+  "fullstopName": "Fullstop català",
+  "noLicense": "Llicència no indicada",
+  "tool": "Eina",
+  "tools": {
+    "echo": "Cancel·lació d'eco WebRTC (sonora)",
+    "publicDomain": "Domini públic",
+    "radix": "Radix UI i shadcn/ui",
+    "docx": "docx (exportació a Word)",
+    "lucide": "Icones Lucide"
+  },
+  "hideTools": "Amaga les eines",
+  "showTools": "Veure totes les llicències i dependències",
+  "madeBy": "Fet a Barcelona per Quico Domingo"
+}

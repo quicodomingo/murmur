@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { AlignLeft, Check, Plus, Printer, RefreshCw, Sparkles, X } from "lucide-react";
 
 import { LogoMark } from "@/components/Logo";
@@ -10,10 +11,11 @@ import { TitleInput } from "@/components/Transcript";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import * as backend from "@/lib/backend";
-import { coverOutdated, namedSpeakers, renameInCover, talkTime } from "@/lib/cover";
+import { coverOutdated, namedSpeakers, renameInCover, talkTime, toneLabel } from "@/lib/cover";
 import { clock, duration, longDate, speakerIds } from "@/lib/format";
+import { locale, t } from "@/lib/i18n";
 import type { PostProcess } from "@/lib/store";
-import type { Cover as CoverData, LlmProgress, Meeting, PostStage } from "@/lib/types";
+import type { Cover as CoverData, LlmProgress, Meeting } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -68,22 +70,23 @@ export function Cover(props: Props) {
 }
 
 function meta(m: Meeting): string {
-  const weekday = new Date(m.createdAt).toLocaleDateString("ca-ES", { weekday: "long" });
+  const weekday = new Date(m.createdAt).toLocaleDateString(locale(), { weekday: "long" });
   const people = speakerIds(m).filter((id) => m.utterances.some((u) => u.speaker === id)).length;
-  const parts = [`${weekday[0].toUpperCase()}${weekday.slice(1)}, ${longDate(m.createdAt)}`, duration(m.duration)];
-  if (people) parts.push(`${people} ${people === 1 ? "participant" : "participants"}`);
+  const parts = [t("cover:weekdayDate", { weekday: `${weekday[0].toUpperCase()}${weekday.slice(1)}`, date: longDate(m.createdAt) }), duration(m.duration)];
+  if (people) parts.push(t("cover:meta.participants", { count: people }));
   return parts.join(" · ");
 }
 
-function TimeLink({ t, onJump }: { t: number; onJump: (t: number) => void }) {
+function TimeLink({ t: time, onJump }: { t: number; onJump: (t: number) => void }) {
+  const { t } = useTranslation("cover");
   return (
     <button
       type="button"
-      onClick={() => onJump(t)}
-      aria-label={`Ves al minut ${clock(t)} de la transcripció`}
+      onClick={() => onJump(time)}
+      aria-label={t("jumpTo", { time: clock(time) })}
       className="rounded-sm text-mm-timestamp tabular-nums hover:underline focus-visible:outline-2 focus-visible:outline-ring"
     >
-      {clock(t)}
+      {clock(time)}
     </button>
   );
 }
@@ -99,15 +102,17 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 // --- Ready ---------------------------------------------------------------------------------
 
 function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks, onPrint }: Props) {
+  const { t } = useTranslation("cover");
   // Covers written before a speaker was named still say "Parlant 1": show the name.
   const cover = renameInCover(meeting.cover!, namedSpeakers(meeting));
   const talk = talkTime(meeting);
   // Owners are names the model read in the transcript: match them to speakers for the colour.
   const ownerSpeaker = (owner: string) => {
-    const key = owner.toLocaleLowerCase("ca");
-    return talk.find((s) => s.name.toLocaleLowerCase("ca") === key || s.name.toLocaleLowerCase("ca").split(" ")[0] === key.split(" ")[0])?.speaker;
+    const lower = (s: string) => s.toLocaleLowerCase(locale());
+    const key = lower(owner);
+    return talk.find((s) => lower(s.name) === key || lower(s.name).split(" ")[0] === key.split(" ")[0])?.speaker;
   };
-  const minutes = (s: number) => (s < 60 ? "<1 min" : `${Math.round(s / 60)} min`);
+  const minutes = (s: number) => (s < 60 ? t("talkUnderMinute") : t("talkMinutes", { minutes: Math.round(s / 60) }));
 
   return (
     <>
@@ -115,7 +120,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-text-secondary">
         <span className="flex items-center gap-1.5">
           <LogoMark size={13} />
-          Generat en aquest ordinador. Cada punt enllaça al moment de la reunió d'on surt.
+          {t("generatedHere")}
         </span>
         <span className="flex items-center gap-1 print:hidden">
           <button
@@ -125,18 +130,18 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
             title={blocked ?? undefined}
             className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-mm-link hover:bg-mm-fill-subtle disabled:opacity-40"
           >
-            <RefreshCw className="size-3" aria-hidden /> Torna a generar
+            <RefreshCw className="size-3" aria-hidden /> {t("regenerate")}
           </button>
           <button type="button" onClick={onPrint} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-mm-link hover:bg-mm-fill-subtle">
-            <Printer className="size-3" aria-hidden /> PDF o envia…
+            <Printer className="size-3" aria-hidden /> {t("print")}
           </button>
         </span>
       </div>
       {coverOutdated(meeting) && (
         <div role="status" className="mt-4 flex items-center gap-3 rounded-[10px] border border-border bg-mm-fill-subtle px-3.5 py-2.5 text-[13px] print:hidden">
-          <span className="min-w-0 flex-1">La transcripció o les notes han canviat des que es va generar la portada.</span>
+          <span className="min-w-0 flex-1">{t("outdated")}</span>
           <Button variant="outline" className="h-7 shrink-0 rounded-md px-3 text-[13px]" onClick={onGenerate} disabled={!!blocked} title={blocked ?? undefined}>
-            <RefreshCw className="size-3.5" /> Torna a generar
+            <RefreshCw className="size-3.5" /> {t("regenerate")}
           </Button>
         </div>
       )}
@@ -144,22 +149,24 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
       <div className="mt-7 grid gap-3.5 md:grid-cols-[1fr_1.35fr]">
         {cover.tone && (
           <section aria-labelledby="tone-h" className="rounded-[10px] border border-border px-4 py-3.5">
-            <SectionTitle id="tone-h">To</SectionTitle>
+            <SectionTitle id="tone-h">{t("tone")}</SectionTitle>
             <div className="flex items-center gap-1.5 text-[15px] font-semibold">
               {/* DESIGN.md: the text colour in light mode, the accent in dark. */}
               <i className="block size-2 rounded-full bg-foreground dark:bg-mm-accent" aria-hidden />
-              {cover.tone.label}
+              {toneLabel(cover.tone.label)}
             </div>
             {cover.tone.reason && <p className="mt-1.5 text-[13px] text-muted-foreground">{cover.tone.reason}</p>}
           </section>
         )}
         {talk.length > 0 && (
           <section aria-labelledby="talk-h" className={cn("rounded-[10px] border border-border px-4 py-3.5", !cover.tone && "md:col-span-2")}>
-            <SectionTitle id="talk-h">Qui ha parlat</SectionTitle>
+            <SectionTitle id="talk-h">{t("talk")}</SectionTitle>
             <div
               className="flex h-2.5 gap-0.5 overflow-hidden rounded-full"
               role="img"
-              aria-label={talk.map((s) => `${s.name} ${s.share < 0.01 ? "menys de l'1" : Math.round(s.share * 100)}%`).join(", ")}
+              aria-label={talk
+                .map((s) => (s.share < 0.01 ? t("talkShareTiny", { name: s.name }) : t("talkShare", { name: s.name, share: Math.round(s.share * 100) })))
+                .join(", ")}
             >
               {talk.map((s) => (
                 <span key={s.speaker} className="h-full" style={{ width: `${s.share * 100}%`, background: speakerTone(s.speaker, isYou(meeting, s.speaker)).solid }} />
@@ -184,7 +191,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
         <section aria-labelledby="sum-h" className="mt-8">
           {!!cover.summary?.length && (
             <>
-              <SectionTitle id="sum-h">Resum</SectionTitle>
+              <SectionTitle id="sum-h">{t("summary")}</SectionTitle>
               {cover.summary.map((p, i) => (
                 <p key={i} className="mb-2.5 max-w-[68ch] text-[15px] leading-[1.65]">
                   {p}
@@ -194,7 +201,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
           )}
           {cover.decisions && (
             <>
-              <h2 className="mb-2 mt-5 text-[13px] font-semibold text-muted-foreground">Decisions</h2>
+              <h2 className="mb-2 mt-5 text-[13px] font-semibold text-muted-foreground">{t("decisions")}</h2>
               {cover.decisions.length ? (
                 <ul className="mt-1">
                   {cover.decisions.map((d, i) => (
@@ -207,7 +214,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
                   ))}
                 </ul>
               ) : (
-                <p className="text-[14px] text-text-secondary">No s'hi ha pres cap decisió explícita.</p>
+                <p className="text-[14px] text-text-secondary">{t("noDecisions")}</p>
               )}
             </>
           )}
@@ -216,14 +223,14 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
 
       {cover.tasks && (
         <section aria-labelledby="task-h" className="mt-8">
-          <SectionTitle id="task-h">Tasques</SectionTitle>
+          <SectionTitle id="task-h">{t("tasks")}</SectionTitle>
           <TaskList meeting={meeting} tasks={cover.tasks} ownerSpeaker={ownerSpeaker} onJump={onJump} onChange={onTasks} />
         </section>
       )}
 
       {!!cover.parts?.length && (
         <section aria-labelledby="parts-h" className="mt-8">
-          <SectionTitle id="parts-h">Parts de la reunió</SectionTitle>
+          <SectionTitle id="parts-h">{t("parts")}</SectionTitle>
           <ol>
             {cover.parts.map((p, i) => {
               const end = cover.parts![i + 1]?.t ?? meeting.duration;
@@ -261,14 +268,14 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
 
       {!!meeting.screens?.length && (
         <section aria-labelledby="screens-h" className="mt-8">
-          <SectionTitle id="screens-h">Totes les pantalles</SectionTitle>
+          <SectionTitle id="screens-h">{t("allScreens")}</SectionTitle>
           <ScreenThumbs screens={meeting.screens} onJump={onJump} />
         </section>
       )}
 
       <div className="mt-9 flex justify-center print:hidden">
         <Button variant="outline" className="h-8 rounded-lg px-3.5 text-[14px]" onClick={onShowTranscript}>
-          <AlignLeft className="size-4" /> Veure la transcripció completa
+          <AlignLeft className="size-4" /> {t("showFullTranscript")}
         </Button>
       </div>
     </>
@@ -292,6 +299,7 @@ function TaskList({
   onJump: (t: number) => void;
   onChange: (tasks: Task[]) => void;
 }) {
+  const { t } = useTranslation("cover");
   const [editing, setEditing] = useState<number | null>(null);
   const update = (i: number, patch: Partial<Task>) => onChange(tasks.map((t, j) => (j === i ? { ...t, ...patch } : t)));
   const remove = (i: number) => onChange(tasks.filter((_, j) => j !== i));
@@ -310,7 +318,7 @@ function TaskList({
                   type="button"
                   role="checkbox"
                   aria-checked={!!task.done}
-                  aria-label={`Fet: ${task.text}`}
+                  aria-label={t("taskDone", { task: task.text })}
                   onClick={() => update(i, { done: !task.done })}
                   className={cn(
                     "mt-0.5 grid size-4 place-items-center rounded-full border-[1.5px] border-mm-text-tertiary transition-colors focus-visible:outline-2 focus-visible:outline-ring",
@@ -333,7 +341,7 @@ function TaskList({
                     <button
                       type="button"
                       onClick={() => setEditing(i)}
-                      title="Edita la tasca"
+                      title={t("editTask")}
                       className={cn("block w-full cursor-text rounded-sm text-left text-[14px] focus-visible:outline-2 focus-visible:outline-ring", task.done && "text-text-secondary line-through")}
                     >
                       {task.text}
@@ -342,7 +350,7 @@ function TaskList({
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button type="button" className="rounded-[4px] focus-visible:outline-2 focus-visible:outline-ring" aria-label={task.owner ? `${task.owner}: canvia qui se n'encarrega` : "Assigna la tasca"}>
+                        <button type="button" className="rounded-[4px] focus-visible:outline-2 focus-visible:outline-ring" aria-label={task.owner ? t("changeOwner", { owner: task.owner }) : t("assignTask")}>
                           {task.owner ? (
                             owner !== undefined ? (
                               <Flag speaker={owner} you={isYou(meeting, owner)} name={task.owner} />
@@ -350,7 +358,7 @@ function TaskList({
                               <span className="inline-flex h-5 items-center rounded-[5px] bg-mm-fill-subtle px-1.5 text-[12px] font-semibold text-foreground">{task.owner}</span>
                             )
                           ) : (
-                            <span className="inline-flex h-5 items-center rounded-[5px] px-1 text-[12px] text-text-secondary hover:bg-mm-fill-subtle print:hidden">Assigna…</span>
+                            <span className="inline-flex h-5 items-center rounded-[5px] px-1 text-[12px] text-text-secondary hover:bg-mm-fill-subtle print:hidden">{t("assign")}</span>
                           )}
                         </button>
                       </DropdownMenuTrigger>
@@ -362,7 +370,7 @@ function TaskList({
                           </DropdownMenuItem>
                         ))}
                         {people.length > 0 && <DropdownMenuSeparator />}
-                        <DropdownMenuItem onSelect={() => update(i, { owner: null })}>Ningú en concret</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => update(i, { owner: null })}>{t("nobody")}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     {task.when && <span>{task.when}</span>}
@@ -372,7 +380,7 @@ function TaskList({
                 <button
                   type="button"
                   onClick={() => remove(i)}
-                  aria-label={`Elimina la tasca: ${task.text}`}
+                  aria-label={t("removeTask", { task: task.text })}
                   className="mt-0.5 grid size-5 place-items-center rounded-md text-text-secondary opacity-0 hover:bg-mm-fill-subtle hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 print:hidden"
                 >
                   <X className="size-3.5" />
@@ -382,7 +390,7 @@ function TaskList({
           })}
         </ul>
       ) : (
-        <p className="text-[14px] text-text-secondary">En aquesta reunió no s'han demanat tasques.</p>
+        <p className="text-[14px] text-text-secondary">{t("noTasks")}</p>
       )}
       <button
         type="button"
@@ -392,13 +400,14 @@ function TaskList({
         }}
         className="mt-2 flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-mm-link hover:bg-mm-fill-subtle print:hidden"
       >
-        <Plus className="size-3.5" aria-hidden /> Afegeix una tasca
+        <Plus className="size-3.5" aria-hidden /> {t("addTask")}
       </button>
     </>
   );
 }
 
 function TaskInput({ initial, onDone }: { initial: string; onDone: (text: string) => void }) {
+  const { t } = useTranslation("cover");
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(initial);
   const done = useRef(false);
@@ -412,8 +421,8 @@ function TaskInput({ initial, onDone }: { initial: string; onDone: (text: string
     <input
       ref={ref}
       value={value}
-      aria-label="Tasca"
-      placeholder="Què s'ha de fer?"
+      aria-label={t("task")}
+      placeholder={t("taskPlaceholder")}
       onChange={(e) => setValue(e.target.value)}
       onBlur={() => finish(value.trim())}
       onKeyDown={(e) => {
@@ -429,27 +438,14 @@ function TaskInput({ initial, onDone }: { initial: string; onDone: (text: string
 function span(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));
   const m = Math.floor(s / 60);
-  if (!m) return `${s} s`;
-  return s % 60 && m < 10 ? `${m} min ${s % 60} s` : `${m} min`;
+  if (!m) return t("cover:span.seconds", { s });
+  return s % 60 && m < 10 ? t("cover:span.minutesSeconds", { m, s: s % 60 }) : t("cover:span.minutes", { m });
 }
 
 // --- Processing ----------------------------------------------------------------------------
 
-const STAGE_LABELS: Record<PostStage, string> = {
-  speakers: "Verificació de parlants",
-  text: "Transcripció amb Whisper",
-  punctuation: "Puntuació i majúscules",
-  cover: "Títol, resum, tasques i parts",
-};
-
-const PART_LABELS: Record<string, string> = {
-  title: "el títol",
-  tone: "el to",
-  summary: "el resum",
-  decisions: "les decisions",
-  tasks: "les tasques",
-  parts: "les parts",
-};
+/** The cover's parts, as the model writes them (llm.step): cover.json `writing`. */
+const WRITING_STEPS = new Set(["title", "tone", "summary", "decisions", "tasks", "parts"]);
 
 function useNow(active: boolean) {
   const [now, setNow] = useState(Date.now());
@@ -462,6 +458,7 @@ function useNow(active: boolean) {
 }
 
 function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProcess }) {
+  const { t } = useTranslation("cover");
   const now = useNow(true);
   const [llm, setLlm] = useState<LlmProgress | null>(null);
   useEffect(() => {
@@ -474,26 +471,33 @@ function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProce
   const elapsed = (now - run.startedAt) / 1000;
   const progress = Math.min(0.95, elapsed / Math.max(run.estimateSeconds, 1));
   const left = Math.max(0, run.estimateSeconds - elapsed);
-  const remaining = left < 45 ? "falta poc" : `uns ${Math.round(left / 60) || 1} min`;
+  const remaining = left < 45 ? t("almostDone") : t("minutesLeft", { minutes: Math.round(left / 60) || 1 });
   const detail =
     run.stage !== "cover" || !llm
       ? null
       : llm.step === "loading"
-        ? "Carregant el model…"
+        ? t("loadingModel")
         : llm.step === "reading"
-          ? "Llegint la transcripció…"
-          : PART_LABELS[llm.step]
-            ? `Escrivint ${PART_LABELS[llm.step]} (${llm.done + 1} de ${llm.total})`
+          ? t("readingTranscript")
+          : WRITING_STEPS.has(llm.step)
+            ? t(`writing.${llm.step}`, { n: llm.done + 1, total: llm.total })
             : null;
 
   const rows: { label: string; state: "done" | "active" | "wait"; note: string }[] = [
-    { label: "Transcripció", state: "done", note: "Fet" },
+    { label: t("stages.transcript"), state: "done", note: t("done") },
     ...run.steps.map((stage, i) => {
       const took = run.took[stage];
       return {
-        label: STAGE_LABELS[stage],
+        label: t(`stages.${stage}`),
         state: i < current ? ("done" as const) : i === current ? ("active" as const) : ("wait" as const),
-        note: i < current ? (took !== undefined ? `Fet · ${took < 60 ? `${Math.max(1, Math.round(took))} s` : `${Math.round(took / 60)} min`}` : "Fet") : i === current ? remaining : "Després",
+        note:
+          i < current
+            ? took !== undefined
+              ? t("doneIn", { time: took < 60 ? t("tookSeconds", { s: Math.max(1, Math.round(took)) }) : t("tookMinutes", { m: Math.round(took / 60) }) })
+              : t("done")
+            : i === current
+              ? remaining
+              : t("later"),
       };
     }),
   ];
@@ -501,14 +505,14 @@ function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProce
   return (
     <>
       <p className="mt-3.5 max-w-[64ch] text-[18px] leading-[1.55] text-muted-foreground">
-        S'està preparant la portada. Mentrestant pots llegir i editar la transcripció.
+        {t("preparing")}
       </p>
-      <ul className="mt-5 rounded-[10px] border border-border" aria-label="Processament">
+      <ul className="mt-5 rounded-[10px] border border-border" aria-label={t("processing")}>
         {rows.map((row, i) => (
           <li key={row.label} className={cn("border-b border-border last:border-b-0", row.state === "active" && "pb-3")}>
             <div className="flex items-center gap-2.5 px-3.5 py-[11px] text-[14px]" aria-current={row.state === "active" ? "step" : undefined}>
               {row.state === "done" ? (
-                <span className="grid size-4 place-items-center rounded-full bg-primary text-primary-foreground" aria-label="Fet">
+                <span className="grid size-4 place-items-center rounded-full bg-primary text-primary-foreground" aria-label={t("done")}>
                   <Check className="size-2.5" strokeWidth={3} />
                 </span>
               ) : row.state === "active" ? (
@@ -547,7 +551,7 @@ function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProce
       </div>
       <div className="mt-9 flex justify-center">
         <Button variant="outline" className="h-8 rounded-lg px-3.5 text-[14px]" onClick={onShowTranscript}>
-          <AlignLeft className="size-4" /> Llegeix la transcripció mentrestant
+          <AlignLeft className="size-4" /> {t("readMeanwhile")}
         </Button>
       </div>
     </>
@@ -557,23 +561,22 @@ function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProce
 // --- Empty ---------------------------------------------------------------------------------
 
 function Empty({ meeting, blocked, onGenerate, onShowTranscript }: Props) {
+  const { t } = useTranslation("cover");
   const hasText = meeting.utterances.length > 0;
   return (
     <div className="mt-8 rounded-[10px] border border-dashed border-border px-6 py-8 text-center">
       <Sparkles className="mx-auto size-6 text-text-secondary" strokeWidth={1.5} aria-hidden />
-      <h2 className="mt-2 text-[15px] font-semibold">Aquesta reunió encara no té portada</h2>
+      <h2 className="mt-2 text-[15px] font-semibold">{t("emptyTitle")}</h2>
       <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
-        {hasText
-          ? "El model de llenguatge local llegirà la transcripció i en farà el títol, el resum, les decisions, les tasques i les parts."
-          : "Cal una transcripció per poder fer-ne la portada."}
+        {hasText ? t("emptyHelp") : t("emptyNoText")}
       </p>
       {blocked && hasText && <p className="mx-auto mt-2 max-w-sm text-[12px] text-text-secondary">{blocked}</p>}
       <div className="mt-4 flex justify-center gap-2">
         <Button className="h-7 rounded-md px-3 text-[13px]" onClick={onGenerate} disabled={!!blocked || !hasText}>
-          <Sparkles className="size-3.5" /> Genera la portada
+          <Sparkles className="size-3.5" /> {t("generate")}
         </Button>
         <Button variant="outline" className="h-7 rounded-md px-3 text-[13px]" onClick={onShowTranscript}>
-          Veure la transcripció
+          {t("showTranscript")}
         </Button>
       </div>
     </div>

@@ -1,0 +1,8 @@
+{
+  "defaultName": "Speaker {{n}}",
+  "changeSpeaker": "{{name}}: change speaker",
+  "guestsLabel": "Guests: “{{name}}” is…",
+  "rename": "Rename “{{name}}”…",
+  "newSpeaker": "New Speaker…",
+  "nameLabel": "Speaker name"
+}

@@ -1,6 +1,7 @@
 //! Audio capture: microphone (cpal) + system audio (a Core Audio process tap on macOS, systap.rs),
 //! each sent as 16 kHz mono f32 frames tagged with their source.
 
+use crate::i18n::tr;
 use anyhow::{Context, Result, anyhow};
 use cpal::SampleFormat;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -72,9 +73,7 @@ pub fn start_capture(
     tx: Sender<Frame>,
 ) -> Result<Capture> {
     if !mic && !system {
-        return Err(anyhow!(
-            "Activa el micròfon o l'àudio del sistema a la configuració"
-        ));
+        return Err(anyhow!(tr!("no_audio_source")));
     }
     // Start system audio first: if its permission is missing we fail before opening the mic.
     #[cfg(target_os = "macos")]
@@ -85,9 +84,7 @@ pub fn start_capture(
     };
     #[cfg(not(target_os = "macos"))]
     if system {
-        return Err(anyhow!(
-            "L'àudio del sistema encara no està disponible en aquesta plataforma"
-        ));
+        return Err(anyhow!(tr!("system_audio_unsupported")));
     }
     let mic_stream = if mic {
         Some(start_mic(mic_device, tx)?)
@@ -124,10 +121,10 @@ fn start_mic(name: Option<&str>, tx: Sender<Frame>) -> Result<cpal::Stream> {
     // A device that was unplugged since it was chosen falls back to the system default.
     let device = chosen
         .or_else(|| host.default_input_device())
-        .ok_or_else(|| anyhow!("No s'ha trobat cap micròfon"))?;
+        .ok_or_else(|| anyhow!(tr!("no_microphone")))?;
     let supported = device
         .default_input_config()
-        .context("El micròfon no està disponible")?;
+        .context(tr!("mic_unavailable"))?;
     let channels = supported.channels() as usize;
     let mut resampler = Resampler::new(supported.sample_rate().0);
     let format = supported.sample_format();
@@ -158,10 +155,10 @@ fn start_mic(name: Option<&str>, tx: Sender<Frame>) -> Result<cpal::Stream> {
         SampleFormat::F32 => build!(f32, |s: f32| s),
         SampleFormat::I16 => build!(i16, |s: i16| s as f32 / i16::MAX as f32),
         SampleFormat::I32 => build!(i32, |s: i32| s as f32 / i32::MAX as f32),
-        other => return Err(anyhow!("Format d'àudio no suportat: {other:?}")),
+        other => return Err(anyhow!(tr!("audio_format_unsupported", format = format!("{other:?}")))),
     }
-    .context("No s'ha pogut obrir el micròfon")?;
-    stream.play().context("No s'ha pogut començar a gravar")?;
+    .context(tr!("mic_open_failed"))?;
+    stream.play().context(tr!("record_start_failed"))?;
     Ok(stream)
 }
 

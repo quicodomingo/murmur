@@ -1,0 +1,25 @@
+{
+  "models": {
+    "transcription": "Modelo de transcripción",
+    "punctuation": "Modelo de puntuación",
+    "llm": "Modelo de lenguaje",
+    "english": "Modelo de inglés",
+    "whisper": "Whisper"
+  },
+  "appVersion": "Murmur {{version}}",
+  "newVersion": "Versión nueva de la app",
+  "modelFailed": "No se ha podido actualizar",
+  "checking": "Buscando actualizaciones…",
+  "upToDate": "Murmur está al día",
+  "restarting": "Reiniciando Murmur…",
+  "done": "Todo actualizado",
+  "failed": "No se ha podido actualizar todo",
+  "updating": "Actualizando Murmur",
+  "upToDateHint": "Tienes la última versión de la app y de los modelos.",
+  "updatingHint": "Puedes seguir trabajando. Si se actualiza la app, se reiniciará sola al terminar.",
+  "failedHint": "Lo que no se ha actualizado se volverá a intentar la próxima vez que abras Murmur.",
+  "itemDone": "Hecho",
+  "itemError": "Error",
+  "later": "Hacerlo más tarde",
+  "ok": "Aceptar"
+}

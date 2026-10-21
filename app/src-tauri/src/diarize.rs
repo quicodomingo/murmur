@@ -1,6 +1,7 @@
 //! Offline speaker diarization for the final pass: pyannote segmentation + 3D-Speaker embeddings
 //! + clustering over a whole channel, then each live utterance gets the speaker it overlaps most.
 
+use crate::i18n::tr;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -82,7 +83,7 @@ impl Diarizer {
         let path = |p: &str| -> Result<String> {
             let full = models.join(p);
             if !full.exists() {
-                return Err(anyhow!("Falta el model {}", full.display()));
+                return Err(anyhow!(tr!("model_missing", path = full.display())));
             }
             Ok(full.to_string_lossy().into_owned())
         };
@@ -109,7 +110,7 @@ impl Diarizer {
             ..Default::default()
         };
         let sd = OfflineSpeakerDiarization::create(&config)
-            .context("No s'ha pogut carregar el model de parlants")?;
+            .context(tr!("speaker_model_load_failed"))?;
         Ok(Self { sd })
     }
 
@@ -117,7 +118,7 @@ impl Diarizer {
         let result = self
             .sd
             .process(samples)
-            .ok_or_else(|| anyhow!("La verificació de parlants ha fallat"))?;
+            .ok_or_else(|| anyhow!(tr!("speaker_check_failed")))?;
         Ok(result
             .sort_by_start_time()
             .into_iter()
@@ -200,7 +201,7 @@ pub fn absorb_small_speakers(
         num_threads: std::thread::available_parallelism().map_or(4, |n| n.get().min(8)) as i32,
         ..Default::default()
     })
-    .context("No s'ha pogut carregar el model de parlants")?;
+    .context(tr!("speaker_model_load_failed"))?;
     let audio = |s: &Span| {
         let a = ((s.start.max(0.0) * 16_000.0) as usize).min(samples.len());
         let b = ((s.end.max(0.0) * 16_000.0) as usize).min(samples.len());

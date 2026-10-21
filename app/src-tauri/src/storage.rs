@@ -1,6 +1,7 @@
 //! Reader for the one-JSON-file-per-meeting format used before SQLite (`<app_data_dir>/meetings/`).
 //! Only kept to migrate those files into the database (see `db::migrate_json`).
 
+use crate::i18n::tr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,7 +17,7 @@ pub fn list(dir: &Path) -> Result<Vec<Value>> {
         return Ok(vec![]);
     }
     let mut meetings = vec![];
-    for entry in fs::read_dir(dir).context("No s'han pogut llegir les reunions")? {
+    for entry in fs::read_dir(dir).context(tr!("meetings_read_failed"))? {
         let path = entry?.path();
         if path.extension().is_some_and(|e| e == "json") {
             match fs::read(&path)

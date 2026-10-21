@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ask, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { AboutDialog } from "@/components/AboutDialog";
@@ -22,6 +23,8 @@ import * as backend from "@/lib/backend";
 import { currentEvent, guestNames } from "@/lib/calendar";
 import { clock, duration, toMarkdown } from "@/lib/format";
 import { exportMeeting, type ExportFormat } from "@/lib/export";
+import { defaultTitle } from "@/lib/cover";
+import { locale, t as translate } from "@/lib/i18n";
 import { modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
@@ -74,10 +77,11 @@ function localSearch(meetings: Meeting[], query: string): SearchHit[] {
 
 function newMeeting(sources: { mic: boolean; system: boolean }, title?: string, guests?: string[]): Meeting {
   const now = new Date();
-  const time = now.toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" });
+  const time = now.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
   return {
     id: crypto.randomUUID(),
-    title: title || `Reunió de les ${time}`,
+    // Stored as is: in the interface language at the time it's created.
+    title: title || defaultTitle(time),
     createdAt: now.getTime(),
     duration: 0,
     status: "recording",
@@ -109,6 +113,7 @@ function ToolbarButton({ label, onClick, active, children }: { label: string; on
 }
 
 export default function App() {
+  const { t } = useTranslation("app");
   const [state, dispatch, forget] = useMeetings();
   const [settings, updateSettings] = useSettings();
   const [showSettings, setShowSettings] = useState(false);
@@ -182,7 +187,8 @@ export default function App() {
       onFinalPass: (e) => post.rustStageStarted(e.meetingId, e.stage, e.estimateSeconds),
       onFinalPassSpeakers: (e) => {
         dispatch({ type: "speakersVerified", id: e.meetingId, base: e.base, assignments: e.assignments });
-        toast("Parlants verificats");
+        // The module-level t: this listener outlives a language change.
+        toast(translate("app:speakersVerified"));
       },
       onFinalPassText: (e) => dispatch({ type: "retranscribed", id: e.meetingId, base: e.base, texts: e.texts }),
       onFinalPassDone: (e) => {
@@ -281,7 +287,7 @@ export default function App() {
 
   const start = useCallback(async () => {
     if (!backend.isTauri()) {
-      toast.error("Obre Murmur com a app (npm run tauri dev) per gravar.");
+      toast.error(t("openAsApp"));
       return;
     }
     if (!transcriptionReady) {
@@ -289,7 +295,7 @@ export default function App() {
       return;
     }
     if (!liveModelReady) {
-      toast.error("Per gravar en anglès cal descarregar el model d'anglès.", { action: { label: "Configuració", onClick: () => setShowSettings(true) } });
+      toast.error(t("englishModelMissing"), { action: { label: t("settings"), onClick: () => setShowSettings(true) } });
       return;
     }
     setBusy(true);
@@ -329,7 +335,7 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  }, [dispatch, settings, post.planRecording, transcriptionReady, liveModelReady]);
+  }, [dispatch, settings, post.planRecording, transcriptionReady, liveModelReady, t]);
   startRef.current = () => {
     if (!recording && !busy) start();
   };
@@ -353,11 +359,11 @@ export default function App() {
 
   const doExport = (m: Meeting, format: ExportFormat) =>
     exportMeeting(m, format)
-      .then((done) => done && toast("Reunió exportada"))
+      .then((done) => done && toast(t("exported")))
       .catch((e) => toast.error(String(e)));
 
   const copyMarkdown = (m: Meeting) =>
-    navigator.clipboard.writeText(toMarkdown(m)).then(() => toast("Transcripció copiada en Markdown"));
+    navigator.clipboard.writeText(toMarkdown(m)).then(() => toast(t("copiedMarkdown")));
 
   /** From the sidebar (right click) or ⌘⌫: the meeting may not be loaded yet. */
   const removeById = async (id: string) => {
@@ -370,10 +376,10 @@ export default function App() {
 
   const remove = async (m: Meeting) => {
     const message = m.audioPath
-      ? `S'eliminaran la transcripció, les notes i l'àudio desat de «${m.title}». No es pot desfer.`
-      : `S'eliminaran la transcripció i les notes de «${m.title}». No es pot desfer.`;
+      ? t("deleteMessageWithAudio", { title: m.title })
+      : t("deleteMessage", { title: m.title });
     const confirmed = backend.isTauri()
-      ? await ask(message, { title: "Vols eliminar la reunió?", kind: "warning", okLabel: "Elimina", cancelLabel: "Cancel·la" })
+      ? await ask(message, { title: t("deleteTitle"), kind: "warning", okLabel: t("common:delete"), cancelLabel: t("common:cancel") })
       : window.confirm(message);
     if (!confirmed) return;
     try {
@@ -393,11 +399,11 @@ export default function App() {
     !!meeting && meeting.status !== "recording" && (!!meeting.cover || !!run?.steps.includes("cover") || settings.summarize);
   const showCover = coverAvailable && view.cover;
   const coverBlocked = !models.status.llm?.installed
-    ? "Activa la portada a Configuració › Intel·ligència i descarrega el model."
+    ? t("coverNeedsModel")
     : recording
-      ? "Es podrà generar quan acabi la gravació."
+      ? t("coverAfterRecording")
       : meeting?.status === "processing"
-        ? "Espera que acabi el processament."
+        ? t("coverAfterProcessing")
         : null;
   /**
    * "PDF o envia…": macOS's print panel has Save as PDF and sharing (Mail, Messages). Paper is
@@ -444,11 +450,11 @@ export default function App() {
   /** "Exporta l'àudio…": an .m4a anyone can play. */
   const exportAudio = async (m: Meeting) => {
     if (!m.audioPath) return;
-    const dest = await save({ title: "Exporta l'àudio", defaultPath: `${m.title.replace(/[/:]/g, "-")}.m4a`, filters: [{ name: "Àudio", extensions: ["m4a"] }] });
+    const dest = await save({ title: t("exportAudioTitle"), defaultPath: `${m.title.replace(/[/:]/g, "-")}.m4a`, filters: [{ name: t("audioFilter"), extensions: ["m4a"] }] });
     if (!dest) return;
     try {
       await backend.exportAudio(m.id, m.audioPath, dest);
-      toast("Àudio exportat");
+      toast(t("audioExported"));
     } catch (e) {
       toast.error(String(e));
     }
@@ -534,18 +540,18 @@ export default function App() {
             </span>
             {recording && (
               <>
-                <span className="text-[12px] tabular-nums text-muted-foreground" aria-label="Temps de gravació">
+                <span className="text-[12px] tabular-nums text-muted-foreground" aria-label={t("recordingTime")}>
                   {clock(recording.duration)}
                 </span>
-                <ToolbarButton label="Captura la pantalla de la reunió" onClick={() => captureRef.current()}>
+                <ToolbarButton label={t("captureScreen")} onClick={() => captureRef.current()}>
                   <Camera className="size-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Atura la gravació" onClick={stop}>
+                <ToolbarButton label={t("stopRecording")} onClick={stop}>
                   <span className="size-2.5 rounded-[2px] bg-mm-recording-dot" />
                 </ToolbarButton>
               </>
             )}
-            <ToolbarButton label="Surt del mode compacte" onClick={() => backend.setCompact(false).catch(() => {})}>
+            <ToolbarButton label={t("exitCompact")} onClick={() => backend.setCompact(false).catch(() => {})}>
               <Maximize2 className="size-4" />
             </ToolbarButton>
           </header>
@@ -582,7 +588,7 @@ export default function App() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header data-tauri-drag-region className={cn("flex h-[52px] shrink-0 items-center gap-2 border-b border-border px-3", !showSidebar && "pl-[84px]")}>
-            <ToolbarButton label={showSidebar ? "Amaga la barra lateral" : "Mostra la barra lateral"} onClick={() => setShowSidebar((v) => !v)}>
+            <ToolbarButton label={showSidebar ? t("hideSidebar") : t("showSidebar")} onClick={() => setShowSidebar((v) => !v)}>
               <PanelLeft className="size-4" />
             </ToolbarButton>
             {meeting && (
@@ -593,32 +599,32 @@ export default function App() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-56">
                   <DropdownMenuItem onSelect={() => copyMarkdown(meeting)}>
-                    <Copy className="size-3.5" /> Copia en Markdown
+                    <Copy className="size-3.5" /> {t("copyMarkdown")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={!meeting.audioPath}
                     onSelect={() => meeting.audioPath && revealItemInDir(meeting.audioPath).catch((e) => toast.error(String(e)))}
                   >
-                    <FolderOpen className="size-3.5" /> {meeting.audioPath ? "Mostra l'àudio al Finder" : "No s'ha desat l'àudio"}
+                    <FolderOpen className="size-3.5" /> {meeting.audioPath ? t("showAudioInFinder") : t("audioNotSaved")}
                   </DropdownMenuItem>
                   {hasAudio(meeting) && (
                     <DropdownMenuItem onSelect={() => exportAudio(meeting)}>
-                      <FileAudio className="size-3.5" /> Exporta l'àudio (.m4a)…
+                      <FileAudio className="size-3.5" /> {t("exportAudio")}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" disabled={meeting.status === "recording"} onSelect={() => remove(meeting)}>
-                    <Trash2 className="size-3.5" /> Elimina la reunió…
+                    <Trash2 className="size-3.5" /> {t("deleteMeeting")}
                     <span className="ml-auto pl-4 text-[11px] opacity-60">⌘⌫</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
             {coverAvailable && (
-              <div role="radiogroup" aria-label="Vista" className="ml-1 flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
+              <div role="radiogroup" aria-label={t("view")} className="ml-1 flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
                 {[
-                  { cover: true, label: "Portada" },
-                  { cover: false, label: notesPrimary ? "Notes" : "Transcripció" },
+                  { cover: true, label: t("viewCover") },
+                  { cover: false, label: notesPrimary ? t("viewNotes") : t("viewTranscript") },
                 ].map((o) => (
                   <button
                     key={o.label}
@@ -650,8 +656,8 @@ export default function App() {
                     />
                   ))}
                 </span>
-                <span className="text-[13px] font-medium">Gravant</span>
-                <span className="text-[13px] tabular-nums opacity-70" aria-label="Temps de gravació">
+                <span className="text-[13px] font-medium">{t("recording")}</span>
+                <span className="text-[13px] tabular-nums opacity-70" aria-label={t("recordingTime")}>
                   {clock(recording.duration)}
                 </span>
                 <Tooltip>
@@ -660,38 +666,38 @@ export default function App() {
                       type="button"
                       onClick={stop}
                       disabled={busy}
-                      aria-label="Atura la gravació"
+                      aria-label={t("stopRecording")}
                       className="grid size-[22px] place-items-center rounded-full bg-white/[0.14] hover:bg-white/25 disabled:opacity-40"
                     >
                       <span className="size-2 rounded-[2px] bg-current" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>Atura</TooltipContent>
+                  <TooltipContent>{t("stop")}</TooltipContent>
                 </Tooltip>
               </div>
             ) : (
               meeting && (
                 <>
-                  <span className="text-[13px] text-text-secondary">Durada {duration(meeting.duration)}</span>
+                  <span className="text-[13px] text-text-secondary">{t("durationValue", { duration: duration(meeting.duration) })}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
                         className="inline-flex h-7 items-center gap-1.5 rounded-[7px] bg-mm-accent px-3 text-[13px] font-semibold text-mm-on-accent transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
-                        Exporta <Share className="size-[13px]" strokeWidth={2} />
+                        {t("export")} <Share className="size-[13px]" strokeWidth={2} />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="min-w-52">
                       <DropdownMenuItem onSelect={() => doExport(meeting, "docx")}>
-                        <FileDown className="size-3.5" /> Document de Word (.docx)…
+                        <FileDown className="size-3.5" /> {t("exportDocx")}
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => doExport(meeting, "md")}>
-                        <FileText className="size-3.5" /> Markdown (.md)…
+                        <FileText className="size-3.5" /> {t("exportMarkdown")}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={() => copyMarkdown(meeting)}>
-                        <Copy className="size-3.5" /> Copia en Markdown
+                        <Copy className="size-3.5" /> {t("copyMarkdown")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -699,7 +705,7 @@ export default function App() {
               )
             )}
             {meeting && (
-              <ToolbarButton label={`${showNotes ? "Amaga" : "Mostra"} ${notesPrimary ? "la transcripció" : "les notes"}`} onClick={() => setNotes((n) => ({ ...n, visible: !n.visible }))} active={showNotes}>
+              <ToolbarButton label={notesPrimary ? (showNotes ? t("hideTranscript") : t("showTranscript")) : showNotes ? t("hideNotes") : t("showNotes")} onClick={() => setNotes((n) => ({ ...n, visible: !n.visible }))} active={showNotes}>
                 <PanelRight className="size-4" />
               </ToolbarButton>
             )}
@@ -782,22 +788,23 @@ function Welcome({
   downloading?: { done: number; total: number };
   onDownload: () => void;
 }) {
+  const { t } = useTranslation("app");
   if (missingModel) {
     const share = downloading ? downloading.done / (downloading.total || 1) : 0;
     return (
       <div className="grid h-full place-items-center">
         <div className="flex w-80 flex-col items-center text-center">
           <LogoIcon size={56} />
-          <h1 className="mt-4 text-[22px] font-bold">{downloading ? "Descarregant el model" : "Falta el model de transcripció"}</h1>
+          <h1 className="mt-4 text-[22px] font-bold">{downloading ? t("downloadingModel") : t("missingModel")}</h1>
           <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-            Murmur transcriu amb un model que funciona en aquest Mac. Només cal descarregar-lo un cop.
+            {t("missingModelBody")}
           </p>
           {downloading ? (
             <div className="mt-5 flex w-full items-center gap-3">
               <div className="h-1.5 flex-1 overflow-hidden rounded-[3px] bg-mm-separator">
                 <div className="h-full rounded-[3px] bg-mm-toggle-on transition-[width] duration-300" style={{ width: `${share * 100}%` }} />
               </div>
-              <span className="text-[12px] tabular-nums text-muted-foreground">{Math.floor(share * 100)} %</span>
+              <span className="text-[12px] tabular-nums text-muted-foreground">{t("progress", { percent: Math.floor(share * 100) })}</span>
             </div>
           ) : (
             <button
@@ -805,7 +812,7 @@ function Welcome({
               onClick={onDownload}
               className="mt-5 flex h-8 items-center gap-2 rounded-lg bg-mm-new-meeting px-3 text-[13px] font-semibold text-mm-on-new-meeting hover:opacity-90"
             >
-              Descarrega el model
+              {t("downloadModel")}
             </button>
           )}
         </div>
@@ -816,9 +823,9 @@ function Welcome({
     <div className="grid h-full place-items-center">
       <div className="flex max-w-sm flex-col items-center text-center">
         <LogoIcon size={56} />
-        <h1 className="mt-4 text-[22px] font-bold">Cap reunió encara</h1>
+        <h1 className="mt-4 text-[22px] font-bold">{t("emptyTitle")}</h1>
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-          Grava una reunió i la transcripció apareixerà en directe, separada per parlants. Tot es processa en aquest Mac: local vol dir privat.
+          {t("emptyBody")}
         </p>
         <button
           type="button"
@@ -826,9 +833,9 @@ function Welcome({
           disabled={busy}
           className="mt-5 flex h-8 items-center gap-2 rounded-lg bg-mm-new-meeting px-3 text-[13px] font-semibold text-mm-on-new-meeting hover:opacity-90 disabled:opacity-40"
         >
-          <Mic className="size-3.5" /> Comença a gravar
+          <Mic className="size-3.5" /> {t("startRecording")}
         </button>
-        <p className="mt-3 text-[12px] text-text-secondary">Recorda demanar el consentiment dels participants.</p>
+        <p className="mt-3 text-[12px] text-text-secondary">{t("consentReminder")}</p>
       </div>
     </div>
   );

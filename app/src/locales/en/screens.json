@@ -1,0 +1,7 @@
+{
+  "enlarge": "Screenshot at {{time}}: enlarge it",
+  "remove": "Delete the screenshot at {{time}}",
+  "title": "Screenshot at {{time}}",
+  "description": "Meeting screen",
+  "alt": "Meeting screen at {{time}}"
+}

@@ -4,15 +4,14 @@ import type { HeadingLevel as HeadingLevelT, Paragraph as ParagraphT, TextRun as
 
 import * as backend from "./backend";
 import { clock, longDate, speakerName, toMarkdown } from "./format";
+import { t } from "./i18n";
 import { notesDoc } from "./notes";
 import type { Meeting } from "./types";
 
 export type ExportFormat = "md" | "docx";
 
-const FILTERS: Record<ExportFormat, { name: string; extensions: string[] }> = {
-  md: { name: "Markdown", extensions: ["md"] },
-  docx: { name: "Document de Word", extensions: ["docx"] },
-};
+const filter = (format: ExportFormat): { name: string; extensions: string[] } =>
+  format === "md" ? { name: "Markdown", extensions: ["md"] } : { name: t("export:wordDocument"), extensions: ["docx"] };
 
 /** Asks where to save, then writes the file. Returns false if the user cancelled. */
 export async function exportMeeting(meeting: Meeting, format: ExportFormat): Promise<boolean> {
@@ -29,7 +28,7 @@ export async function exportMeeting(meeting: Meeting, format: ExportFormat): Pro
     URL.revokeObjectURL(a.href);
     return true;
   }
-  const path = await save({ defaultPath: fileName, filters: [FILTERS[format]] });
+  const path = await save({ defaultPath: fileName, filters: [filter(format)] });
   if (!path) return false;
   await backend.writeExport(path, bytes);
   return true;
@@ -104,8 +103,8 @@ export async function toDocx(meeting: Meeting): Promise<ArrayBuffer> {
         children: [
           new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(meeting.title)] }),
           new Paragraph({ children: [new TextRun({ text: longDate(meeting.createdAt), color: "6E6E73" })] }),
-          ...(notes.length ? [new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("Notes")] }), ...notes] : []),
-          new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("Transcripció")] }),
+          ...(notes.length ? [new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("export:notes"))] }), ...notes] : []),
+          new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("export:transcript"))] }),
           ...transcript,
         ],
       },

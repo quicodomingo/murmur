@@ -3,6 +3,7 @@
 //! iPhone, Windows, WhatsApp), and so can the app's webview. Mono, because in the recording your
 //! voice is on the left and the rest of the call on the right.
 
+use crate::i18n::tr;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
@@ -17,10 +18,10 @@ const BITRATE: u32 = 48_000;
 
 /// The recording as mono samples at 16 kHz.
 pub fn decode(path: &Path) -> Result<Vec<f32>> {
-    let mut reader = PacketReader::new(BufReader::new(File::open(path).context("No es troba l'àudio de la reunió")?));
-    let head = reader.read_packet()?.ok_or_else(|| anyhow!("L'àudio és buit"))?;
+    let mut reader = PacketReader::new(BufReader::new(File::open(path).context(tr!("meeting_audio_missing"))?));
+    let head = reader.read_packet()?.ok_or_else(|| anyhow!(tr!("audio_empty")))?;
     if !head.data.starts_with(b"OpusHead") || head.data.len() < 19 {
-        return Err(anyhow!("L'àudio no és Opus"));
+        return Err(anyhow!(tr!("audio_not_opus")));
     }
     let channels = head.data[9] as usize;
     // Pre-skip counts 48 kHz samples.
@@ -81,7 +82,7 @@ pub fn write_m4a(samples: &[f32], out: &Path) -> Result<()> {
     let _ = std::fs::remove_file(&wav);
     if !status.map(|s| s.success()).unwrap_or(false) {
         let _ = std::fs::remove_file(&partial);
-        return Err(anyhow!("No s'ha pogut convertir l'àudio"));
+        return Err(anyhow!(tr!("audio_convert_failed")));
     }
     std::fs::rename(&partial, out)?;
     Ok(())

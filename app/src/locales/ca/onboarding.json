@@ -1,0 +1,81 @@
+{
+  "dialogTitle": "Benvinguda a Murmur",
+  "dialogDescription": "Primers passos i descàrrega dels models",
+  "start": "Comença",
+  "continue": "Continua",
+  "back": "Enrere",
+  "stepOf": "Pas {{step}} de {{total}}",
+  "welcomeTagline": "Transcriu les teves reunions en directe, amb el català al centre.",
+  "welcomePrivate": "Privat, perquè és local.",
+  "features": {
+    "live": {
+      "kicker": "Transcripció en directe",
+      "title": "Veus el text mentre parleu",
+      "text": "Murmur transcriu la reunió en temps real, amb el català com a llengua principal. La pots seguir, corregir i anotar al moment."
+    },
+    "speakers": {
+      "kicker": "Parlants i notes",
+      "title": "Qui parla i què hi apuntes",
+      "text": "Distingeix les veus i et mostra qui ha parlat i quant. Les notes que escrius queden lligades al minut exacte de la reunió."
+    },
+    "cover": {
+      "kicker": "Portada",
+      "title": "La reunió, resumida",
+      "text": "En acabar, Murmur prepara una portada amb el títol, el resum, les decisions i les tasques. Cada punt enllaça al moment on es va dir."
+    },
+    "alerts": {
+      "kicker": "Avisos",
+      "title": "Cap reunió sense gravar",
+      "text": "Quan Zoom, Meet o Teams fan servir el micròfon, Murmur t'avisa des de la barra de menús. Un clic i comença a gravar."
+    }
+  },
+  "demo": {
+    "recording": "Gravant",
+    "anna": "Anna",
+    "jordi": "Jordi",
+    "marta": "Marta",
+    "you": "Tu",
+    "liveText": "Doncs si us sembla bé, tanquem el pressupost dijous i ho enviem divendres",
+    "livePartial": " al client perquè ho",
+    "whoSpoke": "Qui ha parlat",
+    "notes": "Notes",
+    "note1": "Pressupost tancat dijous",
+    "note2": "Revisar textos legals",
+    "coverTitle": "Pressupost i calendari del llançament",
+    "decisions": "Decisions",
+    "decision1": "Enviar divendres",
+    "decision2": "Descompte de llançament",
+    "tasks": "Tasques",
+    "task1": "Tancar xifres",
+    "task2": "Textos legals",
+    "menuBarClock": "dl. 10:58",
+    "alertTitle": "Reunió detectada",
+    "alertText": "Meet fa servir el micròfon",
+    "alertAction": "Comença a gravar"
+  },
+  "models": {
+    "kicker": "Últim pas",
+    "titleReady": "Tot a punt",
+    "titleDownloading": "Descarregant els models",
+    "titleChoose": "Descarrega els models",
+    "introReady": "Ja pots gravar la teva primera reunió.",
+    "introDownloading": "La descàrrega continua encara que tanquis aquesta finestra.",
+    "introChoose": "Murmur funciona amb models que s'executen en aquest Mac. Només cal descarregar-los un cop.",
+    "transcriptionName": "Model de transcripció",
+    "required": "Necessari",
+    "transcriptionText": "Converteix la veu en text, en català i altres llengües, dins d'aquest Mac.",
+    "alwaysIncluded": "Sempre inclòs",
+    "toolsName": "Eines de resum i portada",
+    "optional": "Opcional",
+    "toolsText": "Puntuació, títol, resum, decisions i tasques de cada reunió. Es pot afegir més endavant des de Configuració.",
+    "offline": "Un cop descarregats, funcionen sense connexió. L'àudio i el text de les reunions no surten mai d'aquest ordinador: no hi ha núvol ni comptes.",
+    "close": "Tanca",
+    "continueInBackground": "Continua en segon pla",
+    "downloading": "Descarregant…",
+    "retry": "Torna-ho a provar",
+    "downloadAndStart": "Descarrega i comença",
+    "done": "Fet",
+    "waiting": "En espera",
+    "percent": "{{value}} %"
+  }
+}

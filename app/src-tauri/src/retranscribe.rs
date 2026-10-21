@@ -6,6 +6,7 @@
 //! llama.cpp we use for the cover each bring their own ggml, which can't share one binary. It
 //! also gives all of Whisper's memory back when it ends.
 
+use crate::i18n::tr;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -49,7 +50,7 @@ fn sidecar() -> Result<PathBuf> {
 pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], mut progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
     let model = WHISPER.file(models, 0);
     if !model.is_file() {
-        return Err(anyhow!("Falta el model {}", model.display()));
+        return Err(anyhow!(tr!("model_missing", path = model.display())));
     }
     let job = serde_json::json!({
         "channels": channels.iter().map(|(pcm, spans)| serde_json::json!({
@@ -64,7 +65,7 @@ pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], 
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .context("No s'ha pogut obrir murmur-whisper")?;
+        .context(tr!("whisper_start_failed"))?;
     child.stdin.take().unwrap().write_all(job.to_string().as_bytes())?;
     // whisper.cpp logs a lot: keep the end, to explain a failure.
     let stderr = child.stderr.take().unwrap();
@@ -87,7 +88,7 @@ pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], 
     }
     let mut out: Vec<Vec<Text>> = vec![vec![]; channels.len()];
     for line in BufReader::new(child.stdout.take().unwrap()).lines() {
-        let line: Line = serde_json::from_str(&line?).context("murmur-whisper ha respost malament")?;
+        let line: Line = serde_json::from_str(&line?).context(tr!("whisper_bad_reply"))?;
         if let Some(p) = line.progress {
             progress(p);
         }
@@ -100,7 +101,7 @@ pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], 
     let status = child.wait()?;
     let tail = log.join().unwrap_or_default();
     if !status.success() {
-        return Err(anyhow!("Whisper ha fallat: {}", tail.last().cloned().unwrap_or_default()));
+        return Err(anyhow!(tr!("whisper_failed", error = tail.last().cloned().unwrap_or_default())));
     }
     Ok(out)
 }

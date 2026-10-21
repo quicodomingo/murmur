@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Plus, Search, Settings, Trash2, X } from "lucide-react";
 import { Menu, MenuItem } from "@tauri-apps/api/menu";
 import { ContextMenu } from "radix-ui";
+import { useTranslation } from "react-i18next";
 
-import { clock, dayGroup, duration } from "@/lib/format";
+import { clock, DAY_GROUPS, dayGroupId, dayGroupLabel, duration } from "@/lib/format";
 import type { MeetingSummary, SearchHit } from "@/lib/types";
 import { LogoIcon } from "@/components/Logo";
 import { isTauri } from "@/lib/backend";
+import { t as translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -18,22 +20,21 @@ type Props = {
   onOpenHit: (hit: SearchHit) => void;
   onNew: () => void;
   onSettings: () => void;
-  /** Right click › Elimina la reunió… (asks for confirmation). */
+  /** Right click › Delete meeting… (asks for confirmation). */
   onDelete: (id: string) => void;
 };
-
-const GROUPS = ["Avui", "Ahir", "Aquesta setmana", "Anteriors"];
 
 /** Right click on a meeting in the app: a native menu, like Finder or Notes. */
 async function showRowMenu(m: MeetingSummary, onDelete: (id: string) => void) {
   const menu = await Menu.new({
-    items: [await MenuItem.new({ text: "Elimina la reunió…", enabled: m.status !== "recording", action: () => onDelete(m.id) })],
+    items: [await MenuItem.new({ text: translate("sidebar:deleteMeeting"), enabled: m.status !== "recording", action: () => onDelete(m.id) })],
   });
   await menu.popup();
 }
 const HITS_PER_MEETING = 3;
 
 export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onOpenHit, onNew, onSettings, onDelete }: Props) {
+  const { t } = useTranslation("sidebar");
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const searching = query.trim().length > 0;
@@ -57,7 +58,7 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
   }, [query, search]);
 
   return (
-    <nav className="flex h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar" aria-label="Reunions">
+    <nav className="flex h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar" aria-label={t("nav")}>
       {/* Traffic lights on the left (native), the brand on the right; the strip drags the window. */}
       <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-center justify-end pr-3.5">
         <span data-tauri-drag-region className="flex items-center gap-1.5 text-[12px] font-bold tracking-[-0.02em]">
@@ -72,7 +73,7 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
         className="mx-3 mb-2.5 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-mm-new-meeting px-2.5 text-[13px] font-semibold text-mm-on-new-meeting transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40"
       >
         <Plus className="size-3.5" strokeWidth={2.4} aria-hidden />
-        <span className="flex-1 text-left">Nova reunió</span>
+        <span className="flex-1 text-left">{t("newMeeting")}</span>
         <kbd className="font-sans text-[11px] font-medium opacity-60">⌘N</kbd>
       </button>
       <div className="px-3">
@@ -82,12 +83,12 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && setQuery("")}
-            placeholder="Cerca a totes les reunions"
-            aria-label="Cerca a totes les reunions"
+            placeholder={t("search")}
+            aria-label={t("search")}
             className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
           />
           {searching && (
-            <button type="button" onClick={() => setQuery("")} aria-label="Esborra la cerca" className="rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10">
+            <button type="button" onClick={() => setQuery("")} aria-label={t("clearSearch")} className="rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10">
               <X className="size-3" />
             </button>
           )}
@@ -97,12 +98,12 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
         {searching ? (
           <Results hits={hits} selectedId={selectedId} onSelect={onSelect} onOpenHit={onOpenHit} />
         ) : (
-          GROUPS.map((group) => {
-            const items = meetings.filter((m) => dayGroup(m.createdAt) === group);
+          DAY_GROUPS.map((group) => {
+            const items = meetings.filter((m) => dayGroupId(m.createdAt) === group);
             if (!items.length) return null;
             return (
               <section key={group} className="mb-3">
-                <h3 className="px-2 pb-1 text-[11px] font-semibold text-text-secondary">{group}</h3>
+                <h3 className="px-2 pb-1 text-[11px] font-semibold text-text-secondary">{dayGroupLabel(group)}</h3>
                 {items.map((m) => (
                   <ContextMenu.Root key={m.id}>
                     <ContextMenu.Trigger asChild>
@@ -125,12 +126,12 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
                         {m.id === selectedId && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-[2px] bg-mm-sidebar-selection-bar" aria-hidden />}
                         <span className="flex-1 truncate">{m.title}</span>
                         {m.status === "recording" ? (
-                          <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label="Gravant">
+                          <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label={t("recording")}>
                             <span className="mm-rec size-2 rounded-full bg-mm-recording-dot" aria-hidden />
                             REC
                           </span>
                         ) : m.status === "processing" ? (
-                          <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label="Verificant parlants" />
+                          <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label={t("verifyingSpeakers")} />
                         ) : (
                           <span className="text-[11px] tabular-nums text-text-secondary">{duration(m.duration)}</span>
                         )}
@@ -143,7 +144,7 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
                           onSelect={() => onDelete(m.id)}
                           className="flex cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-destructive outline-hidden select-none focus:bg-destructive/10 data-disabled:opacity-50"
                         >
-                          <Trash2 className="size-3.5" /> Elimina la reunió…
+                          <Trash2 className="size-3.5" /> {t("deleteMeeting")}
                         </ContextMenu.Item>
                       </ContextMenu.Content>
                     </ContextMenu.Portal>
@@ -155,8 +156,8 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
         )}
       </div>
       <div className="flex h-11 items-center border-t border-sidebar-border pl-3.5 pr-2 text-muted-foreground">
-        <span className="flex-1 text-[11px]">Tot es queda en aquest Mac</span>
-        <button type="button" onClick={onSettings} aria-label="Configuració" title="Configuració (⌘,)" className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10">
+        <span className="flex-1 text-[11px]">{t("localOnly")}</span>
+        <button type="button" onClick={onSettings} aria-label={t("settings")} title={t("settingsShortcut")} className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10">
           <Settings className="size-4" />
         </button>
       </div>
@@ -175,15 +176,17 @@ function Results({
   onSelect: (id: string) => void;
   onOpenHit: (hit: SearchHit) => void;
 }) {
-  if (hits === null) return <p className="px-2 text-[13px] text-text-secondary">Cercant…</p>;
-  if (!hits.length) return <p className="px-2 text-[13px] text-text-secondary">Cap resultat.</p>;
+  const { t } = useTranslation("sidebar");
+  if (hits === null) return <p className="px-2 text-[13px] text-text-secondary">{t("searching")}</p>;
+  if (!hits.length) return <p className="px-2 text-[13px] text-text-secondary">{t("noResults")}</p>;
+  const dayLabel = (ms: number) => dayGroupLabel(dayGroupId(ms));
 
   // Group by meeting, keeping the ranking order of each meeting's best hit.
   const groups = new Map<string, SearchHit[]>();
   for (const h of hits) groups.set(h.meetingId, [...(groups.get(h.meetingId) ?? []), h]);
 
   return (
-    <div className="flex flex-col gap-2" role="list" aria-label="Resultats de la cerca">
+    <div className="flex flex-col gap-2" role="list" aria-label={t("results")}>
       {[...groups.values()].map((group) => {
         const first = group[0];
         const passages = group.filter((h) => h.kind !== "title");
@@ -191,7 +194,7 @@ function Results({
           <section key={first.meetingId} role="listitem" className={cn("rounded-md", first.meetingId === selectedId && "bg-sidebar-accent")}>
             <button type="button" onClick={() => onSelect(first.meetingId)} className="flex w-full items-baseline gap-2 rounded-md px-2 pb-0.5 pt-1.5 text-left hover:bg-black/5 dark:hover:bg-white/5">
               <span className="flex-1 truncate text-[13px] font-medium">{first.title}</span>
-              <span className="shrink-0 text-[11px] text-text-secondary">{dayGroup(first.createdAt)}</span>
+              <span className="shrink-0 text-[11px] text-text-secondary">{dayLabel(first.createdAt)}</span>
             </button>
             {passages.slice(0, HITS_PER_MEETING).map((h) => (
               <button
@@ -201,13 +204,13 @@ function Results({
                 className="flex w-full gap-2 rounded-md px-2 py-1 text-left hover:bg-black/5 dark:hover:bg-white/5"
               >
                 <span className="w-9 shrink-0 pt-px text-right text-[11px] tabular-nums text-text-secondary">
-                  {h.kind === "note" ? "nota" : clock(h.t)}
+                  {h.kind === "note" ? t("note") : clock(h.t)}
                 </span>
                 <Snippet text={h.snippet} />
               </button>
             ))}
             {passages.length > HITS_PER_MEETING && (
-              <p className="px-2 pb-1 pl-[52px] text-[11px] text-text-secondary">i {passages.length - HITS_PER_MEETING} més</p>
+              <p className="px-2 pb-1 pl-[52px] text-[11px] text-text-secondary">{t("moreHits", { count: passages.length - HITS_PER_MEETING })}</p>
             )}
           </section>
         );

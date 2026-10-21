@@ -1,0 +1,8 @@
+{
+  "micDenied": "Murmur no tiene acceso al micrófono",
+  "micDeniedHelp": "Activa Murmur en Ajustes del Sistema › Privacidad y seguridad › Micrófono.",
+  "systemAudioDenied": "Murmur no puede escuchar el audio del sistema",
+  "systemAudioDeniedHelp": "Activa Murmur en Ajustes del Sistema › Grabación de pantalla y audio del sistema › Solo audio del sistema.",
+  "systemAudioDeniedHelpMic": "Activa Murmur en Ajustes del Sistema › Grabación de pantalla y audio del sistema › Solo audio del sistema. Mientras tanto, esta reunión se graba solo con el micrófono.",
+  "openSettings": "Abrir Ajustes"
+}

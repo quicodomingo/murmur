@@ -1,0 +1,8 @@
+{
+  "startsIn_one": "Starts in {{count}} minute",
+  "startsIn_other": "Starts in {{count}} minutes",
+  "startsNow": "Starts now",
+  "started": "Started",
+  "close": "Close Alert",
+  "startRecording": "Start Recording"
+}

@@ -1,0 +1,11 @@
+{
+  "names": {
+    "transcription": "The transcription model",
+    "punctuation": "The punctuation model",
+    "llm": "The language model",
+    "english": "The English model",
+    "whisper": "Whisper"
+  },
+  "downloadFailed": "Couldn’t download: {{error}}",
+  "ready": "{{name}} is ready"
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { Check, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { LogoIcon } from "@/components/Logo";
@@ -10,18 +11,12 @@ import { bytes, updateModel, useModels } from "@/lib/models";
 import type { ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const MODEL_LABELS: Record<ModelId, string> = {
-  transcription: "Model de transcripció",
-  punctuation: "Model de puntuació",
-  llm: "Model de llenguatge",
-  english: "Model d'anglès",
-  whisper: "Whisper",
-};
-
 type Item = {
   key: string;
-  label: string;
-  detail: string;
+  /** The app's version; models are named at render time from their key. */
+  version?: string;
+  /** Release notes or size; none for an app update without notes. */
+  detail?: string;
   state: "waiting" | "active" | "done" | "error";
   error?: string;
 };
@@ -35,6 +30,7 @@ type Phase = "checking" | "uptodate" | "updating" | "restarting" | "done" | "fai
  * everything is up to date; on its own it only shows up when there's something to install.
  */
 export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: boolean; onClose: () => void }) {
+  const { t } = useTranslation("updates");
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("checking");
   const [items, setItems] = useState<Item[]>([]);
@@ -62,11 +58,10 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
       const pending: Item[] = [
         ...modelList.map((m) => ({
           key: m.id,
-          label: MODEL_LABELS[m.id],
           detail: [m.notes, bytes(m.bytes)].filter(Boolean).join(" · "),
           state: "waiting" as const,
         })),
-        ...(app ? [{ key: "app", label: `Murmur ${app.version}`, detail: app.body?.split("\n")[0] ?? "Versió nova de l'app", state: "waiting" as const }] : []),
+        ...(app ? [{ key: "app", version: app.version, detail: app.body?.split("\n")[0], state: "waiting" as const }] : []),
       ];
       if (!pending.length) {
         setPhase("uptodate");
@@ -80,7 +75,7 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
         if (cancelled.current) return;
         patch(m.id, { state: "active" });
         const ok = await updateModel(m.id);
-        patch(m.id, ok ? { state: "done" } : { state: "error", error: "No s'ha pogut actualitzar" });
+        patch(m.id, ok ? { state: "done" } : { state: "error" });
         failed ||= !ok;
       }
       if (app && !cancelled.current) {
@@ -127,6 +122,12 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
     onClose();
   };
 
+  const labelOf = (item: Item) => (item.key === "app" ? t("appVersion", { version: item.version }) : t(`models.${item.key}`));
+  const detailOf = (item: Item) => {
+    if (item.state === "error") return item.error ?? t("modelFailed");
+    return item.detail ?? t("newVersion");
+  };
+
   const progressOf = (item: Item) => {
     if (item.key === "app") return appProgress;
     const d = models.downloading[item.key as ModelId];
@@ -141,24 +142,24 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
           <div>
             <DialogTitle className="text-[15px] font-semibold">
               {phase === "checking"
-                ? "Buscant actualitzacions…"
+                ? t("checking")
                 : phase === "uptodate"
-                  ? "Murmur està al dia"
+                  ? t("upToDate")
                   : phase === "restarting"
-                    ? "Reiniciant Murmur…"
+                    ? t("restarting")
                     : phase === "done"
-                      ? "Tot actualitzat"
+                      ? t("done")
                       : phase === "failed"
-                        ? "No s'ha pogut actualitzar tot"
-                        : "Actualitzant Murmur"}
+                        ? t("failed")
+                        : t("updating")}
             </DialogTitle>
             <DialogDescription className="text-[12px] text-muted-foreground">
               {phase === "uptodate"
-                ? `Tens la darrera versió de l'app i dels models.`
+                ? t("upToDateHint")
                 : phase === "updating"
-                  ? "Pots continuar treballant. Si s'actualitza l'app, es reiniciarà sola en acabar."
+                  ? t("updatingHint")
                   : phase === "failed"
-                    ? "El que no s'ha actualitzat es tornarà a provar la propera vegada que obris Murmur."
+                    ? t("failedHint")
                     : " "}
             </DialogDescription>
           </div>
@@ -172,11 +173,11 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
                 <li key={item.key} className="px-3 py-2.5">
                   <div className="flex items-center gap-2.5">
                     {item.state === "done" ? (
-                      <span className="grid size-4 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground" aria-label="Fet">
+                      <span className="grid size-4 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground" aria-label={t("itemDone")}>
                         <Check className="size-2.5" strokeWidth={3} />
                       </span>
                     ) : item.state === "error" ? (
-                      <span className="grid size-4 shrink-0 place-items-center rounded-full bg-destructive text-white" aria-label="Error">
+                      <span className="grid size-4 shrink-0 place-items-center rounded-full bg-destructive text-white" aria-label={t("itemError")}>
                         <X className="size-2.5" strokeWidth={3} />
                       </span>
                     ) : item.state === "active" ? (
@@ -185,8 +186,8 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
                       <span className="size-4 shrink-0 rounded-full border-[1.5px] border-dashed border-mm-text-tertiary" aria-hidden />
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium">{item.label}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{item.state === "error" ? item.error : item.detail}</div>
+                      <div className="text-[13px] font-medium">{labelOf(item)}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">{detailOf(item)}</div>
                     </div>
                     {item.state === "active" && progress !== null && (
                       <span className="text-[11px] tabular-nums text-muted-foreground">{Math.floor(progress * 100)} %</span>
@@ -213,7 +214,7 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
                 phase === "updating" ? "text-muted-foreground hover:bg-mm-fill-subtle" : "bg-mm-accent font-semibold text-mm-on-accent hover:opacity-90",
               )}
             >
-              {phase === "updating" ? "Fes-ho més tard" : phase === "checking" ? "Cancel·la" : "D'acord"}
+              {phase === "updating" ? t("later") : phase === "checking" ? t("common:cancel") : t("ok")}
             </button>
           )}
         </div>

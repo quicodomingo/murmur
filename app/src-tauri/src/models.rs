@@ -2,6 +2,7 @@
 //! punctuation (126 MB) and the language model for the cover (5.2 GB) are optional, downloaded
 //! only when the user turns their feature on and deletable from the settings.
 
+use crate::i18n::tr;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -202,7 +203,7 @@ impl OptionalModel {
             let url = match file.url {
                 Some(url) => url.to_string(),
                 None if target.is_file() => continue,
-                None => return Err(anyhow!("Aquest model encara no es pot descarregar")),
+                None => return Err(anyhow!(tr!("model_not_downloadable"))),
             };
             items.push(Fetch { target, url, bytes: file.bytes, sha256: file.sha256.to_string() });
         }
@@ -219,7 +220,7 @@ impl OptionalModel {
             .iter()
             .map(|f| {
                 if !self.files.iter().any(|known| known.name == f.name) {
-                    return Err(anyhow!("El catàleg porta un fitxer que aquesta versió de Murmur no coneix: {}", f.name));
+                    return Err(anyhow!(tr!("catalog_unknown_file", name = f.name)));
                 }
                 Ok(Fetch { target: staging.join(&f.name), url: f.url.clone(), bytes: f.bytes, sha256: f.sha256.clone() })
             })
@@ -230,7 +231,7 @@ impl OptionalModel {
             if let Some(dir) = target.parent() {
                 fs::create_dir_all(dir)?;
             }
-            fs::rename(staging.join(&f.name), &target).with_context(|| format!("No s'ha pogut instal·lar {}", f.name))?;
+            fs::rename(staging.join(&f.name), &target).with_context(|| tr!("install_failed", name = f.name))?;
         }
         let _ = fs::remove_dir_all(&staging);
         set_installed_version(root, self.id, next.version)
@@ -243,7 +244,7 @@ impl OptionalModel {
             for p in [part(&path), path] {
                 if p.exists() {
                     fs::remove_file(&p)
-                        .with_context(|| format!("No s'ha pogut esborrar {}", p.display()))?;
+                        .with_context(|| tr!("delete_failed", path = p.display()))?;
                 }
             }
         }
@@ -281,11 +282,11 @@ fn fetch_all(items: &[Fetch], cancel: &AtomicBool, mut progress: impl FnMut(u64,
         let margin = 500_000_000;
         if let Some(free) = free_space(dir) {
             if free < missing + margin {
-                return Err(anyhow!(
-                    "No hi ha prou espai al disc: calen {:.1} GB i n'hi ha {:.1} GB lliures",
-                    (missing + margin) as f64 / 1e9,
-                    free as f64 / 1e9
-                ));
+                return Err(anyhow!(tr!(
+                    "disk_space",
+                    need = format!("{:.1}", (missing + margin) as f64 / 1e9),
+                    free = format!("{:.1}", free as f64 / 1e9),
+                )));
             }
         }
     }
@@ -305,8 +306,8 @@ fn fetch_all(items: &[Fetch], cancel: &AtomicBool, mut progress: impl FnMut(u64,
             request = request.set("Range", &format!("bytes={have}-"));
         }
         let response = request.call().map_err(|e| match e {
-            ureq::Error::Status(code, _) => anyhow!("El servidor ha respost {code}"),
-            e => anyhow!("No s'ha pogut connectar: {e}"),
+            ureq::Error::Status(code, _) => anyhow!(tr!("server_status", code = code)),
+            e => anyhow!(tr!("connect_failed", error = e)),
         })?;
         // 206: resumed; 200: the server sends everything again.
         if response.status() != 206 {
@@ -318,7 +319,7 @@ fn fetch_all(items: &[Fetch], cancel: &AtomicBool, mut progress: impl FnMut(u64,
             .append(have > 0)
             .truncate(have == 0)
             .open(&partial)
-            .context("No s'ha pogut escriure el model")?;
+            .context(tr!("model_write_failed"))?;
         let mut reader = response.into_reader();
         let mut buf = vec![0u8; 1 << 16];
         let mut last = Instant::now();
@@ -326,7 +327,7 @@ fn fetch_all(items: &[Fetch], cancel: &AtomicBool, mut progress: impl FnMut(u64,
             if cancel.load(Ordering::Relaxed) {
                 return Err(anyhow!("cancel·lat"));
             }
-            let n = reader.read(&mut buf).context("La descàrrega s'ha interromput")?;
+            let n = reader.read(&mut buf).context(tr!("download_interrupted"))?;
             if n == 0 {
                 break;
             }
@@ -340,12 +341,12 @@ fn fetch_all(items: &[Fetch], cancel: &AtomicBool, mut progress: impl FnMut(u64,
         out.flush()?;
         drop(out);
         if have != file.bytes {
-            return Err(anyhow!("Descàrrega incompleta ({have} de {} bytes)", file.bytes));
+            return Err(anyhow!(tr!("download_incomplete", have = have, total = file.bytes)));
         }
         if sha256_of(&partial)? != file.sha256 {
             // Start over next time: resuming a corrupt file would never fix it.
             let _ = fs::remove_file(&partial);
-            return Err(anyhow!("El fitxer descarregat no és correcte (la suma de comprovació no coincideix). Torna-ho a provar."));
+            return Err(anyhow!(tr!("checksum_mismatch")));
         }
         fs::rename(&partial, &file.target)?;
         done_before += file.bytes;
@@ -419,9 +420,9 @@ pub fn fetch_catalog() -> Result<Catalog> {
     agent
         .get(CATALOG_URL)
         .call()
-        .map_err(|e| anyhow!("No s'ha pogut consultar el catàleg de models: {e}"))?
+        .map_err(|e| anyhow!(tr!("catalog_fetch_failed", error = e)))?
         .into_json()
-        .context("El catàleg de models no és vàlid")
+        .context(tr!("catalog_invalid"))
 }
 
 #[derive(Debug, Clone, Serialize)]

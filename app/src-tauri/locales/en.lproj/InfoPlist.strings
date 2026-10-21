@@ -1,0 +1,5 @@
+/* macOS permission prompts (docs/TRADUCCIONS.md). Catalan is the source: Info.plist. */
+"NSMicrophoneUsageDescription" = "Murmur uses the microphone to transcribe the meeting. The audio is processed on this Mac and never leaves your computer.";
+"NSAudioCaptureUsageDescription" = "Murmur listens to the audio from the other side of the call (Zoom, Meet, Teams…) to transcribe it. Everything is processed on this Mac.";
+"NSCalendarsFullAccessUsageDescription" = "Murmur reads your calendar to let you know when a meeting starts and to give it the event's title. It doesn't change anything, and the data never leaves this Mac.";
+"NSCalendarsUsageDescription" = "Murmur reads your calendar to let you know when a meeting starts and to give it the event's title. It doesn't change anything, and the data never leaves this Mac.";

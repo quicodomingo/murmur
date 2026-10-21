@@ -1,0 +1,10 @@
+{
+  "region": "Àudio de la reunió",
+  "pause": "Pausa",
+  "listen": "Escolta la reunió",
+  "position": "Posició",
+  "positionValue": "{{time}} de {{duration}}",
+  "speed": "Velocitat: {{rate}}×. Canvia-la",
+  "preparing": "Preparant l'àudio…",
+  "openFailed": "El reproductor no ha pogut obrir l'àudio"
+}

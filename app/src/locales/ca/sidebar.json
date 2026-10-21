@@ -1,0 +1,18 @@
+{
+  "nav": "Reunions",
+  "deleteMeeting": "Elimina la reunió…",
+  "newMeeting": "Nova reunió",
+  "search": "Cerca a totes les reunions",
+  "clearSearch": "Esborra la cerca",
+  "recording": "Gravant",
+  "verifyingSpeakers": "Verificant parlants",
+  "localOnly": "Tot es queda en aquest Mac",
+  "settings": "Configuració",
+  "settingsShortcut": "Configuració (⌘,)",
+  "searching": "Cercant…",
+  "noResults": "Cap resultat.",
+  "results": "Resultats de la cerca",
+  "note": "nota",
+  "moreHits_one": "i {{count}} més",
+  "moreHits_other": "i {{count}} més"
+}

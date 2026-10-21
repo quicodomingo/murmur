@@ -1,6 +1,7 @@
 //! Saves the meeting audio as Ogg/Opus at 16 kHz: mono at 16 kbps (≈ 7 MB/h) or stereo — one
 //! channel per source, mic left and system right — at 24 kbps (≈ 11 MB/h).
 
+use crate::i18n::tr;
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
@@ -37,9 +38,9 @@ impl Recorder {
             n => return Err(anyhow!("Opus: {n} canals no suportats")),
         };
         if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir).context("No s'ha pogut crear la carpeta de gravacions")?;
+            std::fs::create_dir_all(dir).context(tr!("recordings_dir_failed"))?;
         }
-        let file = File::create(path).context("No s'ha pogut crear el fitxer d'àudio")?;
+        let file = File::create(path).context(tr!("audio_file_create_failed"))?;
         let mut encoder = Encoder::new(SAMPLE_RATE as u32, layout, Application::Voip)
             .map_err(|e| anyhow!("Opus: {e}"))?;
         encoder
@@ -117,7 +118,7 @@ impl Recorder {
         let granule = self.samples_written * GRANULE_PER_SAMPLE + self.pre_skip;
         self.writer
             .write_packet(self.packet[..n].to_vec(), SERIAL, end, granule)
-            .context("No s'ha pogut escriure l'àudio")?;
+            .context(tr!("audio_write_failed"))?;
         Ok(())
     }
 }

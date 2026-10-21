@@ -1,0 +1,8 @@
+{
+  "startsIn_one": "Empieza dentro de {{count}} minuto",
+  "startsIn_other": "Empieza dentro de {{count}} minutos",
+  "startsNow": "Empieza ahora",
+  "started": "Ha empezado",
+  "close": "Cerrar el aviso",
+  "startRecording": "Empezar a grabar"
+}

@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 
 import { applyAppearance, type Mode, type Theme } from "./appearance";
+import { isTauri, setUiLanguage } from "./backend";
+import { applyLanguage, resolveLanguage, type UiLanguagePref } from "./i18n";
 import type { Language } from "./types";
 
 export type Settings = {
+  /** Interface language; "system" follows macOS (lib/i18n.ts). Not the meetings' `language`. */
+  uiLanguage: UiLanguagePref;
   /** What the meetings are spoken in: the live model, and Whisper after stopping in a single language. */
   language: Language;
   /** Aparença: colour theme and light/dark mode ("system" follows macOS). */
@@ -49,6 +53,7 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
+  uiLanguage: "system",
   language: "ca-es",
   theme: "acid",
   mode: "system",
@@ -106,6 +111,10 @@ export function useSettings() {
     }
   });
   useEffect(() => applyAppearance(settings.theme, settings.mode), [settings.theme, settings.mode]);
+  useEffect(() => {
+    applyLanguage(settings.uiLanguage);
+    if (isTauri()) setUiLanguage(resolveLanguage(settings.uiLanguage)).catch(() => {});
+  }, [settings.uiLanguage]);
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(settings));

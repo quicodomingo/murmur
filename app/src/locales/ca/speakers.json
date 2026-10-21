@@ -1,0 +1,8 @@
+{
+  "defaultName": "Parlant {{n}}",
+  "changeSpeaker": "{{name}}: canvia el parlant",
+  "guestsLabel": "Convidats: «{{name}}» és…",
+  "rename": "Reanomena «{{name}}»…",
+  "newSpeaker": "Nou parlant…",
+  "nameLabel": "Nom del parlant"
+}

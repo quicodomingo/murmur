@@ -27,6 +27,9 @@ export const isTauri = () => "__TAURI_INTERNALS__" in window;
 
 export const prepare = (language: Language) => invoke<void>("prepare", { language });
 
+/** Native menus, tray and alerts in the interface language (i18n.rs). */
+export const setUiLanguage = (language: string) => invoke<void>("set_ui_language", { language });
+
 export const startRecording = (opts: {
   meetingId: string;
   mic: boolean;

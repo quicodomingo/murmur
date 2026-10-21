@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 /** Width limits for whichever panel sits on the right (notes or transcript). */
 export const SIDE_WIDTH = { default: 320, min: 260, maxRatio: 0.6 };
 
@@ -13,6 +15,7 @@ export function SidePanel({ width, onResize, children }: { width: number; onResi
 
 /** Drag the panel's left edge to resize it; double-click resets; arrow keys nudge. */
 export function ResizeHandle({ width, onResize }: { width: number; onResize: (w: number) => void }) {
+  const { t } = useTranslation("sidePanel");
   const clamp = (w: number) =>
     Math.round(Math.min(Math.max(w, SIDE_WIDTH.min), window.innerWidth * SIDE_WIDTH.maxRatio));
   const onPointerDown = (e: React.PointerEvent) => {
@@ -33,7 +36,7 @@ export function ResizeHandle({ width, onResize }: { width: number; onResize: (w:
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="Amplada de les notes"
+      aria-label={t("resize")}
       aria-valuenow={width}
       tabIndex={0}
       onPointerDown={onPointerDown}

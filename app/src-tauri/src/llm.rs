@@ -2,6 +2,7 @@
 //! transcript) once and then answers several questions about it, reusing that prefix in the
 //! KV cache: on a meeting the costly part is reading it, not answering.
 
+use crate::i18n::tr;
 use std::num::NonZeroU32;
 use std::path::Path;
 use std::sync::OnceLock;
@@ -51,11 +52,11 @@ pub struct Answer {
 impl Llm {
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
-            return Err(anyhow!("Falta el model {}", path.display()));
+            return Err(anyhow!(tr!("model_missing", path = path.display())));
         }
         let params = LlamaModelParams::default().with_n_gpu_layers(999);
         let model = LlamaModel::load_from_file(backend()?, path, &params)
-            .context("No s'ha pogut carregar el model de llenguatge")?;
+            .context(tr!("llm_load_failed"))?;
         Ok(Self { model })
     }
 
@@ -72,7 +73,7 @@ impl Llm {
         let ctx = self
             .model
             .new_context(backend()?, params)
-            .context("No s'ha pogut crear el context del model")?;
+            .context(tr!("llm_context_failed"))?;
         let mut session = Session { model: &self.model, ctx, prefix_len: 0, read_seconds: 0.0 };
         let t0 = Instant::now();
         session.feed(&tokens, 0, false)?;

@@ -3,6 +3,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 
 import * as backend from "./backend";
+import { t } from "./i18n";
 import type { Meeting } from "./types";
 
 /**
@@ -64,7 +65,7 @@ async function load(m: Meeting): Promise<boolean> {
     audio.playbackRate = state.rate;
     await new Promise<void>((resolve, reject) => {
       audio.addEventListener("loadedmetadata", () => resolve(), { once: true });
-      audio.addEventListener("error", () => reject(new Error("El reproductor no ha pogut obrir l'àudio")), { once: true });
+      audio.addEventListener("error", () => reject(new Error(t("player:openFailed"))), { once: true });
     });
     return true;
   } catch (e) {

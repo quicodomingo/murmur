@@ -1,0 +1,7 @@
+{
+  "enlarge": "Captura del minuto {{time}}: ampliarla",
+  "remove": "Eliminar la captura del minuto {{time}}",
+  "title": "Captura del minuto {{time}}",
+  "description": "Pantalla de la reunión",
+  "alt": "Pantalla de la reunión en el minuto {{time}}"
+}

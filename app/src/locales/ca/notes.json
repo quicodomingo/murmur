@@ -1,0 +1,19 @@
+{
+  "title": "Notes",
+  "placeholder": "Escriu notes… Cada línia queda marcada amb el moment de la reunió.",
+  "editorLabel": "Notes de la reunió",
+  "showTranscript": "Mostra també la transcripció",
+  "expand": "Amplia les notes",
+  "toolbar": "Format",
+  "paragraph": "Text",
+  "heading1": "Títol 1",
+  "heading2": "Títol 2",
+  "heading3": "Títol 3",
+  "bold": "Negreta",
+  "italic": "Cursiva",
+  "underline": "Subratllat",
+  "strike": "Ratllat",
+  "bulletList": "Llista",
+  "orderedList": "Llista numerada",
+  "taskList": "Tasques"
+}

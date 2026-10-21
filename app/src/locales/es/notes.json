@@ -1,0 +1,19 @@
+{
+  "title": "Notas",
+  "placeholder": "Escribe notas… Cada línea queda marcada con el momento de la reunión.",
+  "editorLabel": "Notas de la reunión",
+  "showTranscript": "Mostrar también la transcripción",
+  "expand": "Ampliar las notas",
+  "toolbar": "Formato",
+  "paragraph": "Texto",
+  "heading1": "Título 1",
+  "heading2": "Título 2",
+  "heading3": "Título 3",
+  "bold": "Negrita",
+  "italic": "Cursiva",
+  "underline": "Subrayado",
+  "strike": "Tachado",
+  "bulletList": "Lista",
+  "orderedList": "Lista numerada",
+  "taskList": "Tareas"
+}

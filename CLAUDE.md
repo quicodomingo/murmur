@@ -48,7 +48,7 @@ La passada final substitueix la transcripció en directe i en corregeix els parl
 ## Interfície
 
 - Per a qualsevol feina de disseny o d'implementació d'interfície, **fes servir la skill `ui-ux-pro-max`**.
-- Els textos de la interfície són en **català**.
+- Els textos de la interfície s'escriuen en **català** (la font) i es tradueixen al castellà i a l'anglès: mai text visible escrit al codi, sempre `t()` amb les claus a `app/src/locales/` (Rust: `i18n.rs`). Convencions i estil de cada idioma: **`docs/TRADUCCIONS.md`**. Comprova-ho amb `npm run check-locales`.
 - Validat amb l'MVP (16/10/2026). Per a l'app cal: **editar parlants inline** (al mateix text, no en un panell), **corregir la transcripció inline**, i la **configuració en un espai que no es vegi sempre** (p. ex. un panell desplegable o una finestra de preferències).
 - Elements bàsics: botó de gravar, text en directe amb parlants (editables: "Parlant 1" → nom real), estat de la passada final, resum i acords, llista de reunions, exportació.
 - La mateixa interfície web ha de servir per a l'MVP i per a Tauri: res que depengui de FastAPI dins dels components.
@@ -60,7 +60,7 @@ La passada final substitueix la transcripció en directe i en corregeix els parl
 - Tema i mode: `data-theme` (`acid`, `mono`, `formigo`) i `data-mode` a `<html>` + classe `dark` (`lib/appearance.ts`), triats a Configuració › Aparença.
 - Referències visuals: `docs/design/screens/<tema>/`. Mides i textos exactes: `docs/design/mockups/<tema>/`.
 - L'àcid (#D4FF3A) mai és text ni línia sobre fons clar.
-- Textos en català, sense guions llargs.
+- Textos en català (traduïts al castellà i l'anglès), sense guions llargs en cap idioma.
 
 ## Convencions
 

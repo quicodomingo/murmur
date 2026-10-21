@@ -1,0 +1,34 @@
+{
+  "participants_one": "{{count}} participant",
+  "participants_other": "{{count}} participants",
+  "listening": "Listening… The transcript will appear here when someone speaks.",
+  "empty": "This meeting has no transcript.",
+  "backToLive": "Back to Live",
+  "titleLabel": "Meeting title",
+  "linkedNote": "Linked note",
+  "playFrom": "Listen from {{time}}",
+  "edited": "edited",
+  "copy": "Copy",
+  "copied": "Copied",
+  "editUtterance": "Edit sentence",
+  "almostDone": "almost done",
+  "minutesLeft": "about {{minutes}} min",
+  "stages": {
+    "speakers": {
+      "title": "Checking speakers…",
+      "hint": "The whole meeting is analyzed again to tell the voices apart better. You can keep reading and editing."
+    },
+    "text": {
+      "title": "Improving the transcript…",
+      "hint": "Whisper listens to the meeting again and rewrites the text with punctuation and capitalization. Sentences you corrected are left untouched."
+    },
+    "punctuation": {
+      "title": "Adding punctuation…",
+      "hint": "Periods, commas and capital letters. Sentences you corrected are left untouched."
+    },
+    "cover": {
+      "title": "Preparing the cover…",
+      "hint": "The local language model is reading the transcript. You can keep reading and editing."
+    }
+  }
+}

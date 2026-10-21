@@ -50,6 +50,11 @@
     ],
     "category": "Productivity",
     "externalBin": ["binaries/murmur-whisper"],
+    "resources": {
+      "locales/ca.lproj/InfoPlist.strings": "ca.lproj/InfoPlist.strings",
+      "locales/es.lproj/InfoPlist.strings": "es.lproj/InfoPlist.strings",
+      "locales/en.lproj/InfoPlist.strings": "en.lproj/InfoPlist.strings"
+    },
     "copyright": "© 2026 Quico Domingo",
     "macOS": {
       "signingIdentity": "Developer ID Application: We Are Mortensen S.L. (NYQHV4FSKC)",

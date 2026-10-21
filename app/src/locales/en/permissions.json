@@ -1,0 +1,8 @@
+{
+  "micDenied": "Murmur can’t access the microphone",
+  "micDeniedHelp": "Turn on Murmur in System Settings › Privacy & Security › Microphone.",
+  "systemAudioDenied": "Murmur can’t hear the system audio",
+  "systemAudioDeniedHelp": "Turn on Murmur in System Settings › Screen & System Audio Recording › System Audio Recording Only.",
+  "systemAudioDeniedHelpMic": "Turn on Murmur in System Settings › Screen & System Audio Recording › System Audio Recording Only. Meanwhile, this meeting is recorded with the microphone only.",
+  "openSettings": "Open System Settings"
+}

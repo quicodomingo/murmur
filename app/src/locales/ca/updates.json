@@ -1,0 +1,25 @@
+{
+  "models": {
+    "transcription": "Model de transcripció",
+    "punctuation": "Model de puntuació",
+    "llm": "Model de llenguatge",
+    "english": "Model d'anglès",
+    "whisper": "Whisper"
+  },
+  "appVersion": "Murmur {{version}}",
+  "newVersion": "Versió nova de l'app",
+  "modelFailed": "No s'ha pogut actualitzar",
+  "checking": "Buscant actualitzacions…",
+  "upToDate": "Murmur està al dia",
+  "restarting": "Reiniciant Murmur…",
+  "done": "Tot actualitzat",
+  "failed": "No s'ha pogut actualitzar tot",
+  "updating": "Actualitzant Murmur",
+  "upToDateHint": "Tens la darrera versió de l'app i dels models.",
+  "updatingHint": "Pots continuar treballant. Si s'actualitza l'app, es reiniciarà sola en acabar.",
+  "failedHint": "El que no s'ha actualitzat es tornarà a provar la propera vegada que obris Murmur.",
+  "itemDone": "Fet",
+  "itemError": "Error",
+  "later": "Fes-ho més tard",
+  "ok": "D'acord"
+}

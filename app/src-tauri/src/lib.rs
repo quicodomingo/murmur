@@ -5,6 +5,7 @@ pub mod capture;
 pub mod db;
 pub mod diarize;
 pub mod engine;
+pub mod i18n;
 pub mod llm;
 pub mod micwatch;
 pub mod models;
@@ -30,6 +31,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use engine::{Channel, LiveModel, Models, SAMPLE_RATE, models_dir};
+use i18n::tr;
 use pipeline::Pipeline;
 
 #[derive(Default)]
@@ -96,7 +98,7 @@ async fn start_recording(
     final_text: bool,
 ) -> Result<Option<String>, String> {
     if state.recording.lock().unwrap().is_some() {
-        return Err("Ja s'està gravant".into());
+        return Err(tr!("already_recording").into());
     }
     // Whisper only for one language: told "Catalan", it turns Spanish into Catalan.
     let final_language = (final_text && matches!(language.as_str(), "ca" | "es" | "en")).then(|| language.clone());
@@ -403,7 +405,7 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
             Ok(())
         })();
         if let Err(e) = result {
-            errors.push(format!("No s'han pogut verificar els parlants: {e:#}"));
+            errors.push(tr!("speaker_check_error", error = format!("{e:#}")));
         }
     }
 
@@ -427,7 +429,7 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
             Ok(())
         })();
         if let Err(e) = result {
-            errors.push(format!("No s'ha pogut millorar la transcripció: {e:#}"));
+            errors.push(tr!("final_pass_error", error = format!("{e:#}")));
         }
     }
 
@@ -520,7 +522,7 @@ async fn update_model(app: AppHandle, state: State<'_, AppState>, id: String) ->
     }
     std::thread::spawn(move || {
         let result = models::fetch_catalog().and_then(|catalog| {
-            let next = catalog.models.get(model.id).ok_or_else(|| anyhow::anyhow!("El catàleg ja no té aquest model"))?;
+            let next = catalog.models.get(model.id).ok_or_else(|| anyhow::anyhow!(tr!("catalog_model_gone")))?;
             model.update(&models_dir(), next, &cancel, |done, total| {
                 let _ = app.emit("model-download", DownloadProgress { id: id.clone(), done, total });
             })
@@ -545,10 +547,10 @@ async fn cancel_model_download(state: State<'_, AppState>, id: String) -> Result
 async fn delete_model(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let model = models::find(&id).map_err(|e| e.to_string())?;
     if model.required {
-        return Err("Murmur necessita aquest model per transcriure".into());
+        return Err(tr!("model_required").into());
     }
     if state.downloads.lock().unwrap().contains_key(&id) {
-        return Err("Primer atura la descàrrega".into());
+        return Err(tr!("stop_download_first").into());
     }
     match model.id {
         "llm" => {
@@ -752,7 +754,7 @@ async fn delete_meeting(
     if let Some(path) = audio_path.map(std::path::PathBuf::from) {
         if path.extension().is_some_and(|e| e == "ogg") && path.exists() {
             std::fs::remove_file(path)
-                .map_err(|e| format!("No s'ha pogut eliminar l'àudio: {e}"))?;
+                .map_err(|e| tr!("audio_delete_failed", error = e))?;
         }
     }
     Ok(())
@@ -761,7 +763,7 @@ async fn delete_meeting(
 /// `<app data>/screens/<meeting id>`: where a meeting's screenshots go.
 fn screens_dir(app: &AppHandle, meeting_id: &str) -> Result<std::path::PathBuf, String> {
     if meeting_id.is_empty() || !meeting_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-        return Err("Reunió desconeguda".into());
+        return Err(tr!("unknown_meeting").into());
     }
     Ok(app.path().app_data_dir().map_err(|e| e.to_string())?.join("screens").join(meeting_id))
 }
@@ -773,7 +775,7 @@ async fn capture_screen(app: AppHandle, meeting_id: String, t: f64) -> Result<St
     // Only the screenshots need it: the first time, macOS shows its prompt.
     if !permissions::screen_granted() {
         permissions::request_screen();
-        return Err("Per fer captures cal el permís de «Gravació de pantalla». Activa Murmur a Configuració del Sistema i torna-ho a provar.".into());
+        return Err(tr!("screen_permission_needed").into());
     }
     let path = tauri::async_runtime::spawn_blocking(move || capture::capture(&dir, (t * 1000.0) as u64))
         .await
@@ -800,7 +802,7 @@ async fn playback_audio(app: AppHandle, meeting_id: String, audio_path: String) 
 #[tauri::command]
 async fn export_audio(app: AppHandle, meeting_id: String, audio_path: String, dest: String) -> Result<(), String> {
     let m4a = playback_audio(app, meeting_id, audio_path).await?;
-    std::fs::copy(m4a, dest).map(|_| ()).map_err(|e| format!("No s'ha pogut desar l'àudio: {e}"))
+    std::fs::copy(m4a, dest).map(|_| ()).map_err(|e| tr!("audio_save_failed", error = e))
 }
 
 /// A meeting's saved recording: only ever an existing .ogg (the path comes from the meeting).
@@ -809,7 +811,7 @@ fn recording_path(path: &str) -> Result<std::path::PathBuf, String> {
     if path.extension().is_some_and(|e| e == "ogg") && path.is_file() {
         Ok(path)
     } else {
-        Err("No es troba l'àudio d'aquesta reunió".into())
+        Err(tr!("this_meeting_audio_missing").into())
     }
 }
 
@@ -819,7 +821,7 @@ fn delete_screen(app: AppHandle, path: String) -> Result<(), String> {
     let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("screens");
     let path = std::path::PathBuf::from(path);
     if !path.starts_with(&root) || path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
-        return Err("Aquest fitxer no és una captura de Murmur".into());
+        return Err(tr!("not_a_capture").into());
     }
     std::fs::remove_file(path).map_err(|e| e.to_string())
 }
@@ -888,10 +890,18 @@ async fn list_microphones() -> Vec<String> {
 /// Writes an export to a path the user picked in the save dialog.
 #[tauri::command]
 async fn write_export(path: String, contents: Vec<u8>) -> Result<(), String> {
-    std::fs::write(&path, contents).map_err(|e| format!("No s'ha pogut desar el fitxer: {e}"))
+    std::fs::write(&path, contents).map_err(|e| tr!("file_save_failed", error = e))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// The interface language ("ca", "es", "en"), for texts made here: menus, alerts, errors.
+#[tauri::command]
+fn set_ui_language(app: AppHandle, language: String) {
+    if i18n::set(&language) {
+        shell::retranslate(&app);
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -906,14 +916,16 @@ pub fn run() {
             // The standard macOS menus (Edit gives copy/paste), with our own About window and
             // Settings… in the app menu.
             let menu = tauri::menu::Menu::default(app.handle())?;
-            let about = tauri::menu::MenuItem::with_id(app, "about", "Quant a Murmur", true, None::<&str>)?;
+            let about = tauri::menu::MenuItem::with_id(app, "about", tr!("menu_about"), true, None::<&str>)?;
             let settings = tauri::menu::MenuItem::with_id(
                 app,
                 "settings",
-                "Configuració…",
+                tr!("menu_settings"),
                 true,
                 Some("CmdOrCtrl+,"),
             )?;
+            shell::keep_label(app.handle(), &about, "menu_about");
+            shell::keep_label(app.handle(), &settings, "menu_settings");
             if let Some(tauri::menu::MenuItemKind::Submenu(app_menu)) = menu.items()?.first() {
                 app_menu.remove_at(0)?; // the standard About panel
                 app_menu.insert(&about, 0)?;
@@ -948,6 +960,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            set_ui_language,
             prepare,
             start_recording,
             stop_recording,

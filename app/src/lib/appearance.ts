@@ -1,14 +1,18 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
+import { t } from "./i18n";
+
 /** Murmur themes (docs/design/DESIGN.md › Temes i modes); colours live in murmur-theme.css. */
 export type Theme = "acid" | "mono" | "formigo";
 export type Mode = "system" | "light" | "dark";
 
-export const THEMES: { id: Theme; label: string }[] = [
-  { id: "acid", label: "Negre i àcid" },
-  { id: "mono", label: "Monocrom" },
-  { id: "formigo", label: "Formigó i vermell" },
-];
+/** `label` is read in the interface language each time it's used. */
+export const THEMES: { id: Theme; readonly label: string }[] = (["acid", "mono", "formigo"] as const).map((id) => ({
+  id,
+  get label() {
+    return t(`appearance:themes.${id}`);
+  },
+}));
 
 const SETTINGS_KEY = "transcriptor.settings.v1";
 const systemDark = window.matchMedia("(prefers-color-scheme: dark)");

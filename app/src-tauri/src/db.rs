@@ -1,6 +1,7 @@
 //! SQLite storage: meetings, one row per utterance, notes, and a full-text index (FTS5) over
 //! titles, utterances and note blocks. The JSON shapes match the UI's `Meeting` type.
 
+use crate::i18n::tr;
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow};
@@ -171,10 +172,10 @@ impl Db {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }
-        let conn = Connection::open(path).context("No s'ha pogut obrir la base de dades")?;
+        let conn = Connection::open(path).context(tr!("db_open_failed"))?;
         conn.execute_batch(SCHEMA)
-            .context("No s'ha pogut preparar la base de dades")?;
-        migrate(&conn).context("No s'ha pogut actualitzar la base de dades")?;
+            .context(tr!("db_prepare_failed"))?;
+        migrate(&conn).context(tr!("db_migrate_failed"))?;
         Ok(Self { conn })
     }
 
@@ -285,7 +286,7 @@ impl Db {
                 meeting
                     .get("title")
                     .and_then(Value::as_str)
-                    .unwrap_or("Reunió"),
+                    .unwrap_or(tr!("default_meeting_title")),
                 meeting
                     .get("createdAt")
                     .and_then(Value::as_f64)
@@ -338,7 +339,7 @@ impl Db {
             .optional()?
             .is_some();
         if !exists {
-            return Err(anyhow!("La reunió {id} no existeix"));
+            return Err(anyhow!(tr!("meeting_not_found", id = id)));
         }
         if let Some(meta) = changes.meta {
             if let Some(v) = meta.title {
@@ -530,7 +531,7 @@ pub fn migrate_json(db: &mut Db, dir: &Path) -> Result<usize> {
     }
     // Keep the files as a backup, out of the way.
     let backup = dir.with_file_name("meetings-json-backup");
-    std::fs::rename(dir, &backup).context("No s'han pogut arxivar els fitxers antics")?;
+    std::fs::rename(dir, &backup).context(tr!("old_files_archive_failed"))?;
     Ok(meetings.len())
 }
 

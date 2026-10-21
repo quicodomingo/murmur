@@ -4,17 +4,18 @@ import { toast } from "sonner";
 import * as backend from "./backend";
 import {
   buildCover,
-  coverBasis,
   coverDocument,
   coverEstimate,
   isDefaultTitle,
   keepTaskEdits,
   llmTasks,
+  meetingBasis,
   PROMPTS,
   promptText,
   renamedSpeakers,
   renameInCover,
 } from "./cover";
+import { locale, t } from "./i18n";
 import { modelInstalled } from "./models";
 import type { Settings } from "./settings";
 import type { Action, State } from "./store";
@@ -85,7 +86,7 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
             const byId = new Map(changes.map((c) => [c.utteranceId, c.to]));
             meeting = { ...meeting, utterances: meeting.utterances.map((u) => ({ ...u, text: byId.get(u.id) ?? u.text })) };
           } catch (e) {
-            toast.error(`No s'ha pogut puntuar la transcripció: ${e}`);
+            toast.error(t("cover:punctuationFailed", { error: String(e) }));
           }
         }
         if (stage === "cover") {
@@ -108,18 +109,18 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
             // changes made meanwhile (text, notes, reassigned lines) show it's out of date.
             const now = latest.current.open[id] ?? meeting;
             const renamed = renameInCover(built.cover, renamedSpeakers(meeting, now));
-            const basis = coverBasis(coverDocument({ ...meeting, speakerNames: now.speakerNames }));
+            const basis = meetingBasis({ ...meeting, speakerNames: now.speakerNames }, built.cover.lang);
             const cover = keepTaskEdits({ ...renamed, basis }, now.cover);
             // The model's title replaces the automatic one, never one the user wrote.
             const current = latest.current.open[id]?.title ?? meeting.title;
             dispatch({ type: "cover", id, cover, title: title && isDefaultTitle(current) ? title : null });
             const failed = Object.keys(cover.errors ?? {});
             if (failed.length) {
-              const names = failed.map((f) => PROMPTS.find((p) => p.id === f)?.label.toLowerCase() ?? f);
-              toast.error(`No s'ha pogut generar: ${names.join(", ")}`);
+              const names = failed.map((f) => PROMPTS.find((p) => p.id === f)?.label.toLocaleLowerCase(locale()) ?? f);
+              toast.error(t("cover:partsFailed", { parts: names.join(", ") }));
             }
           } catch (e) {
-            toast.error(`No s'ha pogut generar la portada: ${e}`);
+            toast.error(t("cover:coverFailed", { error: String(e) }));
           }
         }
       }

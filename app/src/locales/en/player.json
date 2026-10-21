@@ -1,0 +1,10 @@
+{
+  "region": "Meeting audio",
+  "pause": "Pause",
+  "listen": "Listen to the meeting",
+  "position": "Position",
+  "positionValue": "{{time}} of {{duration}}",
+  "speed": "Speed: {{rate}}×. Change it",
+  "preparing": "Preparing the audio…",
+  "openFailed": "The player couldn’t open the audio"
+}

@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "whisper": "cd whisper && cargo build --release && mkdir -p ../src-tauri/binaries && cp target/release/murmur-whisper ../src-tauri/binaries/murmur-whisper-aarch64-apple-darwin"
+    "whisper": "cd whisper && cargo build --release && mkdir -p ../src-tauri/binaries && cp target/release/murmur-whisper ../src-tauri/binaries/murmur-whisper-aarch64-apple-darwin",
+    "check-locales": "node scripts/check-locales.mjs"
   },
   "dependencies": {
     "@fontsource/space-grotesk": "^5.3.0",
@@ -27,11 +28,13 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "docx": "^9.11.0",
+    "i18next": "^26.5.3",
     "lucide-react": "^1.58.0",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.8.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^17.1.0",
     "shadcn": "^4.21.5",
     "sonner": "^2.0.8",
     "tailwindcss": "^4.3.3",

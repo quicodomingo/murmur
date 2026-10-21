@@ -1,0 +1,8 @@
+{
+  "defaultName": "Hablante {{n}}",
+  "changeSpeaker": "{{name}}: cambiar el hablante",
+  "guestsLabel": "Invitados: «{{name}}» es…",
+  "rename": "Renombrar «{{name}}»…",
+  "newSpeaker": "Nuevo hablante…",
+  "nameLabel": "Nombre del hablante"
+}

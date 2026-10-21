@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ArrowDown, Copy, Play, StickyNote } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { ScreenThumbs } from "@/components/Screens";
@@ -49,6 +50,7 @@ function screenAnchors(meeting: Meeting): Map<string, Screen[]> {
 }
 
 export function Transcript(props: Props) {
+  const { t } = useTranslation("transcript");
   const { meeting, partial } = props;
   const live = (Object.entries(partial) as [Channel, string][]).filter(([, text]) => text);
   const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id), you: isYou(meeting, id) }));
@@ -77,11 +79,11 @@ export function Transcript(props: Props) {
 
   useEffect(() => {
     if (!props.jump) return;
-    const { utteranceId, t } = props.jump;
+    const { utteranceId, t: at } = props.jump;
     // Note hits carry only a time: go to what was being said then.
     const target =
       meeting.utterances.find((u) => u.id === utteranceId) ??
-      [...meeting.utterances].reverse().find((u) => u.start <= t) ??
+      [...meeting.utterances].reverse().find((u) => u.start <= at) ??
       meeting.utterances[0];
     if (!target) return;
     following.current = false;
@@ -132,14 +134,14 @@ export function Transcript(props: Props) {
           <TitleInput title={meeting.title} onChange={props.onTitle} compact={props.compact} />
           <p className="mt-1.5 text-[13px] text-muted-foreground">
             {longDate(meeting.createdAt)}
-            {speakers.length > 0 && ` · ${speakers.length} ${speakers.length === 1 ? "participant" : "participants"}`}
+            {speakers.length > 0 && ` · ${t("participants", { count: speakers.length })}`}
           </p>
 
           {props.finalPass && <FinalPassBanner {...props.finalPass} />}
 
           {meeting.utterances.length === 0 && live.length === 0 && (
             <p className="mt-12 text-[15px] text-text-secondary">
-              {recording ? "Escoltant… La transcripció apareixerà aquí quan algú parli." : "Aquesta reunió no té transcripció."}
+              {recording ? t("listening") : t("empty")}
             </p>
           )}
 
@@ -193,7 +195,7 @@ export function Transcript(props: Props) {
           className="absolute bottom-5 left-1/2 inline-flex h-[30px] -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-[15px] border border-mm-recording-pill-border bg-mm-recording-pill pl-3 pr-3.5 text-[13px] font-medium text-mm-on-recording-pill shadow-[0_2px_8px_rgb(0_0_0/0.18)] transition-transform duration-150 animate-in fade-in slide-in-from-bottom-1 hover:scale-[1.03] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:animate-none motion-reduce:transition-none"
         >
           <ArrowDown className="size-3.5" aria-hidden />
-          Torna al directe
+          {t("backToLive")}
         </button>
       )}
     </div>
@@ -202,6 +204,7 @@ export function Transcript(props: Props) {
 
 /** The meeting's title, editable in place. Long titles wrap (a textarea that grows, one paragraph). */
 export function TitleInput({ title, onChange, compact }: { title: string; onChange: (t: string) => void; compact?: boolean }) {
+  const { t } = useTranslation("transcript");
   const [value, setValue] = useState(title);
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => setValue(title), [title]);
@@ -216,7 +219,7 @@ export function TitleInput({ title, onChange, compact }: { title: string; onChan
       ref={ref}
       rows={1}
       value={value}
-      aria-label="Títol de la reunió"
+      aria-label={t("titleLabel")}
       onChange={(e) => setValue(e.target.value.replace(/\n/g, " "))}
       onBlur={() => onChange(value.trim() || title)}
       onKeyDown={(e) => {
@@ -249,6 +252,7 @@ type RowProps = {
 };
 
 function UtteranceRow({ utterance: u, flash, heard, onPlay, showFlag, notes, hoveredNote, onHoverNote, flag, onEdit }: RowProps) {
+  const { t } = useTranslation("transcript");
   const [editing, setEditing] = useState(false);
   const linked = notes.includes(hoveredNote ?? "");
 
@@ -271,7 +275,7 @@ function UtteranceRow({ utterance: u, flash, heard, onPlay, showFlag, notes, hov
       {notes.length > 0 && (
         <button
           type="button"
-          aria-label="Nota associada"
+          aria-label={t("linkedNote")}
           onMouseEnter={() => onHoverNote(notes[0])}
           onMouseLeave={() => onHoverNote(null)}
           className={cn("absolute -left-6 top-2 text-mm-timestamp transition-transform", linked && "scale-125")}
@@ -286,7 +290,7 @@ function UtteranceRow({ utterance: u, flash, heard, onPlay, showFlag, notes, hov
             <button
               type="button"
               onClick={onPlay}
-              aria-label={`Escolta des del minut ${clock(u.start)}`}
+              aria-label={t("playFrom", { time: clock(u.start) })}
               className="group/time flex items-center gap-1 rounded-sm text-[12px] tabular-nums text-mm-timestamp hover:underline focus-visible:outline-2 focus-visible:outline-ring"
             >
               {clock(u.start)}
@@ -295,7 +299,7 @@ function UtteranceRow({ utterance: u, flash, heard, onPlay, showFlag, notes, hov
           ) : (
             <span className="text-[12px] tabular-nums text-mm-timestamp">{clock(u.start)}</span>
           )}
-          {u.edited && <span className="text-[11px] text-text-secondary">editat</span>}
+          {u.edited && <span className="text-[11px] text-text-secondary">{t("edited")}</span>}
         </div>
       )}
       {editing ? (
@@ -307,8 +311,8 @@ function UtteranceRow({ utterance: u, flash, heard, onPlay, showFlag, notes, hov
       )}
       <button
         type="button"
-        aria-label="Copia"
-        onClick={() => navigator.clipboard.writeText(u.text).then(() => toast("Copiat"))}
+        aria-label={t("copy")}
+        onClick={() => navigator.clipboard.writeText(u.text).then(() => toast(t("copied")))}
         className="absolute right-2 top-2 hidden rounded-md p-1 text-muted-foreground hover:bg-black/5 group-hover:block"
       >
         <Copy className="size-3.5" />
@@ -319,6 +323,7 @@ function UtteranceRow({ utterance: u, flash, heard, onPlay, showFlag, notes, hov
 
 /** In-place editor that looks like the paragraph it replaces (a textarea that grows with its text). */
 function EditBox({ text, onDone }: { text: string; onDone: (value: string | null) => void }) {
+  const { t } = useTranslation("transcript");
   const ref = useRef<HTMLTextAreaElement>(null);
   const done = useRef(false);
   const fit = () => {
@@ -344,7 +349,7 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
     <textarea
       ref={ref}
       defaultValue={text}
-      aria-label="Edita la frase"
+      aria-label={t("editUtterance")}
       rows={1}
       onInput={fit}
       onBlur={() => finish(true)}
@@ -360,18 +365,12 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
   );
 }
 
-const BANNER: Record<PostStage, { title: string; hint: string }> = {
-  speakers: { title: "Verificant parlants…", hint: "Es torna a analitzar tota la reunió per separar millor les veus. Pots continuar llegint i editant." },
-  text: { title: "Millorant la transcripció…", hint: "Whisper torna a escoltar la reunió i reescriu el text, amb puntuació i majúscules. Les frases que hagis corregit no es toquen." },
-  punctuation: { title: "Posant puntuació…", hint: "Punts, comes i majúscules. Les frases que hagis corregit no es toquen." },
-  cover: { title: "Preparant la portada…", hint: "El model de llenguatge local llegeix la transcripció. Pots continuar llegint i editant." },
-};
-
 /**
  * Shown while the recording is processed (speakers, Whisper's text, punctuation, cover). The stages report no
  * progress, so the bar follows the measured speed and waits at 95% until the stage really ends.
  */
 function FinalPassBanner({ stage, estimateSeconds, startedAt }: { stage: PostStage; estimateSeconds: number; startedAt: number }) {
+  const { t } = useTranslation("transcript");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -380,15 +379,15 @@ function FinalPassBanner({ stage, estimateSeconds, startedAt }: { stage: PostSta
   const elapsed = (now - startedAt) / 1000;
   const progress = Math.min(0.95, elapsed / Math.max(estimateSeconds, 1));
   const left = Math.max(0, estimateSeconds - elapsed);
-  const remaining = left < 45 ? "falta poc" : `uns ${Math.round(left / 60) || 1} min`;
+  const remaining = left < 45 ? t("almostDone") : t("minutesLeft", { minutes: Math.round(left / 60) || 1 });
   return (
     <div role="status" className="mt-5 rounded-lg bg-muted px-3.5 py-3">
       <div className="flex items-center gap-2 text-[13px]">
         <span className="size-3.5 animate-spin rounded-full border-2 border-text-secondary/30 border-t-text-secondary" aria-hidden />
-        <span className="font-medium">{BANNER[stage].title}</span>
+        <span className="font-medium">{t(`stages.${stage}.title`)}</span>
         <span className="text-muted-foreground">{remaining}</span>
       </div>
-      <p className="mt-1 text-[12px] text-muted-foreground">{BANNER[stage].hint}</p>
+      <p className="mt-1 text-[12px] text-muted-foreground">{t(`stages.${stage}.hint`)}</p>
       <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-mm-meter-off">
         <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
       </div>

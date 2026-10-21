@@ -1,0 +1,34 @@
+{
+  "participants_one": "{{count}} participante",
+  "participants_other": "{{count}} participantes",
+  "listening": "Escuchando… La transcripción aparecerá aquí cuando alguien hable.",
+  "empty": "Esta reunión no tiene transcripción.",
+  "backToLive": "Volver al directo",
+  "titleLabel": "Título de la reunión",
+  "linkedNote": "Nota asociada",
+  "playFrom": "Escuchar desde el minuto {{time}}",
+  "edited": "editado",
+  "copy": "Copiar",
+  "copied": "Copiado",
+  "editUtterance": "Editar la frase",
+  "almostDone": "falta poco",
+  "minutesLeft": "unos {{minutes}} min",
+  "stages": {
+    "speakers": {
+      "title": "Verificando hablantes…",
+      "hint": "Se vuelve a analizar toda la reunión para separar mejor las voces. Puedes seguir leyendo y editando."
+    },
+    "text": {
+      "title": "Mejorando la transcripción…",
+      "hint": "Whisper vuelve a escuchar la reunión y reescribe el texto, con puntuación y mayúsculas. Las frases que hayas corregido no se tocan."
+    },
+    "punctuation": {
+      "title": "Añadiendo puntuación…",
+      "hint": "Puntos, comas y mayúsculas. Las frases que hayas corregido no se tocan."
+    },
+    "cover": {
+      "title": "Preparando la portada…",
+      "hint": "El modelo de lenguaje local lee la transcripción. Puedes seguir leyendo y editando."
+    }
+  }
+}

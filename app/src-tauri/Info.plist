@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>ca</string>
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>ca</string>
+    <string>es</string>
+    <string>en</string>
+  </array>
   <key>NSMicrophoneUsageDescription</key>
   <string>Murmur fa servir el micròfon per transcriure la reunió. L'àudio es processa en aquest Mac i no surt mai de l'ordinador.</string>
   <key>NSAudioCaptureUsageDescription</key>

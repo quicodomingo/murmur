@@ -1,6 +1,7 @@
 //! Live transcription engine: Silero VAD → Conformer ca-es (partial + final) → online speaker
 //! clustering. Port of `mvp/live.py` on top of sherpa-onnx.
 
+use crate::i18n::tr;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 
@@ -61,7 +62,7 @@ pub fn models_dir() -> PathBuf {
 
 fn path_str(p: PathBuf) -> Result<String> {
     if !p.exists() {
-        return Err(anyhow!("Falta el model {}", p.display()));
+        return Err(anyhow!(tr!("model_missing", path = p.display())));
     }
     Ok(p.to_string_lossy().into_owned())
 }
@@ -115,14 +116,14 @@ impl Models {
         config.model_config.num_threads = 4;
         config.decoding_method = Some("greedy_search".into());
         let recognizer =
-            OfflineRecognizer::create(&config).context("No s'ha pogut carregar el model de veu")?;
+            OfflineRecognizer::create(&config).context(tr!("speech_model_load_failed"))?;
 
         let embedder = SpeakerEmbeddingExtractor::create(&SpeakerEmbeddingExtractorConfig {
             model: Some(path_str(dir.join(embedding_model()))?),
             num_threads: 2,
             ..Default::default()
         })
-        .context("No s'ha pogut carregar el model de parlants")?;
+        .context(tr!("speaker_model_load_failed"))?;
 
         Ok(Self {
             kind,
@@ -288,7 +289,7 @@ impl<'m> LiveSession<'m> {
             ..Default::default()
         };
         let vad = VoiceActivityDetector::create(&config, 60.0)
-            .ok_or_else(|| anyhow!("No s'ha pogut carregar el detector de veu"))?;
+            .ok_or_else(|| anyhow!(tr!("vad_load_failed")))?;
         Ok(Self {
             models,
             channel,

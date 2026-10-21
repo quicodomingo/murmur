@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Pencil, Plus, UserRound } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import {
   DropdownMenu,
@@ -9,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { locale } from "@/lib/i18n";
 import { SYSTEM_SPEAKER_BASE, type Meeting } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -52,13 +54,14 @@ type Props = {
 /** Speaker flag that opens a native-style menu to reassign the utterance or rename the speaker. */
 export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, guests: invited }: Props) {
   // Meetings saved before calendars had no guests (null from the database).
+  const { t } = useTranslation("speakers");
   const guests = invited ?? [];
-  const name = speakers.find((s) => s.id === speaker)?.name ?? `Parlant ${speaker + 1}`;
+  const name = speakers.find((s) => s.id === speaker)?.name ?? t("defaultName", { n: speaker + 1 });
   // The numbering version is captured when renaming starts: the final pass may renumber meanwhile.
   const [renaming, setRenaming] = useState<{ id: number; version: number } | null>(null);
 
   if (renaming !== null) {
-    const current = speakers.find((s) => s.id === renaming.id)?.name ?? `Parlant ${renaming.id + 1}`;
+    const current = speakers.find((s) => s.id === renaming.id)?.name ?? t("defaultName", { n: renaming.id + 1 });
     return (
       <RenameInput
         speaker={renaming.id}
@@ -75,12 +78,12 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
 
   const nextId = Math.max(-1, ...speakers.map((s) => s.id)) + 1;
   // Guests who aren't a speaker's name yet.
-  const taken = new Set(speakers.map((s) => s.name.toLocaleLowerCase("ca")));
-  const unnamed = guests.filter((g) => !taken.has(g.toLocaleLowerCase("ca")));
+  const taken = new Set(speakers.map((s) => s.name.toLocaleLowerCase(locale())));
+  const unnamed = guests.filter((g) => !taken.has(g.toLocaleLowerCase(locale())));
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="rounded-[4px] focus-visible:outline-2 focus-visible:outline-ring" aria-label={`${name}: canvia el parlant`}>
+        <button type="button" className="rounded-[4px] focus-visible:outline-2 focus-visible:outline-ring" aria-label={t("changeSpeaker", { name })}>
           <Flag speaker={speaker} name={name} you={speakers.find((s) => s.id === speaker)?.you} />
         </button>
       </DropdownMenuTrigger>
@@ -95,7 +98,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
         {unnamed.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">Convidats: «{name}» és…</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">{t("guestsLabel", { name })}</DropdownMenuLabel>
             {unnamed.map((g) => (
               <DropdownMenuItem key={g} onSelect={() => onRename(speaker, g, version)}>
                 <UserRound className="size-3.5" />
@@ -107,7 +110,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => setRenaming({ id: speaker, version })}>
           <Pencil className="size-3.5" />
-          Reanomena «{name}»…
+          {t("rename", { name })}
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => {
@@ -116,7 +119,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
           }}
         >
           <Plus className="size-3.5" />
-          Nou parlant…
+          {t("newSpeaker")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -136,12 +139,13 @@ function RenameInput({
   suggestions: string[];
   onDone: (v: string) => void;
 }) {
+  const { t } = useTranslation("speakers");
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(initial);
   useEffect(() => {
     // Wait for the menu to finish closing before taking focus.
-    const t = setTimeout(() => ref.current?.select(), 30);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => ref.current?.select(), 30);
+    return () => clearTimeout(timer);
   }, []);
   const listId = `guests-${speaker}`;
   return (
@@ -150,7 +154,7 @@ function RenameInput({
         ref={ref}
         list={suggestions.length ? listId : undefined}
         value={value}
-        aria-label="Nom del parlant"
+        aria-label={t("nameLabel")}
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => onDone(value.trim())}
         onKeyDown={(e) => {

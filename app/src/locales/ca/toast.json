@@ -1,0 +1,8 @@
+{
+  "startsIn_one": "Comença d'aquí a {{count}} minut",
+  "startsIn_other": "Comença d'aquí a {{count}} minuts",
+  "startsNow": "Comença ara",
+  "started": "Ha començat",
+  "close": "Tanca l'avís",
+  "startRecording": "Comença a gravar"
+}

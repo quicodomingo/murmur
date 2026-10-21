@@ -1,0 +1,38 @@
+{
+  "title": "About Murmur",
+  "version": "Version {{version}}",
+  "description": "Live meeting transcription, with Catalan at its heart. Everything is processed on this Mac: audio and text never leave the computer. Local means private.",
+  "chips": {
+    "local": "Nothing leaves this Mac",
+    "noCloud": "No cloud, no accounts",
+    "languages": "Catalan and Spanish"
+  },
+  "openSource": "Open Source Models and Tools",
+  "thanks": "Murmur exists thanks to these projects. Thank you to everyone who contributes to them.",
+  "roles": {
+    "transcription": "Transcription",
+    "english": "English transcription",
+    "final": "Final transcription",
+    "vad": "Voice detection",
+    "speakers": "Speakers",
+    "turns": "Speaker turns",
+    "verification": "Speaker verification",
+    "punctuation": "Punctuation and capitals",
+    "cover": "Summary and cover"
+  },
+  "conformerName": "Catalan and Spanish Conformer",
+  "conformerAuthor": "Projecte AINA (BSC), based on an NVIDIA model",
+  "fullstopName": "Fullstop Catalan",
+  "noLicense": "License not stated",
+  "tool": "Tool",
+  "tools": {
+    "echo": "WebRTC echo cancellation (sonora)",
+    "publicDomain": "Public domain",
+    "radix": "Radix UI and shadcn/ui",
+    "docx": "docx (Word export)",
+    "lucide": "Lucide icons"
+  },
+  "hideTools": "Hide Tools",
+  "showTools": "See All Licenses and Dependencies",
+  "madeBy": "Made in Barcelona by Quico Domingo"
+}

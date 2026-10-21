@@ -1,0 +1,18 @@
+{
+  "nav": "Reuniones",
+  "deleteMeeting": "Eliminar la reunión…",
+  "newMeeting": "Nueva reunión",
+  "search": "Buscar en todas las reuniones",
+  "clearSearch": "Borrar la búsqueda",
+  "recording": "Grabando",
+  "verifyingSpeakers": "Verificando hablantes",
+  "localOnly": "Todo se queda en este Mac",
+  "settings": "Ajustes",
+  "settingsShortcut": "Ajustes (⌘,)",
+  "searching": "Buscando…",
+  "noResults": "Ningún resultado.",
+  "results": "Resultados de la búsqueda",
+  "note": "nota",
+  "moreHits_one": "y {{count}} más",
+  "moreHits_other": "y {{count}} más"
+}

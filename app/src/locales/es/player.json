@@ -1,0 +1,10 @@
+{
+  "region": "Audio de la reunión",
+  "pause": "Pausa",
+  "listen": "Escuchar la reunión",
+  "position": "Posición",
+  "positionValue": "{{time}} de {{duration}}",
+  "speed": "Velocidad: {{rate}}×. Cambiarla",
+  "preparing": "Preparando el audio…",
+  "openFailed": "El reproductor no ha podido abrir el audio"
+}

@@ -3,7 +3,7 @@ import { useEffect, useReducer, useRef } from "react";
 import type { JSONContent } from "@tiptap/core";
 
 import * as backend from "./backend";
-import { coverBasis, coverDocument, coverOutdated, renamedSpeakers, renameInCover } from "./cover";
+import { coverLanguage, coverOutdated, meetingBasis, renamedSpeakers, renameInCover } from "./cover";
 import { notesFromDoc } from "./notes";
 import {
   SYSTEM_SPEAKER_BASE,
@@ -209,7 +209,7 @@ export function reducer(state: State, action: Action): State {
         if (!m.cover) return next;
         // The cover takes the new name too; if it was up to date, it still is.
         const cover = renameInCover(m.cover, renamedSpeakers(m, next));
-        const basis = m.cover.basis && !coverOutdated(m) ? coverBasis(coverDocument(next)) : m.cover.basis;
+        const basis = m.cover.basis && !coverOutdated(m) ? meetingBasis(next, coverLanguage(m.cover)) : m.cover.basis;
         return { ...next, cover: { ...cover, basis } };
       });
     case "reassign":

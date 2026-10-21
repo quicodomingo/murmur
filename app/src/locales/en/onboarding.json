@@ -1,0 +1,81 @@
+{
+  "dialogTitle": "Welcome to Murmur",
+  "dialogDescription": "Getting started and downloading the models",
+  "start": "Get Started",
+  "continue": "Continue",
+  "back": "Back",
+  "stepOf": "Step {{step}} of {{total}}",
+  "welcomeTagline": "Transcribe your meetings live, with Catalan at the heart.",
+  "welcomePrivate": "Private, because it's local.",
+  "features": {
+    "live": {
+      "kicker": "Live transcription",
+      "title": "See the text as you talk",
+      "text": "Murmur transcribes the meeting in real time, with Catalan as its main language. You can follow it, correct it and annotate it as it happens."
+    },
+    "speakers": {
+      "kicker": "Speakers and notes",
+      "title": "Who's talking and what you jot down",
+      "text": "It tells voices apart and shows you who spoke and for how long. The notes you write are tied to the exact minute of the meeting."
+    },
+    "cover": {
+      "kicker": "Cover",
+      "title": "The meeting, summed up",
+      "text": "When it ends, Murmur prepares a cover with the title, summary, decisions and tasks. Each point links to the moment it was said."
+    },
+    "alerts": {
+      "kicker": "Alerts",
+      "title": "Never miss recording a meeting",
+      "text": "When Zoom, Meet or Teams use the microphone, Murmur lets you know from the menu bar. One click and it starts recording."
+    }
+  },
+  "demo": {
+    "recording": "Recording",
+    "anna": "Anna",
+    "jordi": "James",
+    "marta": "Martha",
+    "you": "You",
+    "liveText": "So if everyone's happy with it, we'll finalize the budget on Thursday and send it on Friday",
+    "livePartial": " to the client so they can",
+    "whoSpoke": "Who spoke",
+    "notes": "Notes",
+    "note1": "Budget finalized Thursday",
+    "note2": "Review legal copy",
+    "coverTitle": "Launch budget and schedule",
+    "decisions": "Decisions",
+    "decision1": "Send on Friday",
+    "decision2": "Launch discount",
+    "tasks": "Tasks",
+    "task1": "Finalize figures",
+    "task2": "Legal copy",
+    "menuBarClock": "Mon 10:58 AM",
+    "alertTitle": "Meeting detected",
+    "alertText": "Meet is using the microphone",
+    "alertAction": "Start Recording"
+  },
+  "models": {
+    "kicker": "Last step",
+    "titleReady": "All Set",
+    "titleDownloading": "Downloading the Models",
+    "titleChoose": "Download the Models",
+    "introReady": "You can now record your first meeting.",
+    "introDownloading": "The download continues even if you close this window.",
+    "introChoose": "Murmur works with models that run on this Mac. You only need to download them once.",
+    "transcriptionName": "Transcription model",
+    "required": "Required",
+    "transcriptionText": "Turns speech into text, in Catalan and other languages, right on this Mac.",
+    "alwaysIncluded": "Always included",
+    "toolsName": "Summary and cover tools",
+    "optional": "Optional",
+    "toolsText": "Punctuation, title, summary, decisions and tasks for each meeting. You can add them later in Settings.",
+    "offline": "Once downloaded, they work offline. Meeting audio and text never leave this computer: no cloud, no accounts.",
+    "close": "Close",
+    "continueInBackground": "Continue in Background",
+    "downloading": "Downloading…",
+    "retry": "Try Again",
+    "downloadAndStart": "Download and Start",
+    "done": "Done",
+    "waiting": "Waiting",
+    "percent": "{{value}}%"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "names": {
+    "transcription": "El model de transcripció",
+    "punctuation": "El model de puntuació",
+    "llm": "El model de llenguatge",
+    "english": "El model d'anglès",
+    "whisper": "Whisper"
+  },
+  "downloadFailed": "No s'ha pogut descarregar: {{error}}",
+  "ready": "{{name}} ja és a punt"
+}

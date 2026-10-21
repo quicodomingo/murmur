@@ -1,5 +1,7 @@
 import type { JSONContent } from "@tiptap/core";
 
+import type { UiLanguage } from "./i18n";
+
 export type Utterance = {
   id: string;
   start: number; // seconds since the recording started
@@ -55,7 +57,10 @@ export type Cover = {
   generatedAt: number;
   /** What the model read (lib/cover.ts coverBasis): when it differs, the cover is out of date. */
   basis?: string;
+  /** The interface language it was written in (lib/cover.ts coverLanguage); none = Catalan. */
+  lang?: UiLanguage;
   excerpt?: string;
+  /** `label`: a tone id (lib/cover.ts TONES); older covers saved the Catalan name (toneId reads both). */
   tone?: { label: string; reason: string };
   summary?: string[];
   decisions?: { text: string; t: number | null }[];

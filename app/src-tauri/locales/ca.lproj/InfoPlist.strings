@@ -1,0 +1,5 @@
+/* macOS permission prompts (docs/TRADUCCIONS.md). Catalan is the source: Info.plist. */
+"NSMicrophoneUsageDescription" = "Murmur fa servir el micròfon per transcriure la reunió. L'àudio es processa en aquest Mac i no surt mai de l'ordinador.";
+"NSAudioCaptureUsageDescription" = "Murmur escolta l'àudio de l'altra banda de la trucada (Zoom, Meet, Teams…) per transcriure-la. Tot es processa en aquest Mac.";
+"NSCalendarsFullAccessUsageDescription" = "Murmur llegeix el calendari per avisar-te quan comença una reunió i posar-li el títol de l'esdeveniment. No modifica res i les dades no surten d'aquest Mac.";
+"NSCalendarsUsageDescription" = "Murmur llegeix el calendari per avisar-te quan comença una reunió i posar-li el títol de l'esdeveniment. No modifica res i les dades no surten d'aquest Mac.";

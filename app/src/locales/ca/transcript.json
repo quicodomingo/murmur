@@ -1,0 +1,34 @@
+{
+  "participants_one": "{{count}} participant",
+  "participants_other": "{{count}} participants",
+  "listening": "Escoltant… La transcripció apareixerà aquí quan algú parli.",
+  "empty": "Aquesta reunió no té transcripció.",
+  "backToLive": "Torna al directe",
+  "titleLabel": "Títol de la reunió",
+  "linkedNote": "Nota associada",
+  "playFrom": "Escolta des del minut {{time}}",
+  "edited": "editat",
+  "copy": "Copia",
+  "copied": "Copiat",
+  "editUtterance": "Edita la frase",
+  "almostDone": "falta poc",
+  "minutesLeft": "uns {{minutes}} min",
+  "stages": {
+    "speakers": {
+      "title": "Verificant parlants…",
+      "hint": "Es torna a analitzar tota la reunió per separar millor les veus. Pots continuar llegint i editant."
+    },
+    "text": {
+      "title": "Millorant la transcripció…",
+      "hint": "Whisper torna a escoltar la reunió i reescriu el text, amb puntuació i majúscules. Les frases que hagis corregit no es toquen."
+    },
+    "punctuation": {
+      "title": "Posant puntuació…",
+      "hint": "Punts, comes i majúscules. Les frases que hagis corregit no es toquen."
+    },
+    "cover": {
+      "title": "Preparant la portada…",
+      "hint": "El model de llenguatge local llegeix la transcripció. Pots continuar llegint i editant."
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "dialogTitle": "Bienvenida a Murmur",
+  "dialogDescription": "Primeros pasos y descarga de los modelos",
+  "start": "Empezar",
+  "continue": "Continuar",
+  "back": "Atrás",
+  "stepOf": "Paso {{step}} de {{total}}",
+  "welcomeTagline": "Transcribe tus reuniones en directo, con el catalán en el centro.",
+  "welcomePrivate": "Privado, porque es local.",
+  "features": {
+    "live": {
+      "kicker": "Transcripción en directo",
+      "title": "Ves el texto mientras habláis",
+      "text": "Murmur transcribe la reunión en tiempo real, con el catalán como lengua principal. Puedes seguirla, corregirla y anotarla al momento."
+    },
+    "speakers": {
+      "kicker": "Hablantes y notas",
+      "title": "Quién habla y qué apuntas",
+      "text": "Distingue las voces y te muestra quién ha hablado y cuánto. Las notas que escribes quedan ligadas al minuto exacto de la reunión."
+    },
+    "cover": {
+      "kicker": "Portada",
+      "title": "La reunión, resumida",
+      "text": "Al terminar, Murmur prepara una portada con el título, el resumen, las decisiones y las tareas. Cada punto enlaza con el momento en que se dijo."
+    },
+    "alerts": {
+      "kicker": "Avisos",
+      "title": "Ninguna reunión sin grabar",
+      "text": "Cuando Zoom, Meet o Teams usan el micrófono, Murmur te avisa desde la barra de menús. Un clic y empieza a grabar."
+    }
+  },
+  "demo": {
+    "recording": "Grabando",
+    "anna": "Ana",
+    "jordi": "Jorge",
+    "marta": "Marta",
+    "you": "Tú",
+    "liveText": "Pues si os parece bien, cerramos el presupuesto el jueves y se lo enviamos el viernes",
+    "livePartial": " al cliente para que lo",
+    "whoSpoke": "Quién ha hablado",
+    "notes": "Notas",
+    "note1": "Presupuesto cerrado el jueves",
+    "note2": "Revisar textos legales",
+    "coverTitle": "Presupuesto y calendario del lanzamiento",
+    "decisions": "Decisiones",
+    "decision1": "Enviar el viernes",
+    "decision2": "Descuento de lanzamiento",
+    "tasks": "Tareas",
+    "task1": "Cerrar cifras",
+    "task2": "Textos legales",
+    "menuBarClock": "lun 10:58",
+    "alertTitle": "Reunión detectada",
+    "alertText": "Meet está usando el micrófono",
+    "alertAction": "Empezar a grabar"
+  },
+  "models": {
+    "kicker": "Último paso",
+    "titleReady": "Todo listo",
+    "titleDownloading": "Descargando los modelos",
+    "titleChoose": "Descarga los modelos",
+    "introReady": "Ya puedes grabar tu primera reunión.",
+    "introDownloading": "La descarga continúa aunque cierres esta ventana.",
+    "introChoose": "Murmur funciona con modelos que se ejecutan en este Mac. Solo hay que descargarlos una vez.",
+    "transcriptionName": "Modelo de transcripción",
+    "required": "Necesario",
+    "transcriptionText": "Convierte la voz en texto, en catalán y otras lenguas, dentro de este Mac.",
+    "alwaysIncluded": "Siempre incluido",
+    "toolsName": "Herramientas de resumen y portada",
+    "optional": "Opcional",
+    "toolsText": "Puntuación, título, resumen, decisiones y tareas de cada reunión. Se puede añadir más adelante desde Ajustes.",
+    "offline": "Una vez descargados, funcionan sin conexión. El audio y el texto de las reuniones nunca salen de este ordenador: no hay nube ni cuentas.",
+    "close": "Cerrar",
+    "continueInBackground": "Continuar en segundo plano",
+    "downloading": "Descargando…",
+    "retry": "Volver a intentarlo",
+    "downloadAndStart": "Descargar y empezar",
+    "done": "Hecho",
+    "waiting": "En espera",
+    "percent": "{{value}} %"
+  }
+}

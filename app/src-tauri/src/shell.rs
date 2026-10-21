@@ -14,6 +14,7 @@ use tauri::tray::{TrayIcon, TrayIconBuilder};
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::calendar;
+use crate::i18n::tr;
 use crate::micwatch;
 
 const TRAY_IDLE: &[u8] = include_bytes!("../icons/menubar/MenuBarTemplate@2x.png");
@@ -53,6 +54,8 @@ pub struct Toast {
 pub struct Shell {
     tray: Mutex<Option<TrayIcon>>,
     start_item: Mutex<Option<MenuItem<tauri::Wry>>>,
+    /// Menu items with a fixed text (app menu, tray), and their key, to translate them again.
+    labels: Mutex<Vec<(MenuItem<tauri::Wry>, &'static str)>>,
     toast: Mutex<Option<Toast>>,
     recording: AtomicBool,
     detect: AtomicBool,
@@ -97,13 +100,26 @@ fn set_tray(app: &AppHandle, state: TrayState) {
             let _ = tray.set_icon_as_template(template);
         }
         let _ = tray.set_tooltip(Some(match state {
-            TrayState::Recording => "Murmur: gravant",
+            TrayState::Recording => tr!("tray_recording"),
             _ => "Murmur",
         }));
     }
     if let Some(item) = shell.start_item.lock().unwrap().as_ref() {
-        let _ = item.set_text(if matches!(state, TrayState::Recording) { "Atura la gravació" } else { "Comença a gravar" });
+        let _ = item.set_text(if matches!(state, TrayState::Recording) { tr!("tray_stop") } else { tr!("tray_start") });
     }
+}
+
+/// Keeps a menu item so `retranslate` can change its text.
+pub fn keep_label(app: &AppHandle, item: &MenuItem<tauri::Wry>, key: &'static str) {
+    shell(app).labels.lock().unwrap().push((item.clone(), key));
+}
+
+/// After a change of interface language: the menus and the tray in the new one.
+pub fn retranslate(app: &AppHandle) {
+    for (item, key) in shell(app).labels.lock().unwrap().iter() {
+        let _ = item.set_text(crate::i18n::t(key));
+    }
+    refresh_tray(app);
 }
 
 fn refresh_tray(app: &AppHandle) {
@@ -323,16 +339,22 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
     let handle = app.handle();
 
     // Menu bar icon and its menu.
-    let start = MenuItem::with_id(handle, "tray-start", "Comença a gravar", true, None::<&str>)?;
+    let start = MenuItem::with_id(handle, "tray-start", tr!("tray_start"), true, None::<&str>)?;
+    let open = MenuItem::with_id(handle, "tray-open", tr!("tray_open"), true, None::<&str>)?;
+    let settings = MenuItem::with_id(handle, "tray-settings", tr!("menu_settings"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(handle, "tray-quit", tr!("tray_quit"), true, None::<&str>)?;
+    keep_label(handle, &open, "tray_open");
+    keep_label(handle, &settings, "menu_settings");
+    keep_label(handle, &quit, "tray_quit");
     let menu = Menu::with_items(
         handle,
         &[
             &start,
             &PredefinedMenuItem::separator(handle)?,
-            &MenuItem::with_id(handle, "tray-open", "Obre Murmur", true, None::<&str>)?,
-            &MenuItem::with_id(handle, "tray-settings", "Configuració…", true, None::<&str>)?,
+            &open,
+            &settings,
             &PredefinedMenuItem::separator(handle)?,
-            &MenuItem::with_id(handle, "tray-quit", "Surt de Murmur", true, None::<&str>)?,
+            &quit,
         ],
     )?;
     let tray = TrayIconBuilder::with_id("murmur")
@@ -412,7 +434,7 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
             if active && !calendar_shown {
                 let dismissed = shell.dismissed.lock().unwrap().clone();
                 if let Some(name) = users.difference(&previous).find(|n| !dismissed.iter().any(|d| d.starts_with(n.as_str()))) {
-                    show_toast(&app, "detected", "Reunió detectada".into(), format!("{name} fa servir el micròfon"), None, TOAST_SECONDS);
+                    show_toast(&app, "detected", tr!("toast_detected").into(), tr!("toast_mic_user", name = name), None, TOAST_SECONDS);
                 }
             }
             previous = users;

@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 
 import * as backend from "./backend";
+import { t } from "./i18n";
 
 /**
  * Before recording: asks for what's missing, like other apps do (the system's own dialogs).
@@ -17,9 +18,9 @@ export async function ensurePermissions(want: { mic: boolean; system: boolean })
   }
   if (mic && status.microphone !== "granted") {
     mic = false;
-    toast.error("Murmur no té accés al micròfon", {
-      description: "Activa Murmur a Configuració del Sistema › Privadesa i seguretat › Micròfon.",
-      action: { label: "Obre Configuració", onClick: () => backend.openPrivacySettings("microphone") },
+    toast.error(t("permissions:micDenied"), {
+      description: t("permissions:micDeniedHelp"),
+      action: { label: t("permissions:openSettings"), onClick: () => backend.openPrivacySettings("microphone") },
       duration: 12000,
     });
   }
@@ -29,11 +30,9 @@ export async function ensurePermissions(want: { mic: boolean; system: boolean })
   }
   if (system && status.systemAudio === "denied") {
     system = false;
-    toast.error("Murmur no pot escoltar l'àudio del sistema", {
-      description:
-        "Activa Murmur a Configuració del Sistema › Gravació de pantalla i àudio del sistema › Només àudio del sistema." +
-        (mic ? " Mentrestant, aquesta reunió es grava només amb el micròfon." : ""),
-      action: { label: "Obre Configuració", onClick: () => backend.openPrivacySettings("systemAudio") },
+    toast.error(t("permissions:systemAudioDenied"), {
+      description: mic ? t("permissions:systemAudioDeniedHelpMic") : t("permissions:systemAudioDeniedHelp"),
+      action: { label: t("permissions:openSettings"), onClick: () => backend.openPrivacySettings("systemAudio") },
       duration: 12000,
     });
   }

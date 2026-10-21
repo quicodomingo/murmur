@@ -1,0 +1,14 @@
+{
+  "minutes": "{{m}} min",
+  "hoursMinutes": "{{h}} h {{m}} min",
+  "dateTime": "{{date}} · {{time}}",
+  "dayGroups": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This week",
+    "earlier": "Earlier"
+  },
+  "speaker": "Speaker {{n}}",
+  "you": "You",
+  "room": "Room {{n}}"
+}

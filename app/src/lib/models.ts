@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import * as backend from "./backend";
+import { locale, t } from "./i18n";
 import type { ModelId, ModelStatus } from "./types";
 
 /** Downloadable models (transcription, punctuation, language model): on disk and downloading. */
@@ -17,13 +18,13 @@ export type ModelsState = {
   loaded: boolean;
 };
 
-export const MODEL_NAMES: Record<ModelId, string> = {
-  transcription: "El model de transcripció",
-  punctuation: "El model de puntuació",
-  llm: "El model de llenguatge",
-  english: "El model d'anglès",
-  whisper: "Whisper",
-};
+const MODEL_IDS: ModelId[] = ["transcription", "punctuation", "llm", "english", "whisper"];
+
+/** Each model's name, as the subject of a sentence ("El model de transcripció"); read in the interface language. */
+export const MODEL_NAMES = Object.defineProperties(
+  {} as Record<ModelId, string>,
+  Object.fromEntries(MODEL_IDS.map((id) => [id, { get: () => t(`models:names.${id}`), enumerable: true }])),
+);
 
 let state: ModelsState = { status: {}, downloading: {}, errors: {}, queued: [], loaded: !backend.isTauri() };
 /** Callbacks waiting for a download to end (true: the model is there now). */
@@ -51,8 +52,8 @@ function start() {
     set({ ...state, downloading, errors: { ...state.errors, [id]: error ?? undefined } });
     waiters.get(id)?.forEach((w) => w(!error && !cancelled));
     waiters.delete(id);
-    if (error) toast.error(`No s'ha pogut descarregar: ${error}`);
-    else if (!cancelled) toast(`${MODEL_NAMES[id]} ja és a punt`);
+    if (error) toast.error(t("models:downloadFailed", { error }));
+    else if (!cancelled) toast(t("models:ready", { name: MODEL_NAMES[id] }));
     refreshModels().catch((e) => console.error(e));
   });
 }
@@ -138,6 +139,8 @@ export async function deleteModel(id: ModelId) {
 
 /** "126 MB", "5,2 GB". */
 export function bytes(n: number): string {
-  if (n >= 1e9) return `${(n / 1e9).toFixed(1).replace(".", ",")} GB`;
-  return `${Math.round(n / 1e6)} MB`;
+  const number = (value: number, digits: number) =>
+    value.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  if (n >= 1e9) return `${number(n / 1e9, 1)} GB`;
+  return `${number(Math.round(n / 1e6), 0)} MB`;
 }

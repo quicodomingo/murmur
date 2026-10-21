@@ -1,0 +1,8 @@
+{
+  "micDenied": "Murmur no té accés al micròfon",
+  "micDeniedHelp": "Activa Murmur a Configuració del Sistema › Privadesa i seguretat › Micròfon.",
+  "systemAudioDenied": "Murmur no pot escoltar l'àudio del sistema",
+  "systemAudioDeniedHelp": "Activa Murmur a Configuració del Sistema › Gravació de pantalla i àudio del sistema › Només àudio del sistema.",
+  "systemAudioDeniedHelpMic": "Activa Murmur a Configuració del Sistema › Gravació de pantalla i àudio del sistema › Només àudio del sistema. Mentrestant, aquesta reunió es grava només amb el micròfon.",
+  "openSettings": "Obre Configuració"
+}

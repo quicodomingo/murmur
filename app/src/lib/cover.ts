@@ -1,4 +1,5 @@
-import { clock, duration, longDate, speakerIds, speakerName } from "./format";
+import { clock, defaultSpeakerNames, duration, longDate, speakerIds, speakerName } from "./format";
+import { locale, t, UI_LANGUAGES, uiLanguage, type UiLanguage } from "./i18n";
 import { notesDoc, notesFromDoc } from "./notes";
 import type { Cover, LlmResult, LlmTask, Meeting } from "./types";
 
@@ -8,69 +9,66 @@ import type { Cover, LlmResult, LlmTask, Meeting } from "./types";
 
 export type PromptId = "system" | "title" | "tone" | "summary" | "decisions" | "tasks" | "parts";
 
+/** `label` and `text` are read in the interface language each time they're used (cover.json). */
 type PromptDef = {
   id: PromptId;
-  label: string;
-  text: string;
+  readonly label: string;
+  readonly text: string;
   maxTokens: number;
-  schema: object | null;
+  readonly schema: object | null;
 };
 
 const str = { type: "string" };
 const minute = { type: "string", description: "m:ss" };
 
-export const TONES = ["Constructiu", "Distès", "Neutre", "Formal", "Tens", "Conflictiu"] as const;
+/**
+ * The meeting's tone, as stored in the cover (`tone.label`): a fixed id, shown translated
+ * (toneLabel). The model chooses among the labels of the interface language (toneId maps back).
+ */
+export const TONES = ["constructive", "relaxed", "neutral", "formal", "tense", "conflictive"] as const;
+export type Tone = (typeof TONES)[number];
 
-export const PROMPTS: PromptDef[] = [
-  {
-    id: "system",
-    label: "Instruccions generals",
-    text:
-      "Ets un assistent que treballa amb transcripcions de reunions en català. La transcripció s'ha fet automàticament: " +
-      "pot tenir paraules mal reconegudes (sobretot noms i marques) i fragments en castellà. Cada línia comença amb el minut " +
-      "entre claudàtors i el nom de qui parla. Al final hi pot haver les notes que ha pres l'usuari durant la reunió, amb el " +
-      "minut en què les va escriure: mostren què li ha semblat important, i el que hi digui (una tasca, una decisió) també " +
-      "compta. Respon sempre en català correcte i natural, sense castellanismes. No t'inventis res que no surti a la " +
-      "transcripció o a les notes.",
-    maxTokens: 0,
-    schema: null,
-  },
-  {
-    id: "title",
-    label: "Títol i entradeta",
-    text:
-      "Escriu un títol breu per a aquesta reunió (màxim 8 paraules, sense punt final) i una entradeta de dues frases: " +
-      "de què va la reunió i què s'hi decideix.",
+const toneLabels = (lng?: UiLanguage) => TONES.map((id) => t(`cover:tones.${id}`, { lng }));
+
+/** A tone id from what the model answered or an older cover saved (a label in any language). */
+export function toneId(value: string): Tone | null {
+  const key = value.trim().toLocaleLowerCase();
+  if ((TONES as readonly string[]).includes(key)) return key as Tone;
+  for (const lng of UI_LANGUAGES) {
+    const i = toneLabels(lng).findIndex((label) => label.toLocaleLowerCase() === key);
+    if (i >= 0) return TONES[i];
+  }
+  return null;
+}
+
+/** What to show for a cover's tone: its name in the interface language. */
+export function toneLabel(value: string): string {
+  const id = toneId(value);
+  return id ? t(`cover:tones.${id}`) : value;
+}
+
+type Schema = object | null;
+const SCHEMAS: Record<PromptId, { maxTokens: number; schema: () => Schema }> = {
+  system: { maxTokens: 0, schema: () => null },
+  title: {
     maxTokens: 220,
-    schema: { type: "object", properties: { title: str, excerpt: str }, required: ["title", "excerpt"] },
+    schema: () => ({ type: "object", properties: { title: str, excerpt: str }, required: ["title", "excerpt"] }),
   },
-  {
-    id: "tone",
-    label: "To",
-    text: `Quin és el to general de la reunió? Tria una d'aquestes etiquetes: ${TONES.join(", ")}. Afegeix una frase breu que ho justifiqui.`,
+  tone: {
     maxTokens: 140,
-    schema: { type: "object", properties: { tone: { type: "string", enum: TONES }, reason: str }, required: ["tone", "reason"] },
+    schema: () => ({ type: "object", properties: { tone: { type: "string", enum: toneLabels() }, reason: str }, required: ["tone", "reason"] }),
   },
-  {
-    id: "summary",
-    label: "Resum",
-    text: "Resumeix la reunió en dos paràgrafs breus (tres o quatre frases cadascun): els temes principals i les conclusions.",
+  summary: {
     maxTokens: 550,
-    schema: {
+    schema: () => ({
       type: "object",
       properties: { paragraphs: { type: "array", items: str, minItems: 1, maxItems: 3 } },
       required: ["paragraphs"],
-    },
+    }),
   },
-  {
-    id: "decisions",
-    label: "Decisions",
-    text:
-      "Fes la llista de les decisions que s'hi prenen (com a màxim 6). Escriu cada decisió en una frase breu i directa (màxim 20 " +
-      "paraules), sense començar per «S'ha decidit» ni «S'ha acordat». Per a cada decisió, indica el minut on es pren, en format " +
-      "m:ss tal com surt entre claudàtors. Si no es pren cap decisió, deixa la llista buida.",
+  decisions: {
     maxTokens: 450,
-    schema: {
+    schema: () => ({
       type: "object",
       properties: {
         decisions: {
@@ -80,22 +78,11 @@ export const PROMPTS: PromptDef[] = [
         },
       },
       required: ["decisions"],
-    },
+    }),
   },
-  {
-    id: "tasks",
-    label: "Tasques",
-    text:
-      "Fes la llista de les tasques que s'han encarregat a la reunió (com a màxim 8). Una tasca és una acció concreta que " +
-      "algú ha dit que s'ha de fer: quan algú la demana («caldria enviar-los el pressupost», «Pere, ho pots mirar?»), s'hi " +
-      "compromet («ho preparo jo») o queda apuntada a les notes. No són tasques els temes de conversa, les opinions, les " +
-      "idees ni les decisions que no demanen a ningú que faci res. Per a cada una: què s'ha de fer, en poques paraules i " +
-      "començant per un infinitiu (per exemple «Preparar el vídeo de demostració»); qui se n'encarrega, amb el nom tal com " +
-      "surt a la transcripció; per a quan, i el minut on surt, en format m:ss. Si no es diu qui o quan, deixa aquell camp " +
-      'com a text buit (""). Si a la reunió no s\'ha encarregat cap tasca, deixa la llista buida: val més no posar-ne cap ' +
-      "que inventar-ne.",
+  tasks: {
     maxTokens: 650,
-    schema: {
+    schema: () => ({
       type: "object",
       properties: {
         tasks: {
@@ -109,18 +96,11 @@ export const PROMPTS: PromptDef[] = [
         },
       },
       required: ["tasks"],
-    },
+    }),
   },
-  {
-    id: "parts",
-    label: "Parts de la reunió",
-    text:
-      "Divideix tota la reunió, de l'inici al final, en parts segons els temes que es tracten (entre 3 i 8, en ordre). Per a " +
-      "cada part, dona el minut on comença (format m:ss, tal com surt a la transcripció), un títol curt (màxim 6 paraules) i " +
-      "d'un a tres punts breus (màxim 15 paraules cadascun) amb el que s'hi diu o s'hi decideix. L'última part ha d'arribar " +
-      "fins al final de la reunió.",
+  parts: {
     maxTokens: 1000,
-    schema: {
+    schema: () => ({
       type: "object",
       properties: {
         parts: {
@@ -135,9 +115,25 @@ export const PROMPTS: PromptDef[] = [
         },
       },
       required: ["parts"],
-    },
+    }),
   },
-];
+};
+
+const PROMPT_IDS: PromptId[] = ["system", "title", "tone", "summary", "decisions", "tasks", "parts"];
+
+export const PROMPTS: PromptDef[] = PROMPT_IDS.map((id) => ({
+  id,
+  maxTokens: SCHEMAS[id].maxTokens,
+  get label() {
+    return t(`cover:promptLabels.${id}`);
+  },
+  get text() {
+    return t(`cover:prompts.${id}`, { tones: toneLabels().join(", ") });
+  },
+  get schema() {
+    return SCHEMAS[id].schema();
+  },
+}));
 
 export const promptText = (id: PromptId, overrides: Record<string, string>) =>
   overrides[id]?.trim() || PROMPTS.find((p) => p.id === id)!.text;
@@ -151,11 +147,14 @@ export function llmTasks(overrides: Record<string, string>, only?: PromptId[]): 
   }));
 }
 
-/** What the model reads: a short header and one line per speaker turn. */
-export function coverDocument(m: Meeting): string {
-  const names = [...new Set(m.utterances.map((u) => speakerName(m, u.speaker)))];
+/**
+ * What the model reads: a short header and one line per speaker turn, in the interface language
+ * (`lng`: another one, to check a cover written in it, see coverLanguage).
+ */
+export function coverDocument(m: Meeting, lng?: UiLanguage): string {
+  const names = [...new Set(m.utterances.map((u) => speakerName(m, u.speaker, lng)))];
   const lines = [
-    `Reunió del ${longDate(m.createdAt)}. Durada: ${duration(m.duration)}. Participants: ${names.join(", ")}.`,
+    t("cover:header", { date: longDate(m.createdAt, lng), duration: duration(m.duration, lng), names: names.join(", "), lng }),
     "",
   ];
   const turns: { speaker: number; start: number; text: string[] }[] = [];
@@ -164,11 +163,11 @@ export function coverDocument(m: Meeting): string {
     if (last?.speaker === u.speaker) last.text.push(u.text);
     else turns.push({ speaker: u.speaker, start: u.start, text: [u.text] });
   }
-  for (const t of turns) lines.push(`[${clock(t.start)}] ${speakerName(m, t.speaker)}: ${t.text.join(" ")}`);
+  for (const turn of turns) lines.push(`[${clock(turn.start)}] ${speakerName(m, turn.speaker, lng)}: ${turn.text.join(" ")}`);
   // The user's notes, with the minute each one was written: what they found worth keeping.
   const notes = notesFromDoc(notesDoc(m)).filter((n) => n.text.trim());
   if (notes.length) {
-    lines.push("", "Notes preses durant la reunió:");
+    lines.push("", t("cover:notesHeading", { lng }));
     for (const n of notes) lines.push(`[${clock(n.t)}] ${n.text.trim()}`);
   }
   return lines.join("\n");
@@ -184,19 +183,42 @@ export function coverBasis(document: string): string {
   return `${document.length}:${(h >>> 0).toString(36)}`;
 }
 
-/** The cover no longer matches the meeting (only covers that saved what they read). */
-export const coverOutdated = (m: Meeting) => !!m.cover?.basis && m.cover.basis !== coverBasis(coverDocument(m));
+/** The language a cover was written in (and its `basis` computed in): covers before i18n are Catalan. */
+export const coverLanguage = (cover: Cover): UiLanguage => cover.lang ?? "ca";
 
-/** Speakers called differently in `after` than in `before`: [old name, new name]. */
+/** The fingerprint of the meeting as a cover in `lng` reads it. */
+export const meetingBasis = (m: Meeting, lng: UiLanguage = uiLanguage()) => coverBasis(coverDocument(m, lng));
+
+/**
+ * The cover no longer matches the meeting (only covers that saved what they read). Compared in
+ * the cover's language, so switching the interface language doesn't make it look outdated.
+ */
+export const coverOutdated = (m: Meeting) => !!m.cover?.basis && m.cover.basis !== meetingBasis(m, coverLanguage(m.cover));
+
+/**
+ * Speakers called differently in `after` than in `before`: [old name, new name]. A speaker
+ * who had no name yet may appear in a cover under the default name of any language.
+ */
 export function renamedSpeakers(before: Meeting, after: Meeting): [string, string][] {
-  return speakerIds(after)
-    .map((id) => [speakerName(before, id), speakerName(after, id)] as [string, string])
-    .filter(([old, now]) => old && now && old !== now);
+  return speakerIds(after).flatMap((id) => {
+    const now = speakerName(after, id);
+    if (!now || speakerName(before, id) === now) return [];
+    const olds = before.speakerNames[id] ? [before.speakerNames[id]] : defaultSpeakerNames(before, id);
+    return olds.filter((old) => old && old !== now).map((old) => [old, now] as [string, string]);
+  });
 }
 
-/** Default names ("Parlant 1", "Tu") of the speakers the user has named: [default, name]. */
+/**
+ * What the cover calls each speaker by default ("Parlant 1", "Tu", in any language) → how the
+ * meeting calls them now: the name the user gave, or the default in the interface language.
+ */
 export function namedSpeakers(m: Meeting): [string, string][] {
-  return renamedSpeakers({ ...m, speakerNames: {} }, m);
+  return speakerIds(m).flatMap((id) => {
+    const now = speakerName(m, id);
+    return defaultSpeakerNames(m, id)
+      .filter((old) => old !== now)
+      .map((old) => [old, now] as [string, string]);
+  });
 }
 
 /**
@@ -225,7 +247,7 @@ export function renameInCover(cover: Cover, renames: [string, string][]): Cover 
  */
 export function keepTaskEdits(next: Cover, previous: Cover | null | undefined): Cover {
   if (!previous?.tasks?.length || !next.tasks) return next;
-  const key = (t: string) => t.trim().toLocaleLowerCase("ca");
+  const key = (text: string) => text.trim().toLocaleLowerCase(locale());
   const done = new Set(previous.tasks.filter((t) => t.done).map((t) => key(t.text)));
   const tasks = next.tasks.map((t) => (done.has(key(t.text)) ? { ...t, done: true } : t));
   const known = new Set(tasks.map((t) => key(t.text)));
@@ -248,22 +270,24 @@ export function parseMinute(value: unknown, max: number): number | null {
 }
 
 const clean = (s: unknown) => (typeof s === "string" ? s.trim() : "");
-/** Small models sometimes write "buit" or "no es diu" instead of leaving a field empty. */
+/** Small models sometimes write "buit" or "no es diu" instead of leaving a field empty (in any language). */
+const EMPTY_WORDS =
+  /^(buit|buida|cap|ningú|no es diu|no s'especifica|desconegut|sense data|vacío|vacía|ninguno|nadie|no se dice|no se especifica|desconocido|sin fecha|empty|none|nobody|no one|not specified|unknown|no date|-|—|n\/a)\.?$/i;
 const optional = (s: unknown) => {
   const v = clean(s);
-  return /^(buit|buida|cap|ningú|no es diu|no s'especifica|desconegut|sense data|-|—|n\/a)\.?$/i.test(v) ? null : v || null;
+  return EMPTY_WORDS.test(v) ? null : v || null;
 };
 
 /** Turns the model's answers into a cover (and the title it proposed, if any). */
 export function buildCover(results: LlmResult[], meeting: Meeting): { cover: Cover; title: string | null } {
-  const cover: Cover = { generatedAt: Date.now() };
+  const cover: Cover = { generatedAt: Date.now(), lang: uiLanguage() };
   let title: string | null = null;
   const errors: Record<string, string> = {};
   const max = meeting.duration;
   for (const r of results) {
     let data: Record<string, unknown>;
     try {
-      if (r.error || !r.text) throw new Error(r.error ?? "Resposta buida");
+      if (r.error || !r.text) throw new Error(r.error ?? t("cover:emptyAnswer"));
       data = JSON.parse(r.text);
     } catch (e) {
       errors[r.id] = e instanceof Error ? e.message : String(e);
@@ -275,7 +299,8 @@ export function buildCover(results: LlmResult[], meeting: Meeting): { cover: Cov
         cover.excerpt = clean(data.excerpt) || undefined;
         break;
       case "tone":
-        if (clean(data.tone)) cover.tone = { label: clean(data.tone), reason: clean(data.reason) };
+        // Stored as an id; an unexpected answer is kept as written.
+        if (clean(data.tone)) cover.tone = { label: toneId(clean(data.tone)) ?? clean(data.tone), reason: clean(data.reason) };
         break;
       case "summary":
         cover.summary = ((data.paragraphs as unknown[]) ?? []).map(clean).filter(Boolean);
@@ -319,5 +344,19 @@ export function talkTime(m: Meeting): { speaker: number; name: string; seconds: 
     .sort((a, b) => b.seconds - a.seconds);
 }
 
-/** The default title given when recording starts: replaced by the model's unless the user changed it. */
-export const isDefaultTitle = (title: string) => /^Reunió de les \d{1,2}:\d{2}$/.test(title);
+/** The title a new recording gets ("Reunió de les 17:05"), `time` as the interface writes it. */
+export const defaultTitle = (time: string) => t("cover:defaultTitle", { time });
+
+/**
+ * The default title given when recording starts, in any language: replaced by the model's
+ * unless the user changed it.
+ */
+export function isDefaultTitle(title: string): boolean {
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // "17:05", "05:05 PM" (with the narrow space some browsers put before PM).
+  const time = "\\d{1,2}:\\d{2}(?:[\\s\\u202f]?[AaPp]\\.?\\s?[Mm]\\.?)?";
+  return UI_LANGUAGES.some((lng) => {
+    const [before, after = ""] = t("cover:defaultTitle", { lng, time: "\u0000" }).split("\u0000");
+    return new RegExp(`^${escape(before)}${time}${escape(after)}$`).test(title);
+  });
+}

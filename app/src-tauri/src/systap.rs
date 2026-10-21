@@ -3,6 +3,7 @@
 //! Unlike ScreenCaptureKit it asks only for "System audio recording" (not the screen) and costs
 //! WindowServer nothing. Without the permission macOS gives the tap silence, not an error.
 
+use crate::i18n::tr;
 use std::ffi::c_void;
 use std::ptr::NonNull;
 use std::sync::Mutex;
@@ -106,8 +107,9 @@ unsafe fn get_string(object: AudioObjectID, selector: u32) -> Result<CFString> {
     Ok(unsafe { CFString::wrap_under_create_rule(raw as _) })
 }
 
-fn check(status: i32, what: &str) -> Result<()> {
-    if status == 0 { Ok(()) } else { Err(anyhow!("No s'ha pogut {what} (Core Audio {status})")) }
+/// `message`: what failed, already translated (`tr!`).
+fn check(status: i32, message: &str) -> Result<()> {
+    if status == 0 { Ok(()) } else { Err(anyhow!("{message} (Core Audio {status})")) }
 }
 
 pub fn start(tx: Sender<Frame>) -> Result<SystemTap> {
@@ -121,7 +123,7 @@ pub fn start(tx: Sender<Frame>) -> Result<SystemTap> {
         description.setPrivate(true);
 
         let mut tap: AudioObjectID = 0;
-        check(AudioHardwareCreateProcessTap(Some(&description), &mut tap), "crear la captura de l'àudio del sistema")?;
+        check(AudioHardwareCreateProcessTap(Some(&description), &mut tap), tr!("system_audio_create_failed"))?;
         let built = (|| -> Result<SystemTap> {
             let tap_uid = get_string(tap, kAudioTapPropertyUID)?;
             let format: AudioStreamBasicDescription = get(tap, kAudioTapPropertyFormat, None)?;
@@ -149,7 +151,7 @@ pub fn start(tx: Sender<Frame>) -> Result<SystemTap> {
                     &*(description.as_concrete_TypeRef() as *const objc2_core_foundation::CFDictionary),
                     NonNull::from(&mut device),
                 ),
-                "preparar l'àudio del sistema",
+                tr!("system_audio_prepare_failed"),
             )?;
 
             // The audio arrives at the device's rate (the tap is drift-compensated to it).
@@ -170,8 +172,8 @@ pub fn start(tx: Sender<Frame>) -> Result<SystemTap> {
             let mut addr = address(kAudioDevicePropertyNominalSampleRate);
             AudioObjectAddPropertyListener(device, NonNull::from(&mut addr), Some(rate_changed), state as *mut c_void);
             let mut proc_id: AudioDeviceIOProcID = None;
-            let started = check(AudioDeviceCreateIOProcID(device, Some(io_proc), state as *mut c_void, NonNull::from(&mut proc_id)), "llegir l'àudio del sistema")
-                .and_then(|_| check(AudioDeviceStart(device, proc_id), "començar l'àudio del sistema"));
+            let started = check(AudioDeviceCreateIOProcID(device, Some(io_proc), state as *mut c_void, NonNull::from(&mut proc_id)), tr!("system_audio_read_failed"))
+                .and_then(|_| check(AudioDeviceStart(device, proc_id), tr!("system_audio_start_failed")));
             let running = SystemTap { tap: 0, device, proc_id, state };
             started?;
             Ok(running)

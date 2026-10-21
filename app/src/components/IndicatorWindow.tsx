@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Camera } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /**
  * The recording indicator (its own transparent window, label "indicator", shell.rs): a pill on
@@ -9,6 +10,7 @@ import { Camera } from "lucide-react";
  * bring Murmur back; the camera takes a screenshot of the call; the square stops. It can be dragged anywhere by its edges.
  */
 export function IndicatorWindow() {
+  const { t } = useTranslation("indicator");
   const [level, setLevel] = useState(0);
   /** Just took a screenshot: the camera button lights up for a moment. */
   const [captured, setCaptured] = useState(false);
@@ -31,7 +33,7 @@ export function IndicatorWindow() {
         data-tauri-drag-region
         className="flex w-10 flex-col items-center gap-1.5 rounded-[20px] bg-mm-recording-pill py-1.5 text-mm-on-recording-pill shadow-[0_0_0_1px_var(--mm-recording-pill-border),0_4px_14px_rgb(0_0_0/0.3)]"
       >
-        <button type="button" onClick={open} title="Murmur està gravant. Obre Murmur" aria-label="Obre Murmur" className="flex flex-col items-center gap-2.5 rounded-full px-2 py-2 hover:bg-white/[0.14]">
+        <button type="button" onClick={open} title={t("openTitle")} aria-label={t("open")} className="flex flex-col items-center gap-2.5 rounded-full px-2 py-2 hover:bg-white/[0.14]">
           <span className="mm-rec size-2.5 rounded-full bg-mm-recording-dot" aria-hidden />
           {/* Level bars, half a cycle apart; they only move while there's sound. */}
           <span className="flex h-3.5 items-center gap-[3px]" aria-hidden>
@@ -47,8 +49,8 @@ export function IndicatorWindow() {
         <button
           type="button"
           onClick={() => invoke("indicator_capture").catch(() => {})}
-          title="Captura la pantalla de la reunió"
-          aria-label="Captura la pantalla de la reunió"
+          title={t("capture")}
+          aria-label={t("capture")}
           className={`grid size-7 place-items-center rounded-full transition-colors duration-200 hover:bg-white/[0.14] ${captured ? "bg-mm-recording-level text-mm-on-accent" : ""}`}
         >
           <Camera className="size-3.5" strokeWidth={2} />
@@ -56,8 +58,8 @@ export function IndicatorWindow() {
         <button
           type="button"
           onClick={() => invoke("indicator_stop").catch(() => {})}
-          title="Atura la gravació"
-          aria-label="Atura la gravació"
+          title={t("stop")}
+          aria-label={t("stop")}
           className="grid size-7 place-items-center rounded-full bg-white/[0.14] hover:bg-white/25"
         >
           <span className="size-2 rounded-[2px] bg-current" />

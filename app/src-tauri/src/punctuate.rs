@@ -2,6 +2,7 @@
 //! classification), exported to ONNX int8 by `tools/export_punctuation.py`. It runs on the
 //! onnxruntime that sherpa-onnx already links. About 8 s for a 20-minute meeting on an M4.
 
+use crate::i18n::tr;
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -71,16 +72,16 @@ impl Punctuator {
     pub fn load(dir: &Path) -> Result<Self> {
         let model = dir.join("model.int8.onnx");
         if !model.exists() {
-            return Err(anyhow!("Falta el model de puntuació {}", model.display()));
+            return Err(anyhow!(tr!("punct_model_missing", path = model.display())));
         }
         let session = Session::builder(environment()?)
             .map_err(|e| anyhow!("{e}"))?
             .with_intra_threads(4)
             .map_err(|e| anyhow!("{e}"))?
             .commit_from_file(&model)
-            .map_err(|e| anyhow!("No s'ha pogut carregar el model de puntuació: {e}"))?;
+            .map_err(|e| anyhow!(tr!("punct_model_load_failed", error = e)))?;
         let tokenizer = Tokenizer::from_file(dir.join("tokenizer.json"))
-            .map_err(|e| anyhow!("No s'ha pogut carregar el tokenitzador: {e}"))?;
+            .map_err(|e| anyhow!(tr!("tokenizer_load_failed", error = e)))?;
         Ok(Self { session, tokenizer })
     }
 
@@ -93,7 +94,7 @@ impl Punctuator {
             let encoding = self
                 .tokenizer
                 .encode(InputSequence::PreTokenized(chunk.into()), true)
-                .map_err(|e| anyhow!("tokenitzador: {e}"))?;
+                .map_err(|e| anyhow!("{}: {e}", tr!("tokenizer")))?;
             let ids: Vec<i64> = encoding.get_ids().iter().map(|&i| i as i64).collect();
             let n = ids.len();
             let input_ids = Tensor::from_array(([1, n], ids))?;
@@ -101,7 +102,7 @@ impl Punctuator {
             let outputs = self
                 .session
                 .run(ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask])
-                .context("model de puntuació")?;
+                .context(tr!("punct_model"))?;
             let (shape, logits) = outputs["logits"].try_extract_tensor::<f32>()?;
             let n_labels = shape[2] as usize;
             let mut seen = None;

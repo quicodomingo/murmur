@@ -3,6 +3,7 @@
 //! in `<app data>/screens/<meeting id>/`. It uses the "screen and system audio recording"
 //! permission Murmur already has for the other side of calls.
 
+use crate::i18n::tr;
 use std::path::{Path, PathBuf};
 
 /// A window on screen (CGWindowList).
@@ -89,7 +90,7 @@ pub fn capture(dir: &Path, t_ms: u64) -> Result<PathBuf, String> {
     };
     let status = cmd.arg(&path).status().map_err(|e| e.to_string())?;
     if !status.success() || !path.exists() {
-        return Err("No s'ha pogut fer la captura. Comprova el permís de Gravació de pantalla.".into());
+        return Err(tr!("capture_failed").into());
     }
     Ok(path)
 }
