@@ -10,6 +10,7 @@ import { LogoIcon } from "@/components/Logo";
 import { isTauri } from "@/lib/backend";
 import { t as translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { StartOptionsCompact, type StartChoice } from "./StartOptions";
 
 type Props = {
   meetings: MeetingSummary[];
@@ -19,6 +20,10 @@ type Props = {
   onSelect: (id: string) => void;
   onOpenHit: (hit: SearchHit) => void;
   onNew: () => void;
+  /** Language and people in the room for the next meeting (StartOptions). */
+  startChoice: StartChoice;
+  onStartChoice: (change: Partial<StartChoice>) => void;
+  englishReady: boolean;
   onSettings: () => void;
   /** Right click › Delete meeting… (asks for confirmation). */
   onDelete: (id: string) => void;
@@ -33,7 +38,7 @@ async function showRowMenu(m: MeetingSummary, onDelete: (id: string) => void) {
 }
 const HITS_PER_MEETING = 3;
 
-export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onOpenHit, onNew, onSettings, onDelete }: Props) {
+export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onOpenHit, onNew, startChoice, onStartChoice, englishReady, onSettings, onDelete }: Props) {
   const { t } = useTranslation("sidebar");
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[] | null>(null);
@@ -76,6 +81,9 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
         <span className="flex-1 text-left">{t("newMeeting")}</span>
         <kbd className="font-sans text-[11px] font-medium opacity-60">⌘N</kbd>
       </button>
+      <div className="-mt-1.5 mb-2 px-2">
+        <StartOptionsCompact value={startChoice} onChange={onStartChoice} englishReady={englishReady} />
+      </div>
       <div className="px-3">
         <label className="flex h-7 items-center gap-1.5 rounded-md bg-mm-search-field px-2 text-muted-foreground">
           <Search className="size-3.5 shrink-0" />

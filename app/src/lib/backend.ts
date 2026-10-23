@@ -70,8 +70,11 @@ export const onOpenSettings = (fn: () => void) => listen("open-settings", () => 
 /** "Quant a Murmur" in the app menu. */
 export const onOpenAbout = (fn: () => void) => listen("open-about", () => fn());
 /** The menu bar icon or the floating alert asks to start or stop recording. */
-export const onRecordRequest = (fn: (start: boolean) => void) =>
-  Promise.all([listen("start-recording", () => fn(true)), listen("stop-recording", () => fn(false))]).then(
+export const onRecordRequest = (fn: (start: boolean, choice?: { language: Language; roomSpeakers: boolean }) => void) =>
+  Promise.all([
+    listen<{ language: Language; roomSpeakers: boolean } | null>("start-recording", (e) => fn(true, e.payload ?? undefined)),
+    listen("stop-recording", () => fn(false)),
+  ]).then(
     (u) => () => u.forEach((f) => f()),
   );
 /** macOS privacy permissions (permissions.rs). */
@@ -125,6 +128,11 @@ export const deleteScreen = (path: string) => invoke<void>("delete_screen", { pa
 /** The work after a recording waits while Murmur records or another app uses the mic (gate.rs). */
 export const onPostPaused = (fn: (busy: { recording: boolean; call: boolean }) => void) =>
   listen<{ recording: boolean; call: boolean }>("post-paused", (e) => fn(e.payload));
+/** "Som més a la sala" changed while recording: the microphone's voices are told apart from now on. */
+export const setRoomSpeakers = (on: boolean) => invoke<void>("set_room_speakers", { on });
+/** Copies a meeting's screenshots to `dest` (a new folder), named `names`. */
+export const exportScreens = (meetingId: string, paths: string[], names: string[], dest: string) =>
+  invoke<void>("export_screens", { meetingId, paths, names, dest });
 /** The indicator's camera button asks the main window for a screenshot. */
 export const onCaptureRequest = (fn: () => void) => listen("capture-request", () => fn());
 

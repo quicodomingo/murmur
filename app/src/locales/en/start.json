@@ -1,0 +1,15 @@
+{
+  "hint": "Meeting language and people in the room. They're remembered for next time.",
+  "languageLabel": "Meeting language: {{language}}",
+  "englishMissing": "Download the model in Settings › Transcription",
+  "roomLabel": "On the microphone: {{value}}",
+  "alone": "Just me",
+  "room": "More people",
+  "aloneTitle": "Just me on the microphone",
+  "aloneHint": "In a call, everything on the microphone is “You”.",
+  "roomTitle": "More of us in the room",
+  "roomHint": "Several people at the same computer: Murmur tells their voices apart.",
+  "englishMissingShort": "needs downloading",
+  "languageGroup": "Meeting language",
+  "roomGroup": "On the microphone"
+}

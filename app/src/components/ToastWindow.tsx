@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { CalendarDays, X } from "lucide-react";
+import { CheckMenuItem, Menu } from "@tauri-apps/api/menu";
+import { CalendarDays, ChevronDown, User, Users, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
 import { locale } from "@/lib/i18n";
+import { readSettings } from "@/lib/settings";
+import type { Language } from "@/lib/types";
+
+import { MEETING_LANGUAGES, type StartChoice } from "./StartOptions";
 
 /** What Rust shows in the floating alert (shell.rs `Toast`). */
 type Toast = { kind: "detected" | "calendar"; title: string; subtitle: string; start: number | null; seconds: number; id: number };
@@ -33,6 +38,17 @@ export function ToastWindow() {
   const [toast, setToast] = useState<Toast | null>(null);
   const [left, setLeft] = useState(1);
   const startedAt = useRef(0);
+  /** Starts from the defaults (shared storage with the main window); a change here becomes the default there. */
+  const [choice, setChoice] = useState<StartChoice>(() => {
+    const s = readSettings();
+    return { language: s.language, roomSpeakers: s.roomSpeakers };
+  });
+  const [englishReady, setEnglishReady] = useState(false);
+  useEffect(() => {
+    invoke<{ id: string; installed: boolean }[]>("model_status")
+      .then((all) => setEnglishReady(!!all.find((m) => m.id === "english")?.installed))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     invoke<Toast | null>("current_toast").then(setToast).catch(() => {});
@@ -43,6 +59,8 @@ export function ToastWindow() {
   // Countdown: restarts with every new alert.
   useEffect(() => {
     if (!toast) return;
+    const s = readSettings();
+    setChoice({ language: s.language, roomSpeakers: s.roomSpeakers });
     startedAt.current = Date.now();
     setLeft(1);
     const timer = setInterval(() => {
@@ -85,10 +103,11 @@ export function ToastWindow() {
             <div id="toast-text" className="truncate text-[13px] text-mm-toast-secondary">
               {subtitle}
             </div>
+            <ToastChoice value={choice} onChange={(c) => setChoice((v) => ({ ...v, ...c }))} englishReady={englishReady} />
           </div>
           <button
             type="button"
-            onClick={() => invoke("toast_start")}
+            onClick={() => invoke("toast_start", { choice })}
             className="flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-mm-accent pl-2.5 pr-3.5 text-[14px] font-semibold text-mm-on-accent hover:opacity-90"
           >
             {/* A record dot: the logo's two bars read as "pause" on a button. */}
@@ -100,6 +119,53 @@ export function ToastWindow() {
           <div className="h-full bg-mm-toast-progress transition-[width] duration-100 ease-linear" style={{ width: `${left * 100}%` }} />
         </div>
       </div>
+    </div>
+  );
+}
+
+const chip = "-ml-1 inline-flex h-6 items-center gap-1 rounded-md px-1 text-[12px] text-mm-toast-secondary hover:bg-mm-toast-border hover:text-mm-toast-text";
+
+/**
+ * The meeting's language and people in the room, under the alert's text. The window is small,
+ * so the choices open as native menus, which can go past its edges.
+ */
+function ToastChoice({ value, onChange, englishReady }: { value: StartChoice; onChange: (c: Partial<StartChoice>) => void; englishReady: boolean }) {
+  const { t } = useTranslation("start");
+  const { t: ts } = useTranslation("settings");
+  const languageName = (l: Language) => ts(`transcription.languages.${MEETING_LANGUAGES.find((m) => m.value === l)?.key ?? "caEs"}`);
+  const popup = async (items: Promise<CheckMenuItem>[]) => (await Menu.new({ items: await Promise.all(items) })).popup();
+  const languages = () =>
+    popup(
+      MEETING_LANGUAGES.map((l) =>
+        CheckMenuItem.new({
+          text: l.value === "en" && !englishReady ? `${languageName(l.value)} (${t("englishMissingShort")})` : languageName(l.value),
+          checked: l.value === value.language,
+          enabled: l.value !== "en" || englishReady,
+          action: () => onChange({ language: l.value }),
+        }),
+      ),
+    );
+  const room = () =>
+    popup(
+      ([false, true] as const).map((on) =>
+        CheckMenuItem.new({ text: t(on ? "roomTitle" : "aloneTitle"), checked: value.roomSpeakers === on, action: () => onChange({ roomSpeakers: on }) }),
+      ),
+    );
+  const Icon = value.roomSpeakers ? Users : User;
+  return (
+    <div className="mt-0.5 flex items-center gap-1">
+      <button type="button" className={chip} onClick={() => void languages()} aria-label={t("languageLabel", { language: languageName(value.language) })}>
+        {languageName(value.language)}
+        <ChevronDown className="size-3 opacity-60" aria-hidden />
+      </button>
+      <span className="text-[12px] text-mm-toast-secondary" aria-hidden>
+        ·
+      </span>
+      <button type="button" className={chip} onClick={() => void room()} aria-label={t("roomLabel", { value: value.roomSpeakers ? t("room") : t("alone") })}>
+        <Icon className="size-3" aria-hidden />
+        {value.roomSpeakers ? t("room") : t("alone")}
+        <ChevronDown className="size-3 opacity-60" aria-hidden />
+      </button>
     </div>
   );
 }

@@ -109,14 +109,17 @@ function migrate(s: Settings & { version?: number }): Settings {
   return { ...s, version: VERSION } as Settings;
 }
 
+/** The saved settings, read once (the floating alert, which doesn't change them). */
+export function readSettings(): Settings {
+  try {
+    return migrate({ ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") });
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings>(() => {
-    try {
-      return migrate({ ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") });
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
-  });
+  const [settings, setSettings] = useState<Settings>(readSettings);
   useEffect(() => applyAppearance(settings.theme, settings.mode), [settings.theme, settings.mode]);
   useEffect(() => {
     applyLanguage(settings.uiLanguage);

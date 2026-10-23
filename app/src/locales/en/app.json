@@ -47,5 +47,13 @@
   "emptyTitle": "No meetings yet",
   "emptyBody": "Record a meeting and the transcript will appear live, split by speaker. Everything is processed on this Mac: local means private.",
   "startRecording": "Start Recording",
-  "consentReminder": "Remember to ask participants for their consent."
+  "consentReminder": "Remember to ask participants for their consent.",
+  "exportScreens_one": "Screenshot…",
+  "exportScreens_other": "{{count}} screenshots…",
+  "exportScreensTitle": "Choose where to save the screenshots",
+  "screensFolder": "{{title}} - screenshots",
+  "screenFile": "Screenshot {{n}} ({{time}})",
+  "screensExported_one": "Screenshot saved",
+  "screensExported_other": "{{count}} screenshots saved",
+  "showInFinder": "Show in Finder"
 }

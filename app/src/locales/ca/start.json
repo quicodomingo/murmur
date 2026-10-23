@@ -1,0 +1,15 @@
+{
+  "hint": "Idioma de la reunió i gent a la sala. Es recorden per a la propera.",
+  "languageLabel": "Idioma de la reunió: {{language}}",
+  "englishMissing": "Cal descarregar el model a Configuració › Transcripció",
+  "roomLabel": "Al micròfon: {{value}}",
+  "alone": "Només jo",
+  "room": "Més gent",
+  "aloneTitle": "Només jo al micròfon",
+  "aloneHint": "En una trucada, tot el que entra pel micròfon és «Tu».",
+  "roomTitle": "Som més a la sala",
+  "roomHint": "Diverses persones davant del mateix ordinador: Murmur en separa les veus.",
+  "englishMissingShort": "cal descarregar-lo",
+  "languageGroup": "Idioma de la reunió",
+  "roomGroup": "Al micròfon"
+}

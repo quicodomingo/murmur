@@ -102,11 +102,18 @@ Mentre es grava, una píndola vertical a la vora dreta de la pantalla (finestra 
 - **Aturar demana confirmació:** el botó d'aturar és de 32, un quadrat de 12 sense fons i a mig to. En clicar-lo, el lloc de la càmera passa a ser el botó vermell d'aturar (44, `recordingDot`) i el seu, una creu per continuar gravant. Torna sol a l'estat normal al cap de 4 s o amb Esc. Un doble clic cau a la creu, no atura res.
 - S'arrossega per les vores i recorda on la deixes. Es pot desactivar a Configuració › General › Avisos.
 
+### Opcions de començar
+Sota cada botó de començar a gravar, l'idioma de la reunió i si sou més gent a la sala: «Català + castellà ⌄ · 👤 Només jo ⌄», en 12 pt i `textSecondary`, sense fons fins que hi passes el ratolí. Un clic al botó comença amb el que hi ha, que és l'última tria; el que triïs aquí també passa a ser l'ajust per defecte de la Configuració.
+- **Pantalla inicial i avisos:** dos menús, un per a cada opció.
+- **Barra lateral:** no hi caben dos menús, així que és una sola línia a tota l'amplada, sota «Nova reunió», que obre un menú amb les dues tries i els seus títols («Idioma de la reunió», «Al micròfon»).
+- **Durant la gravació,** en una trucada (micròfon i àudio del sistema), el menú «Només jo / Més gent» és a la barra d'eines, al costat de la píndola de gravació. Canviar-lo afecta les veus del micròfon a partir d'aquell moment.
+- L'anglès surt desactivat si no s'ha descarregat el seu model, amb una línia que diu on fer-ho.
+
 ### Avisos (toasts)
 Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16, ombra suau, `toastBackground`). Tenen un botó rodó de tancar a la cantonada superior esquerra.
 - **Comença d'aquí a 2 minuts:** icona de calendari, títol de la reunió · hora · plataforma. Depèn del calendari connectat.
 - **Reunió detectada:** punt vermell amb halo, "*App* fa servir el micròfon".
-- Un sol botó, sempre **Comença a gravar**, amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable. No el logotip: les seves dues barres semblen un botó de pausa.
+- Un sol botó, sempre **Comença a gravar**, amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable al botó: l'idioma i la gent a la sala van sota el text (vegeu Opcions de començar), en menús natius perquè la finestra és petita. No el logotip: les seves dues barres semblen un botó de pausa.
 - A sota, una barra de compte enrere de 3 pt (`toastProgress` sobre `toastBorder`); quan s'acaba, l'avís desapareix sol.
 
 ### Novetats de Murmur

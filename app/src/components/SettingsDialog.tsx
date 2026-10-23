@@ -16,6 +16,7 @@ import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
 import type { Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { MEETING_LANGUAGES } from "./StartOptions";
 
 type Props = {
   open: boolean;
@@ -654,12 +655,7 @@ function InputLevel({ device }: { device: string | null }) {
 // --- Transcripció --------------------------------------------------------------------------
 
 /** Meeting languages, in the order shown; `key` names their strings under transcription.languages. */
-const LANGUAGES: { value: Language; key: string }[] = [
-  { value: "ca", key: "ca" },
-  { value: "es", key: "es" },
-  { value: "ca-es", key: "caEs" },
-  { value: "en", key: "en" },
-];
+const LANGUAGES = MEETING_LANGUAGES;
 
 function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
   const { t } = useTranslation("settings");

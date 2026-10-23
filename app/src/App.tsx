@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { ask, save } from "@tauri-apps/plugin-dialog";
+import { join } from "@tauri-apps/api/path";
+import { ask, open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Images, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -30,6 +31,7 @@ import { locale, t as translate } from "@/lib/i18n";
 import { modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
+import { RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
 import { hasAudio, playAt, stopUnless } from "@/lib/player";
 import { useSettings } from "@/lib/settings";
 import { notesDoc } from "@/lib/notes";
@@ -233,7 +235,7 @@ export default function App() {
     const unlisten = [
       backend.onOpenSettings(() => setShowSettings(true)),
       backend.onOpenAbout(() => setShowAbout(true)),
-      backend.onRecordRequest((start) => (start ? startRef.current() : stopRef.current())),
+      backend.onRecordRequest((start, choice) => (start ? startRef.current(choice) : stopRef.current())),
       backend.onCaptureRequest(() => captureRef.current()),
       backend.onPostPaused((busy) => dispatch({ type: "postPaused", reason: busy.recording ? "recording" : busy.call ? "call" : null })),
     ];
@@ -266,13 +268,15 @@ export default function App() {
   // Load the live models ahead of time (once they're on disk) so recording starts at once.
   const liveModel: ModelId = settings.language === "en" ? "english" : "transcription";
   const liveModelReady = !!models.status[liveModel]?.installed;
+  const englishReady = !!models.status.english?.installed;
+  const startChoice: StartChoice = { language: settings.language, roomSpeakers: settings.roomSpeakers };
   useEffect(() => {
     if (backend.isTauri() && models.status.transcription?.installed && liveModelReady)
       backend.prepare(settings.language).catch((e) => toast.error(String(e)));
   }, [models.status.transcription?.installed, liveModelReady, settings.language]);
 
   // ⌘N: new meeting (the sidebar button shows the shortcut).
-  const startRef = useRef<() => void>(() => {});
+  const startRef = useRef<(choice?: Partial<StartChoice>) => void>(() => {});
   const removeRef = useRef<() => void>(() => {});
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -301,7 +305,11 @@ export default function App() {
     return () => clearInterval(id);
   }, [recording, dispatch]);
 
-  const start = useCallback(async () => {
+  /** `choice`: language and people in the room picked right before starting (StartOptions); it becomes the default. */
+  const start = useCallback(async (choice?: Partial<StartChoice>) => {
+    const language = choice?.language ?? settings.language;
+    const roomSpeakers = choice?.roomSpeakers ?? settings.roomSpeakers;
+    if (choice) updateSettings(choice);
     if (!backend.isTauri()) {
       toast.error(t("openAsApp"));
       return;
@@ -310,7 +318,7 @@ export default function App() {
       setOnboarding({ open: true, atModels: true });
       return;
     }
-    if (!liveModelReady) {
+    if (!models.status[language === "en" ? "english" : "transcription"]?.installed) {
       toast.error(t("englishModelMissing"), { action: { label: t("settings"), onClick: () => setShowSettings(true) } });
       return;
     }
@@ -323,11 +331,11 @@ export default function App() {
     }
     // Named after the calendar event going on now, if there's one.
     const event = await currentEvent(settings).catch(() => null);
-    const m = newMeeting(sources, settings.language, event?.title.trim(), event ? guestNames(event) : undefined);
+    const m = newMeeting(sources, language, event?.title.trim(), event ? guestNames(event) : undefined);
     dispatch({ type: "new", meeting: m });
     // Whisper only for a single language (told "Catalan", it would turn Spanish into Catalan).
-    const finalText = settings.language !== "ca-es" && modelInstalled("whisper");
-    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language: settings.language });
+    const finalText = language !== "ca-es" && modelInstalled("whisper");
+    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language });
     startedAt.current = Date.now();
     try {
       const path = await backend.startRecording({
@@ -340,8 +348,8 @@ export default function App() {
         maxSpeakers: settings.maxSpeakers,
         threshold: settings.threshold,
         verifySpeakers: settings.verifySpeakers,
-        roomSpeakers: settings.roomSpeakers,
-        language: settings.language,
+        roomSpeakers,
+        language,
         finalText,
       });
       if (path) dispatch({ type: "audio", id: m.id, path });
@@ -351,9 +359,9 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  }, [dispatch, settings, post.planRecording, transcriptionReady, liveModelReady, t]);
-  startRef.current = () => {
-    if (!recording && !busy) start();
+  }, [dispatch, settings, updateSettings, post.planRecording, transcriptionReady, models.status, t]);
+  startRef.current = (choice) => {
+    if (!recording && !busy) start(choice);
   };
 
   const stop = useCallback(async () => {
@@ -471,6 +479,27 @@ export default function App() {
     try {
       await backend.exportAudio(m.id, m.audioPath, dest);
       toast(t("audioExported"));
+    } catch (e) {
+      toast.error(String(e));
+    }
+  };
+  /** "Exporta les captures…": every screenshot, in a new folder named after the meeting, in time order. */
+  const exportScreens = async (m: Meeting) => {
+    const screens = [...(m.screens ?? [])].sort((a, b) => a.t - b.t);
+    if (!screens.length) return;
+    const dir = await openDialog({ title: t("exportScreensTitle"), directory: true, canCreateDirectories: true });
+    if (typeof dir !== "string") return;
+    const safe = (name: string) => name.replace(/[/\\:]/g, "-").replace(/^\.+/, "").trim();
+    const dest = await join(dir, safe(t("screensFolder", { title: m.title })));
+    const width = String(screens.length).length;
+    const names = screens.map((sc, i) => {
+      const ext = sc.path.split(".").pop() ?? "png";
+      const time = clock(sc.t).replace(/:/g, ".");
+      return safe(t("screenFile", { n: String(i + 1).padStart(Math.max(2, width), "0"), time })) + "." + ext;
+    });
+    try {
+      await backend.exportScreens(m.id, screens.map((sc) => sc.path), names, dest);
+      toast(t("screensExported", { count: screens.length }), { action: { label: t("showInFinder"), onClick: () => revealItemInDir(dest).catch(() => {}) } });
     } catch (e) {
       toast.error(String(e));
     }
@@ -597,7 +626,10 @@ export default function App() {
             onOpenHit={(hit) =>
               dispatch({ type: "jump", meetingId: hit.meetingId, utteranceId: hit.kind === "utterance" ? hit.ref : undefined, t: hit.t })
             }
-            onNew={start}
+            onNew={() => start()}
+            startChoice={startChoice}
+            onStartChoice={updateSettings}
+            englishReady={englishReady}
             onSettings={() => setShowSettings(true)}
             onDelete={removeById}
           />
@@ -661,6 +693,16 @@ export default function App() {
             )}
             <div data-tauri-drag-region className="flex-1" />
 
+            {recording?.sources?.mic && recording.sources.system && (
+              <RoomMenu
+                value={settings.roomSpeakers}
+                onChange={(roomSpeakers) => {
+                  updateSettings({ roomSpeakers });
+                  backend.setRoomSpeakers(roomSpeakers).catch((e) => toast.error(String(e)));
+                }}
+                className="mr-1"
+              />
+            )}
             {recording ? (
               <div className="flex h-[30px] items-center gap-2.5 rounded-[15px] bg-mm-recording-pill pl-3 pr-1.5 text-mm-on-recording-pill shadow-[0_0_0_1px_var(--mm-recording-pill-border)]">
                 {/* Two level bars, half a cycle apart; they only move while there's sound. */}
@@ -712,6 +754,11 @@ export default function App() {
                       <DropdownMenuItem onSelect={() => doExport(meeting, "md")}>
                         <FileText className="size-3.5" /> {t("exportMarkdown")}
                       </DropdownMenuItem>
+                      {!!meeting.screens?.length && (
+                        <DropdownMenuItem onSelect={() => exportScreens(meeting)}>
+                          <Images className="size-3.5" /> {t("exportScreens", { count: meeting.screens.length })}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={() => copyMarkdown(meeting)}>
                         <Copy className="size-3.5" /> {t("copyMarkdown")}
@@ -733,7 +780,10 @@ export default function App() {
               <main className="min-w-0 flex-1">
                 {state.loaded && (
                   <Welcome
-                    onStart={start}
+                    onStart={() => start()}
+                    startChoice={startChoice}
+                    onStartChoice={updateSettings}
+                    englishReady={englishReady}
                     busy={busy}
                     missingModel={!transcriptionReady}
                     downloading={models.downloading.transcription}
@@ -825,12 +875,18 @@ export default function App() {
 
 function Welcome({
   onStart,
+  startChoice,
+  onStartChoice,
+  englishReady,
   busy,
   missingModel,
   downloading,
   onDownload,
 }: {
   onStart: () => void;
+  startChoice: StartChoice;
+  onStartChoice: (change: Partial<StartChoice>) => void;
+  englishReady: boolean;
   busy: boolean;
   missingModel: boolean;
   downloading?: { done: number; total: number };
@@ -883,6 +939,7 @@ function Welcome({
         >
           <Mic className="size-3.5" /> {t("startRecording")}
         </button>
+        <StartOptions value={startChoice} onChange={onStartChoice} englishReady={englishReady} className="mt-2" />
         <p className="mt-3 text-[12px] text-text-secondary">{t("consentReminder")}</p>
       </div>
     </div>

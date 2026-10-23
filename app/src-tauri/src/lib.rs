@@ -54,6 +54,8 @@ struct AppState {
 struct Recording {
     stop: Sender<()>,
     stopped: Arc<AtomicBool>,
+    /// "Som més a la sala", which can change while recording.
+    room: Arc<AtomicBool>,
     audio: JoinHandle<()>,
     worker: JoinHandle<()>,
 }
@@ -200,6 +202,8 @@ async fn start_recording(
     };
     let stopped = Arc::new(AtomicBool::new(false));
     let stopped_worker = stopped.clone();
+    let room = Arc::new(AtomicBool::new(room_speakers));
+    let room_worker = room.clone();
     let final_pass_meeting = meeting_id.clone();
 
     let worker = std::thread::spawn(move || {
@@ -219,8 +223,9 @@ async fn start_recording(
             }
         };
         // A call with nobody else in the room: the microphone is only the user.
-        if mic && system && !room_speakers {
-            pipeline.single_mic_speaker();
+        let mut room_now = room_speakers;
+        if mic && system && !room_now {
+            pipeline.mic_speakers(1);
         }
         let emit = |events: Vec<engine::Event>| {
             for event in events {
@@ -240,6 +245,12 @@ async fn start_recording(
                 }
                 Err(RecvTimeoutError::Disconnected) => break,
             };
+            // "Som més a la sala" changed: the microphone's voices from now on.
+            let room = room_worker.load(Ordering::Relaxed);
+            if room != room_now && mic && system {
+                room_now = room;
+                pipeline.mic_speakers(if room { max_speakers } else { 1 });
+            }
             level_samples += samples.len();
             if level_samples >= SAMPLE_RATE / 20 && !samples.is_empty() {
                 level_samples = 0;
@@ -291,10 +302,19 @@ async fn start_recording(
     *state.recording.lock().unwrap() = Some(Recording {
         stop: stop_tx,
         stopped,
+        room,
         audio,
         worker,
     });
     Ok(audio_path.map(|p| p.to_string_lossy().into_owned()))
+}
+
+/// "Som més a la sala" changed while recording.
+#[tauri::command]
+fn set_room_speakers(state: State<'_, AppState>, on: bool) {
+    if let Some(rec) = state.recording.lock().unwrap().as_ref() {
+        rec.room.store(on, Ordering::Relaxed);
+    }
 }
 
 #[tauri::command]
@@ -833,6 +853,23 @@ fn recording_path(path: &str) -> Result<std::path::PathBuf, String> {
     }
 }
 
+/// "Exporta les captures…": copies a meeting's screenshots into a new folder `dest`, named `names`.
+#[tauri::command]
+fn export_screens(app: AppHandle, meeting_id: String, paths: Vec<String>, names: Vec<String>, dest: String) -> Result<(), String> {
+    let root = screens_dir(&app, &meeting_id)?;
+    let dest = std::path::PathBuf::from(dest);
+    std::fs::create_dir_all(&dest).map_err(|e| tr!("screens_save_failed", error = e))?;
+    for (path, name) in paths.iter().zip(&names) {
+        let path = std::path::PathBuf::from(path);
+        let inside = path.starts_with(&root) && !path.components().any(|c| matches!(c, std::path::Component::ParentDir));
+        if !inside || name.is_empty() || name.contains(['/', '\\', ':']) || name.starts_with('.') {
+            return Err(tr!("not_a_capture").into());
+        }
+        std::fs::copy(&path, dest.join(name)).map_err(|e| tr!("screens_save_failed", error = e))?;
+    }
+    Ok(())
+}
+
 /// Removes one screenshot (only files inside the screenshots folder).
 #[tauri::command]
 fn delete_screen(app: AppHandle, path: String) -> Result<(), String> {
@@ -1015,6 +1052,8 @@ pub fn run() {
             playback_audio,
             export_audio,
             delete_screen,
+            export_screens,
+            set_room_speakers,
             shell::indicator_stop,
             print_page,
             calendar::calendar_access,

@@ -22,7 +22,7 @@ const TRAY_ALERT: &[u8] = include_bytes!("../icons/menubar/MenuBarAlertTemplate@
 const TRAY_RECORDING: &[u8] = include_bytes!("../icons/menubar/MenuBarRecording@2x.png");
 
 /// The alert window: a 470 pt card plus room for its close button and shadow.
-const TOAST_SIZE: (f64, f64) = (512.0, 120.0);
+const TOAST_SIZE: (f64, f64) = (512.0, 140.0);
 /// The recording indicator: a 52 × ~162 pt pill plus room for its shadow.
 const INDICATOR_SIZE: (f64, f64) = (72.0, 186.0);
 /// The main window in compact mode (notes only, next to the call).
@@ -295,10 +295,11 @@ pub fn dismiss_toast(app: AppHandle) {
 
 /// "Comença a gravar" on the alert: the main window starts a meeting.
 #[tauri::command]
-pub fn toast_start(app: AppHandle) {
+pub fn toast_start(app: AppHandle, choice: Option<serde_json::Value>) {
     hide_toast(&app);
     show_main(&app);
-    let _ = app.emit_to("main", "start-recording", ());
+    // The language and people in the room picked on the alert, if any.
+    let _ = app.emit_to("main", "start-recording", choice);
 }
 
 #[tauri::command]

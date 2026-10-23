@@ -47,5 +47,13 @@
   "emptyTitle": "Aún no hay reuniones",
   "emptyBody": "Graba una reunión y la transcripción aparecerá en directo, separada por hablantes. Todo se procesa en este Mac: local quiere decir privado.",
   "startRecording": "Empezar a grabar",
-  "consentReminder": "Recuerda pedir el consentimiento de los participantes."
+  "consentReminder": "Recuerda pedir el consentimiento de los participantes.",
+  "exportScreens_one": "Captura de pantalla…",
+  "exportScreens_other": "{{count}} capturas de pantalla…",
+  "exportScreensTitle": "Elige dónde guardar las capturas",
+  "screensFolder": "{{title}} - capturas",
+  "screenFile": "Captura {{n}} ({{time}})",
+  "screensExported_one": "Se ha guardado la captura",
+  "screensExported_other": "Se han guardado las {{count}} capturas",
+  "showInFinder": "Mostrar en Finder"
 }

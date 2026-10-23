@@ -1,0 +1,15 @@
+{
+  "hint": "Idioma de la reunión y gente en la sala. Se recuerdan para la próxima.",
+  "languageLabel": "Idioma de la reunión: {{language}}",
+  "englishMissing": "Hay que descargar el modelo en Ajustes › Transcripción",
+  "roomLabel": "En el micrófono: {{value}}",
+  "alone": "Solo yo",
+  "room": "Más gente",
+  "aloneTitle": "Solo yo en el micrófono",
+  "aloneHint": "En una llamada, todo lo que entra por el micrófono es «Tú».",
+  "roomTitle": "Somos más en la sala",
+  "roomHint": "Varias personas delante del mismo ordenador: Murmur separa sus voces.",
+  "englishMissingShort": "hay que descargarlo",
+  "languageGroup": "Idioma de la reunión",
+  "roomGroup": "En el micrófono"
+}

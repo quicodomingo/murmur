@@ -176,6 +176,11 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "Para hacer capturas hace falta el permiso de «Grabación de pantalla». Activa Murmur en Ajustes del Sistema y vuelve a intentarlo.",
             "Screenshots need the “Screen Recording” permission. Turn on Murmur in System Settings and try again.",
         ],
+        "screens_save_failed" => [
+            "No s'han pogut desar les captures: {error}",
+            "No se han podido guardar las capturas: {error}",
+            "Couldn't save the screenshots: {error}",
+        ],
         "not_a_capture" => [
             "Aquest fitxer no és una captura de Murmur",
             "Este archivo no es una captura de Murmur",

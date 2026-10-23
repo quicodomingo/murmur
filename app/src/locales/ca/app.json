@@ -47,5 +47,13 @@
   "emptyTitle": "Cap reunió encara",
   "emptyBody": "Grava una reunió i la transcripció apareixerà en directe, separada per parlants. Tot es processa en aquest Mac: local vol dir privat.",
   "startRecording": "Comença a gravar",
-  "consentReminder": "Recorda demanar el consentiment dels participants."
+  "consentReminder": "Recorda demanar el consentiment dels participants.",
+  "exportScreens_one": "Captura de pantalla…",
+  "exportScreens_other": "{{count}} captures de pantalla…",
+  "exportScreensTitle": "Tria on vols desar les captures",
+  "screensFolder": "{{title}} - captures",
+  "screenFile": "Captura {{n}} ({{time}})",
+  "screensExported_one": "S'ha desat la captura",
+  "screensExported_other": "S'han desat les {{count}} captures",
+  "showInFinder": "Mostra a Finder"
 }

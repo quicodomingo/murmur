@@ -104,6 +104,10 @@ Entre reunions (bloc 5):
 - [ ] Google Calendar directe (OAuth) per a Windows, si cal.
 - [ ] Intel·ligència: model local o clau pròpia d'OpenAI / Anthropic, desada al clauer del sistema. Només s'envia text, mai àudio.
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
+- [x] Triar l'idioma i si sou més gent a la sala just abans de gravar (pantalla inicial, barra lateral i avisos), i canviar «Som més a la sala» durant la gravació.
+- [ ] Canviar l'idioma durant la gravació (canvi de model en directe, l'àudio d'aquells segons espera a la cua).
+- [ ] Endevinar l'idioma amb els primers 20–30 s (Whisper) i suggerir-ne el canvi; suggerir «Som més a la sala» si el micròfon sent veus diferents.
+- [x] Exportar totes les captures d'una reunió a una carpeta.
 
 ## 5. Qualitat i rendiment
 

@@ -105,9 +105,10 @@ impl<'m> Pipeline<'m> {
         }
     }
 
-    pub fn single_mic_speaker(&mut self) {
+    /// How many voices the microphone can have: 1 in a call with nobody else in the room.
+    pub fn mic_speakers(&mut self, max: usize) {
         if let Some(mic) = self.mic.as_mut() {
-            mic.set_max_speakers(1);
+            mic.set_max_speakers(max);
         }
     }
 
