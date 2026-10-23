@@ -81,6 +81,10 @@ export type Action =
   | { type: "punctuated"; id: string; changes: { utteranceId: string; from: string; to: string }[] }
   | { type: "cover"; id: string; cover: Cover | null; title: string | null }
   | { type: "coverTasks"; id: string; tasks: NonNullable<Cover["tasks"]> }
+  | { type: "tags"; id: string; tags: string[] }
+  /** A tag renamed (or merged into another, `to` already existing) or removed, in every meeting. */
+  | { type: "renameTag"; from: string; to: string }
+  | { type: "deleteTag"; name: string }
   | { type: "screen"; id: string; screen: Screen }
   | { type: "removeScreen"; id: string; path: string }
   | { type: "postDone"; id: string };
@@ -91,7 +95,37 @@ const summaryOf = (m: Meeting): MeetingSummary => ({
   createdAt: m.createdAt,
   duration: m.duration,
   status: m.status,
+  tags: m.tags,
 });
+
+/** Tag names ignore capitals: the first spelling of each one stays. */
+export function uniqueTags(tags: string[]): string[] {
+  const seen = new Set<string>();
+  return tags
+    .map((t) => t.trim())
+    .filter((t) => {
+      const key = t.toLocaleLowerCase();
+      if (!t || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+const sameTag = (a: string, b: string) => a.toLocaleLowerCase() === b.toLocaleLowerCase();
+
+/** `fn` over the tags of every meeting, open or only listed. */
+const retag = (state: State, fn: (tags: string[]) => string[]): State => {
+  const apply = <T extends { tags?: string[] }>(m: T): T => {
+    if (!m.tags?.length) return m;
+    const tags = uniqueTags(fn(m.tags));
+    return tags.length === m.tags.length && tags.every((t, i) => t === m.tags![i]) ? m : { ...m, tags };
+  };
+  return {
+    ...state,
+    summaries: state.summaries.map(apply),
+    open: Object.fromEntries(Object.entries(state.open).map(([id, m]) => [id, apply(m)])),
+  };
+};
 
 /** Applies `fn` to an open meeting and keeps its sidebar summary in sync. */
 const updateMeeting = (state: State, id: string, fn: (m: Meeting) => Meeting): State => {
@@ -208,6 +242,16 @@ export function reducer(state: State, action: Action): State {
     }
     case "cover":
       return updateMeeting(state, action.id, (m) => ({ ...m, cover: action.cover, title: action.title ?? m.title }));
+    case "tags":
+      return updateMeeting(state, action.id, (m) => ({ ...m, tags: uniqueTags(action.tags) }));
+    case "renameTag": {
+      // Onto an existing tag, take its spelling.
+      const existing = state.summaries.flatMap((s) => s.tags ?? []).find((t) => sameTag(t, action.to) && !sameTag(t, action.from));
+      const to = existing ?? action.to.trim();
+      return retag(state, (tags) => tags.map((t) => (sameTag(t, action.from) ? to : t)));
+    }
+    case "deleteTag":
+      return retag(state, (tags) => tags.filter((t) => !sameTag(t, action.name)));
     case "screen":
       return updateMeeting(state, action.id, (m) => ({ ...m, screens: [...(m.screens ?? []), action.screen] }));
     case "removeScreen":
@@ -334,6 +378,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.cover !== next.cover) meta.cover = next.cover ?? null;
   if (saved.guests !== next.guests && next.guests) meta.guests = next.guests;
   if (saved.screens !== next.screens && next.screens) meta.screens = next.screens;
+  if (saved.tags !== next.tags && next.tags) meta.tags = next.tags;
   if (Object.keys(meta).length) changes.meta = meta;
   if (saved.utterances !== next.utterances) {
     const before = new Map(saved.utterances.map((u) => [u.id, u]));

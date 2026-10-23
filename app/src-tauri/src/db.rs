@@ -2,6 +2,7 @@
 //! titles, utterances and note blocks. The JSON shapes match the UI's `Meeting` type.
 
 use crate::i18n::tr;
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow};
@@ -40,6 +41,17 @@ CREATE TABLE IF NOT EXISTS utterances (
     edited     INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS utterances_by_meeting ON utterances(meeting_id, start);
+
+-- Tags to organise meetings (by client, project…). A tag lives while some meeting has it.
+CREATE TABLE IF NOT EXISTS tags (
+    id   INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE
+);
+CREATE TABLE IF NOT EXISTS meeting_tags (
+    meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+    tag_id     INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (meeting_id, tag_id)
+);
 
 -- One row per searchable piece: a title, an utterance or a note block.
 -- remove_diacritics 2: "reunio" finds "reunió", "cami" finds "camí".
@@ -99,6 +111,7 @@ pub struct Summary {
     pub created_at: f64,
     pub duration: f64,
     pub status: String,
+    pub tags: Vec<String>,
 }
 
 /// Metadata fields the UI can change; absent fields are left alone.
@@ -120,6 +133,8 @@ pub struct MetaPatch {
     pub screens: Option<Value>,
     /// What it was spoken in when recorded (ca, es, ca-es, en): the cover can be written in it.
     pub language: Option<String>,
+    /// Its tags, in order; replaces the ones it had.
+    pub tags: Option<Vec<String>>,
 }
 
 /// A field that was sent, even as null (plain `Option` would read null as absent).
@@ -208,9 +223,78 @@ impl Db {
                 created_at: r.get(2)?,
                 duration: r.get(3)?,
                 status: r.get(4)?,
+                tags: vec![],
             })
         })?;
-        Ok(rows.collect::<rusqlite::Result<_>>()?)
+        let mut list: Vec<Summary> = rows.collect::<rusqlite::Result<_>>()?;
+        let mut tags = self.all_meeting_tags()?;
+        for m in &mut list {
+            m.tags = tags.remove(&m.id).unwrap_or_default();
+        }
+        Ok(list)
+    }
+
+    /// Every meeting's tags, in the order they were given.
+    fn all_meeting_tags(&self) -> Result<HashMap<String, Vec<String>>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT mt.meeting_id, t.name FROM meeting_tags mt JOIN tags t ON t.id = mt.tag_id
+             ORDER BY mt.rowid",
+        )?;
+        let mut out: HashMap<String, Vec<String>> = HashMap::new();
+        for row in stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))? {
+            let (meeting, tag) = row?;
+            out.entry(meeting).or_default().push(tag);
+        }
+        Ok(out)
+    }
+
+    fn meeting_tags(&self, id: &str) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT t.name FROM meeting_tags mt JOIN tags t ON t.id = mt.tag_id
+             WHERE mt.meeting_id = ?1 ORDER BY mt.rowid",
+        )?;
+        let tags = stmt.query_map([id], |r| r.get(0))?;
+        Ok(tags.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Renames a tag in every meeting. If another tag already has that name, the two become one.
+    pub fn rename_tag(&mut self, from: &str, to: &str) -> Result<()> {
+        let to = to.trim();
+        if to.is_empty() {
+            return Ok(());
+        }
+        let tx = self.conn.transaction()?;
+        let source: Option<i64> = tx
+            .query_row("SELECT id FROM tags WHERE name = ?1", [from], |r| r.get(0))
+            .optional()?;
+        let Some(source) = source else {
+            return Ok(());
+        };
+        let target: Option<i64> = tx
+            .query_row("SELECT id FROM tags WHERE name = ?1", [to], |r| r.get(0))
+            .optional()?;
+        match target {
+            Some(target) if target != source => {
+                tx.execute(
+                    "INSERT OR IGNORE INTO meeting_tags (meeting_id, tag_id)
+                     SELECT meeting_id, ?2 FROM meeting_tags WHERE tag_id = ?1",
+                    params![source, target],
+                )?;
+                tx.execute("DELETE FROM tags WHERE id = ?1", [source])?;
+            }
+            // The same tag (maybe only the capitals change), or a free name.
+            _ => {
+                tx.execute("UPDATE tags SET name = ?2 WHERE id = ?1", params![source, to])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Removes a tag from every meeting; the meetings stay.
+    pub fn delete_tag(&mut self, name: &str) -> Result<()> {
+        self.conn.execute("DELETE FROM tags WHERE name = ?1", [name])?;
+        Ok(())
     }
 
     /// The full meeting, in the UI's JSON shape.
@@ -246,6 +330,7 @@ impl Db {
         let Some(mut meeting) = meta else {
             return Ok(None);
         };
+        meeting["tags"] = json!(self.meeting_tags(id)?);
         let mut stmt = self.conn.prepare(
             "SELECT id, start, end, speaker, text, edited, speaker_locked FROM utterances
              WHERE meeting_id = ?1 ORDER BY start",
@@ -273,6 +358,11 @@ impl Db {
             .get("id")
             .and_then(Value::as_str)
             .ok_or_else(|| anyhow!("Reunió sense id"))?;
+        // Replacing a meeting keeps its tags unless the new version brings its own.
+        let tags = match meeting.get("tags") {
+            Some(t) => serde_json::from_value::<Vec<String>>(t.clone()).unwrap_or_default(),
+            None => self.meeting_tags(id)?,
+        };
         let tx = self.conn.transaction()?;
         tx.execute("DELETE FROM meetings WHERE id = ?1", [id])?;
         let text = |k: &str| {
@@ -333,6 +423,8 @@ impl Db {
             _ => vec![],
         };
         index_notes(&tx, id, &blocks)?;
+        set_tags(&tx, id, &tags)?;
+        prune_tags(&tx)?;
         tx.commit()?;
         Ok(())
     }
@@ -407,6 +499,10 @@ impl Db {
                     params![id, v],
                 )?;
             }
+            if let Some(tags) = meta.tags {
+                set_tags(&tx, id, &tags)?;
+                prune_tags(&tx)?;
+            }
         }
         for u in &changes.utterances {
             upsert_utterance(&tx, id, u)?;
@@ -423,8 +519,10 @@ impl Db {
     }
 
     pub fn delete(&mut self, id: &str) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM meetings WHERE id = ?1", [id])?;
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM meetings WHERE id = ?1", [id])?;
+        prune_tags(&tx)?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -483,6 +581,29 @@ fn migrate(conn: &Connection) -> Result<()> {
     if !has("meetings", "language")? {
         conn.execute("ALTER TABLE meetings ADD COLUMN language TEXT", [])?;
     }
+    Ok(())
+}
+
+/// Replaces a meeting's tags, creating the ones that don't exist yet (names ignore capitals).
+fn set_tags(tx: &Transaction, meeting_id: &str, tags: &[String]) -> Result<()> {
+    tx.execute("DELETE FROM meeting_tags WHERE meeting_id = ?1", [meeting_id])?;
+    for name in tags.iter().map(|t| t.trim()).filter(|t| !t.is_empty()) {
+        tx.execute("INSERT OR IGNORE INTO tags (name) VALUES (?1)", [name])?;
+        tx.execute(
+            "INSERT OR IGNORE INTO meeting_tags (meeting_id, tag_id)
+             SELECT ?1, id FROM tags WHERE name = ?2",
+            params![meeting_id, name],
+        )?;
+    }
+    Ok(())
+}
+
+/// Tags no meeting has any more.
+fn prune_tags(tx: &Transaction) -> Result<()> {
+    tx.execute(
+        "DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM meeting_tags)",
+        [],
+    )?;
     Ok(())
 }
 
@@ -575,6 +696,42 @@ mod tests {
         assert_eq!(m["language"], "ca-es");
         assert_eq!(m["utterances"].as_array().unwrap().len(), 2);
         assert_eq!(db.list().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn tags_are_set_renamed_merged_and_deleted() {
+        let mut db = Db::in_memory().unwrap();
+        db.put(&meeting()).unwrap();
+        let mut other = meeting();
+        other["id"] = json!("m2");
+        other["tags"] = json!(["acme labs"]);
+        db.put(&other).unwrap();
+        let tags = |db: &Db, id: &str| db.get(id).unwrap().unwrap()["tags"].clone();
+
+        let mut changes = Changes::default();
+        changes.meta = Some(MetaPatch { tags: Some(vec!["Acme".into(), " Comercial ".into(), "acme".into()]), ..Default::default() });
+        db.apply("m1", changes).unwrap();
+        assert_eq!(tags(&db, "m1"), json!(["Acme", "Comercial"]));
+        assert_eq!(db.list().unwrap()[0].tags.len(), 2);
+
+        // Replacing the whole meeting keeps them.
+        db.put(&meeting()).unwrap();
+        assert_eq!(tags(&db, "m1"), json!(["Acme", "Comercial"]));
+
+        // Renaming onto an existing name merges the two.
+        db.rename_tag("acme labs", "ACME").unwrap();
+        assert_eq!(tags(&db, "m2"), json!(["Acme"]));
+        db.rename_tag("Acme", "Acme Labs").unwrap();
+        assert_eq!(tags(&db, "m1"), json!(["Acme Labs", "Comercial"]));
+
+        db.delete_tag("Comercial").unwrap();
+        assert_eq!(tags(&db, "m1"), json!(["Acme Labs"]));
+
+        // A tag no meeting has any more disappears.
+        db.delete("m1").unwrap();
+        db.delete("m2").unwrap();
+        let left: i64 = db.conn.query_row("SELECT COUNT(*) FROM tags", [], |r| r.get(0)).unwrap();
+        assert_eq!(left, 0);
     }
 
     #[test]

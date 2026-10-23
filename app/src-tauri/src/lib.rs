@@ -773,6 +773,16 @@ async fn apply_changes(app: AppHandle, id: String, changes: db::Changes) -> Resu
 }
 
 #[tauri::command]
+async fn rename_tag(app: AppHandle, from: String, to: String) -> Result<(), String> {
+    with_db(&app, |db| db.rename_tag(&from, &to))
+}
+
+#[tauri::command]
+async fn delete_tag(app: AppHandle, name: String) -> Result<(), String> {
+    with_db(&app, |db| db.delete_tag(&name))
+}
+
+#[tauri::command]
 async fn search_meetings(app: AppHandle, query: String) -> Result<Vec<db::Hit>, String> {
     with_db(&app, |db| db.search(&query, 60))
 }
@@ -1025,6 +1035,8 @@ pub fn run() {
             put_meeting,
             apply_changes,
             search_meetings,
+            rename_tag,
+            delete_tag,
             delete_meeting,
             list_microphones,
             start_mic_monitor,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { join } from "@tauri-apps/api/path";
 import { ask, open as openDialog, save } from "@tauri-apps/plugin-dialog";
@@ -19,6 +19,7 @@ import { UpdatesDialog } from "@/components/UpdatesDialog";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/Sidebar";
+import { tagCounts } from "@/components/Tags";
 import { Transcript } from "@/components/Transcript";
 import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -177,6 +178,36 @@ export default function App() {
 
   const meeting = (state.selectedId && state.open[state.selectedId]) || null;
   const recording = Object.values(state.open).find((m) => m.status === "recording") ?? null;
+
+  // The sidebar can show only the meetings with one tag. A new recording isn't tagged yet, so
+  // starting one shows them all again.
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const allTags = useMemo(() => tagCounts(state.summaries), [state.summaries]);
+  useEffect(() => {
+    if (recording) setTagFilter(null);
+  }, [recording?.id]);
+  useEffect(() => {
+    if (tagFilter && !allTags.some((x) => x.name === tagFilter)) setTagFilter(null);
+  }, [allTags, tagFilter]);
+  const renameTag = (from: string, to: string) => {
+    if (backend.isTauri()) backend.renameTag(from, to).catch((e) => toast.error(String(e)));
+    dispatch({ type: "renameTag", from, to });
+    if (tagFilter === from) setTagFilter(allTags.find((x) => x.name.toLocaleLowerCase() === to.trim().toLocaleLowerCase() && x.name !== from)?.name ?? to.trim());
+  };
+  const deleteTag = async (name: string) => {
+    const count = allTags.find((x) => x.name === name)?.count ?? 0;
+    const message = t("tags:deleteMessage", { tag: name, count });
+    const confirmed = backend.isTauri()
+      ? await ask(message, { title: t("tags:deleteTitle"), kind: "warning", okLabel: t("common:delete"), cancelLabel: t("common:cancel") })
+      : window.confirm(message);
+    if (!confirmed) return;
+    try {
+      if (backend.isTauri()) await backend.deleteTag(name);
+      dispatch({ type: "deleteTag", name });
+    } catch (e) {
+      toast.error(String(e));
+    }
+  };
 
   // Full-text search in SQLite; in a plain browser (UI work) a simple scan of what's loaded.
   const openRef = useRef(state.open);
@@ -533,6 +564,12 @@ export default function App() {
         onReassign={(utteranceId, speaker, version) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker, version })}
         onRename={(speaker, name, version) => dispatch({ type: "rename", id: meeting.id, speaker, name, version })}
         onEdit={(utteranceId, text) => dispatch({ type: "edit", id: meeting.id, utteranceId, text })}
+        allTags={allTags}
+        onTags={(tags) => dispatch({ type: "tags", id: meeting.id, tags })}
+        onOpenTag={(tag) => {
+          setTagFilter(tag);
+          setShowSidebar(true);
+        }}
         onRemoveScreen={(s) =>
           backend
             .deleteScreen(s.path)
@@ -632,6 +669,10 @@ export default function App() {
             englishReady={englishReady}
             onSettings={() => setShowSettings(true)}
             onDelete={removeById}
+            tagFilter={tagFilter}
+            onTagFilter={setTagFilter}
+            onRenameTag={renameTag}
+            onDeleteTag={deleteTag}
           />
         )}
 

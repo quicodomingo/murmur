@@ -108,6 +108,9 @@ Entre reunions (bloc 5):
 - [ ] Canviar l'idioma durant la gravació (canvi de model en directe, l'àudio d'aquells segons espera a la cua).
 - [ ] Endevinar l'idioma amb els primers 20–30 s (Whisper) i suggerir-ne el canvi; suggerir «Som més a la sala» si el micròfon sent veus diferents.
 - [x] Exportar totes les captures d'una reunió a una carpeta.
+- [x] Etiquetes per organitzar les reunions (per client, projecte…): sota el títol, filtre a la barra lateral (també per a la cerca) i reanomenar, ajuntar o esborrar amb el clic dret.
+- [ ] Etiquetes automàtiques pel domini dels convidats del calendari: proposar-la la primera vegada i recordar «@acme.com és Acme» (esbós a `docs/mockups/etiquetes.html`, pantalla 4).
+- [ ] Exportar totes les reunions d'una etiqueta, i una portada del client amb les últimes reunions.
 
 ## 5. Qualitat i rendiment
 

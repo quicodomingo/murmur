@@ -110,6 +110,7 @@ L'app es diu Murmur. El codi i el crate es diuen `transcriptor`, el nom antic. I
 
 - SQLite (`rusqlite` amb SQLite inclòs) a `<app_data_dir>/transcriptor.sqlite3`. Taules `meetings` i `utterances` (una fila per frase), i un índex **FTS5** (`search`, `unicode61 remove_diacritics 2`, que ignora els accents) sobre títols, frases (mantingut amb triggers) i blocs de notes.
 - La barra lateral carrega resums (`list_meetings`), i el contingut es carrega en obrir la reunió (`get_meeting`). Les edicions es desen com a canvis petits (`apply_changes`) amb un retard d'1,5 s; els canvis d'estat, a l'instant.
+- Etiquetes: taules `tags` (nom únic sense distingir majúscules) i `meeting_tags`. Una etiqueta existeix mentre alguna reunió la té. El resum de cada reunió porta les seves etiquetes, i la barra lateral compta i filtra a partir d'aquí, també els resultats de la cerca. Es canvien amb `apply_changes` (`meta.tags`, la llista sencera); `rename_tag` reanomena a totes les reunions, i si el nom nou ja és d'una altra etiqueta, les ajunta; `delete_tag` la treu de totes. `put_meeting` conserva les etiquetes si la reunió nova no en porta.
 - Cerca (`search_meetings`): cada paraula com a prefix, totes obligatòries. Els fragments marquen les coincidències amb `\u0002…\u0003`, mai amb HTML.
 - Migració automàtica dels fitxers JSON antics i del `localStorage` del webview. En un navegador sense Tauri, les reunions viuen a `localStorage` (útil per treballar la interfície).
 

@@ -50,7 +50,7 @@ export const stopRecording = () => invoke<void>("stop_recording");
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[] };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language" | "tags">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[] };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };
@@ -60,6 +60,10 @@ export const getMeeting = (id: string) => invoke<Meeting | null>("get_meeting", 
 export const putMeeting = (meeting: Meeting) => invoke<void>("put_meeting", { meeting });
 export const applyChanges = (id: string, changes: Changes) => invoke<void>("apply_changes", { id, changes });
 export const searchMeetings = (query: string) => invoke<SearchHit[]>("search_meetings", { query });
+/** Renames a tag in every meeting; onto an existing name, the two become one. */
+export const renameTag = (from: string, to: string) => invoke<void>("rename_tag", { from, to });
+/** Removes a tag from every meeting. */
+export const deleteTag = (name: string) => invoke<void>("delete_tag", { name });
 export const deleteMeeting = (id: string, audioPath: string | null) =>
   invoke<void>("delete_meeting", { id, audioPath });
 export const startMicMonitor = (device: string | null) => invoke<void>("start_mic_monitor", { device });

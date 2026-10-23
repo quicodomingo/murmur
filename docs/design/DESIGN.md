@@ -59,6 +59,12 @@ Regla de proporció: **90% neutres, 9% text i negre, 1% accent.** Si l'accent ap
 - **Reunió gravant:** a la dreta de la fila, un punt vermell de 8 pt que fa pampallugues (opacitat 1 → 0,35, 1,4 s, ease-in-out, amb un halo que s'expandeix) i el text "REC" en 10 pt bold (`recordingLabel`).
 - **Peu:** "Tot es queda en aquest Mac" en 11 pt i la roda de configuració.
 
+### Etiquetes
+Per organitzar les reunions (per client, projecte…). Totes grises, sense color, per no barrejar-les amb els colors dels parlants. Esbós a `docs/mockups/etiquetes.html`.
+- **A la reunió:** sota la data, píndoles de 22 pt (radi 5, `fillSubtle`, 12 pt medium) amb una creu petita en `textTertiary` per treure-la. Un clic al nom mostra a la barra lateral les reunions que la tenen. Al final, «+ Etiqueta» sense fons obre un buscador (264 pt): escrius, tries amb les fletxes i Retorn, o «Crea «…»». Ignora accents i majúscules.
+- **A la barra lateral:** secció «Etiquetes» sobre la llista, plegable (es recorda), amb «Totes les reunions» i cada etiqueta amb la icona d'etiqueta i el nombre de reunions, les més usades primer. Se'n veuen 5 i la resta va darrere «Mostra'n n més». La triada té el fons `sidebarSelection` sense barreta (la barreta és per a la reunió oberta). Amb una etiqueta triada, la llista i la cerca («Cerca a Acme») només en mostren les reunions. Començar a gravar torna a «Totes».
+- **Clic dret a una etiqueta:** Reanomena… (el nom es torna un camp a la mateixa fila; Retorn o sortir-ne el desa, Esc el cancel·la), Ajunta amb › (les altres) i Esborra l'etiqueta…, que demana confirmació i no esborra les reunions.
+
 ### Barra d'eines
 - **Píndola de gravació:** fons `recordingPill`, dues barres de 4×14 pt (`recordingLevel`) animades com un nivell d'àudio (escala vertical 0,45 → 1, 0,9 s, desfasades mig cicle), el text "Gravant", el temporitzador en xifres tabulars i un botó rodó d'aturar.
 - **Exporta:** botó principal, `accent` amb text `onAccent`, 600 de pes.

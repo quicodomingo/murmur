@@ -11,6 +11,7 @@ import { hasAudio, playAt, usePlayer } from "@/lib/player";
 import type { Jump, State } from "@/lib/store";
 import { SYSTEM_SPEAKER_BASE, type Channel, type Meeting, type PostStage, type Screen, type Utterance } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { MeetingTags, type TagCount } from "./Tags";
 
 type Props = {
   meeting: Meeting;
@@ -29,6 +30,11 @@ type Props = {
   onRename: (speaker: number, name: string, version: number) => void;
   onEdit: (utteranceId: string, text: string) => void;
   onRemoveScreen?: (s: Screen) => void;
+  /** Every tag in use, to offer them. */
+  allTags: TagCount[];
+  onTags: (tags: string[]) => void;
+  /** A click on one of its tags: the sidebar shows the meetings that have it. */
+  onOpenTag: (tag: string) => void;
 };
 
 /** Which utterance each note belongs to: the last one that started before the note was written. */
@@ -138,6 +144,7 @@ export function Transcript(props: Props) {
             {longDate(meeting.createdAt)}
             {speakers.length > 0 && ` · ${t("participants", { count: speakers.length })}`}
           </p>
+          <MeetingTags tags={meeting.tags ?? []} all={props.allTags} onChange={props.onTags} onOpen={props.onOpenTag} className="mt-2.5" />
 
           {props.finalPass && <FinalPassBanner {...props.finalPass} pausedBy={props.postPause} />}
 

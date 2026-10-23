@@ -50,6 +50,8 @@ export type Meeting = {
   screens?: Screen[];
   /** What it was spoken in when recorded (settings.language then); none for older meetings. */
   language?: Language;
+  /** To organise meetings (by client, project…); the sidebar filters by them. */
+  tags?: string[];
 };
 
 export type Screen = { t: number; path: string };
@@ -74,7 +76,7 @@ export type Cover = {
 };
 
 /** What the sidebar shows; the full meeting is loaded when opened. */
-export type MeetingSummary = Pick<Meeting, "id" | "title" | "createdAt" | "duration" | "status">;
+export type MeetingSummary = Pick<Meeting, "id" | "title" | "createdAt" | "duration" | "status" | "tags">;
 
 /** A full-text search result (db.rs `Hit`). Matches are wrapped in \u0002 … \u0003. */
 export type SearchHit = {
