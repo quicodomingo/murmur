@@ -5,6 +5,7 @@ pub mod capture;
 pub mod db;
 pub mod diarize;
 pub mod engine;
+pub mod gate;
 pub mod i18n;
 pub mod llm;
 pub mod micwatch;
@@ -152,8 +153,14 @@ async fn start_recording(
     };
     let recorder = match &audio_path {
         Some(path) => Some(
-            recorder::Recorder::create(path, Pipeline::record_channels(mic, system))
-                .map_err(|e| format!("{e:#}"))?,
+            match recorder::Recorder::create(path, Pipeline::record_channels(mic, system)) {
+                Ok(r) => r,
+                Err(e) => {
+                    let _ = stop_tx.send(());
+                    shell::set_recording(&app, false);
+                    return Err(format!("{e:#}"));
+                }
+            },
         ),
         None => None,
     };
@@ -373,8 +380,10 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
         );
     };
     let mut errors = vec![];
+    let _heavy = gate::heavy();
 
     if let Some((channel, max_speakers)) = plan.speakers {
+        gate::wait();
         let result = (|| -> anyhow::Result<()> {
             let Some(tapped) = tapped.iter().find(|t| t.channel == channel && !t.spans.is_empty()) else {
                 return Ok(());
@@ -385,6 +394,7 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
             let mut assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
             // More voices than the user expects: redo the clustering with their maximum.
             if diarize::speaker_count(&assignments) > max_speakers {
+                gate::wait();
                 let opts = diarize::Options {
                     num_speakers: Some(max_speakers),
                     ..Default::default()
@@ -392,6 +402,7 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
                 let turns = diarize::diarize(&models_dir(), &samples, opts)?;
                 assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
             }
+            gate::wait();
             let assignments =
                 diarize::absorb_small_speakers(&models_dir(), &samples, &tapped.spans, assignments, tapped.base)?;
             let _ = app.emit(
@@ -410,6 +421,7 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
     }
 
     if let Some(language) = &plan.language {
+        gate::wait();
         let result = (|| -> anyhow::Result<()> {
             let channels: Vec<&pipeline::Tapped> = tapped.iter().filter(|t| !t.spans.is_empty()).collect();
             if channels.is_empty() {
@@ -566,6 +578,7 @@ async fn delete_model(state: State<'_, AppState>, id: String) -> Result<(), Stri
 #[tauri::command]
 async fn punctuate(app: AppHandle, texts: Vec<String>, speakers: Vec<i32>) -> Result<Vec<String>, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        gate::wait();
         let state = app.state::<AppState>();
         let mut slot = state.punctuator.lock().unwrap();
         if slot.is_none() {
@@ -622,6 +635,11 @@ async fn run_llm(
     keep_loaded: bool,
 ) -> Result<Vec<LlmResult>, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        // A cover waits for any recording and for the other meetings' work; trying out prompts doesn't.
+        let _heavy = (!keep_loaded).then(|| {
+            gate::wait();
+            gate::heavy()
+        });
         let state = app.state::<AppState>();
         let _job = state.llm_job.lock().unwrap();
         let progress = |step: &str, done: usize, read_seconds: Option<f32>| {
@@ -643,7 +661,7 @@ async fn run_llm(
         };
         progress("reading", 0, None);
         let results = (|| -> Result<Vec<LlmResult>, String> {
-            let mut session = llm.session(&system, &document).map_err(|e| format!("{e:#}"))?;
+            let mut session = llm.session(&system, &document, !keep_loaded).map_err(|e| format!("{e:#}"))?;
             let read = Some(session.read_seconds);
             let mut results = Vec::with_capacity(tasks.len());
             for (i, task) in tasks.iter().enumerate() {

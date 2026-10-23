@@ -23,8 +23,8 @@ const TRAY_RECORDING: &[u8] = include_bytes!("../icons/menubar/MenuBarRecording@
 
 /// The alert window: a 470 pt card plus room for its close button and shadow.
 const TOAST_SIZE: (f64, f64) = (512.0, 120.0);
-/// The recording indicator: a 40 × ~150 pt pill plus room for its shadow.
-const INDICATOR_SIZE: (f64, f64) = (60.0, 172.0);
+/// The recording indicator: a 52 × ~162 pt pill plus room for its shadow.
+const INDICATOR_SIZE: (f64, f64) = (72.0, 186.0);
 /// The main window in compact mode (notes only, next to the call).
 const COMPACT_SIZE: (f64, f64) = (380.0, 600.0);
 /// The main window's minimum size outside compact mode (tauri.conf.json).
@@ -146,6 +146,7 @@ pub fn show_main(app: &AppHandle) {
 /// Called when a recording starts or stops.
 pub fn set_recording(app: &AppHandle, recording: bool) {
     shell(app).recording.store(recording, Ordering::Relaxed);
+    crate::gate::set_recording(recording);
     if recording {
         hide_toast(app);
     }
@@ -153,7 +154,7 @@ pub fn set_recording(app: &AppHandle, recording: bool) {
     refresh_tray(app);
 }
 
-/// The pill on the right edge of the screen while recording: open Murmur or stop.
+/// The pill on the right edge of the screen while recording: open Murmur, take a screenshot or stop.
 fn show_indicator(app: &AppHandle, visible: bool) {
     let Some(w) = app.get_webview_window("indicator") else { return };
     if !visible {

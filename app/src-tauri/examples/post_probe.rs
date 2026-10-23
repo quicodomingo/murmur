@@ -38,7 +38,7 @@ fn main() -> anyhow::Result<()> {
             let t0 = Instant::now();
             let llm = Llm::load(&models::LLM.file(&models_dir(), 0))?;
             eprintln!("càrrega: {:.1}s", t0.elapsed().as_secs_f32());
-            let mut s = llm.session(input["system"].as_str().unwrap_or(""), input["document"].as_str().unwrap_or(""))?;
+            let mut s = llm.session(input["system"].as_str().unwrap_or(""), input["document"].as_str().unwrap_or(""), false)?;
             eprintln!("lectura: {} tokens en {:.1}s", s.prefix_tokens(), s.read_seconds);
             let mut results = vec![];
             for t in tasks {

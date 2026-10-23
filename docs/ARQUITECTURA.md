@@ -184,6 +184,12 @@ Totes les versions 2.x de `zip` estan retirades de crates.io. `Cargo.toml` fa `[
 - En aturar, en un fil a part: diarització amb sherpa-onnx (segmentació pyannote 3.0 + 3D-Speaker). Cada frase en directe rep el parlant que més s'hi solapa, i la interfície (`relabel` a `store.ts`) reassigna: els noms i les frases fixades a mà (`speakerLocked`) segueixen la persona.
 - RTF 0,116 a l'M4 (~7 minuts per hora de reunió). Activada per defecte.
 
+### Si comença una altra gravació (`gate.rs`)
+
+- La feina d'acabar una reunió (parlants, Whisper, puntuació i portada) espera mentre hi ha una gravació en marxa, perquè la nova no vagi a batzegades. També se'n processa només una reunió alhora: si en tanques dues seguides, la segona espera la primera.
+- Whisper corre en un procés a part i es congela al moment (`SIGSTOP`, i `SIGCONT` en acabar de gravar). El model de llenguatge s'atura entre token i token, i la puntuació abans de començar. La verificació de parlants és una sola crida a sherpa-onnx: si ja ha començat, acaba (com a molt uns minuts).
+- Mentre espera, el model que estava fent servir es queda a la memòria. La interfície ho diu a la barra de progrés («en pausa») i el temps d'espera no compta per a l'estimació.
+
 ### Avaluació amb etiquetes manuals
 
 `data/qui-parla.json`: 34 frases dels primers 6 minuts, 24 d'una sola persona. Mètrica de `bench/speakers_eval.py`: F1 per parelles i encerts amb la millor correspondència.

@@ -13,6 +13,8 @@
   "editUtterance": "Editar la frase",
   "almostDone": "falta poco",
   "minutesLeft": "unos {{minutes}} min",
+  "paused": "en pausa",
+  "pausedHint": "Seguirá cuando termines de grabar, para que la grabación nueva vaya fluida.",
   "stages": {
     "speakers": {
       "title": "Verificando hablantes…",

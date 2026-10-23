@@ -13,6 +13,8 @@
   "editUtterance": "Edita la frase",
   "almostDone": "falta poc",
   "minutesLeft": "uns {{minutes}} min",
+  "paused": "en pausa",
+  "pausedHint": "Continuarà quan acabis de gravar, perquè la gravació nova vagi fina.",
   "stages": {
     "speakers": {
       "title": "Verificant parlants…",

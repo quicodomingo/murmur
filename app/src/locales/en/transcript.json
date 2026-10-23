@@ -13,6 +13,8 @@
   "editUtterance": "Edit sentence",
   "almostDone": "almost done",
   "minutesLeft": "about {{minutes}} min",
+  "paused": "paused",
+  "pausedHint": "It will continue when you stop recording, so the new recording runs smoothly.",
   "stages": {
     "speakers": {
       "title": "Checking speakers…",

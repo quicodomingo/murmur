@@ -9,7 +9,7 @@
 use crate::i18n::tr;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 
 use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
@@ -47,7 +47,7 @@ fn sidecar() -> Result<PathBuf> {
 
 /// New text for the utterances of each channel (`pcm`: 16 kHz mono s16le, as the pipeline taps
 /// it). Utterances left out keep their live text. `progress` gets the share done, 0–1.
-pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], mut progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
+pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
     let model = WHISPER.file(models, 0);
     if !model.is_file() {
         return Err(anyhow!(tr!("model_missing", path = model.display())));
@@ -66,7 +66,15 @@ pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], 
         .stderr(Stdio::piped())
         .spawn()
         .context(tr!("whisper_start_failed"))?;
-    child.stdin.take().unwrap().write_all(job.to_string().as_bytes())?;
+    crate::gate::whisper(Some(child.id()));
+    let result = read_replies(&mut child, &job.to_string(), channels.len(), progress);
+    crate::gate::whisper(None);
+    result
+}
+
+/// Sends the job to the Whisper process and collects its texts, one list per channel.
+fn read_replies(child: &mut Child, job: &str, channels: usize, mut progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
+    child.stdin.take().unwrap().write_all(job.as_bytes())?;
     // whisper.cpp logs a lot: keep the end, to explain a failure.
     let stderr = child.stderr.take().unwrap();
     let log = std::thread::spawn(move || {
@@ -86,7 +94,7 @@ pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], 
         channel: Option<usize>,
         texts: Option<Vec<Text>>,
     }
-    let mut out: Vec<Vec<Text>> = vec![vec![]; channels.len()];
+    let mut out: Vec<Vec<Text>> = vec![vec![]; channels];
     for line in BufReader::new(child.stdout.take().unwrap()).lines() {
         let line: Line = serde_json::from_str(&line?).context(tr!("whisper_bad_reply"))?;
         if let Some(p) = line.progress {

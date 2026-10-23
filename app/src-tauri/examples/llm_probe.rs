@@ -10,7 +10,7 @@ fn main() -> anyhow::Result<()> {
     let llm = Llm::load(Path::new(&args[1]))?;
     println!("model carregat en {:.1}s", t0.elapsed().as_secs_f32());
     let doc = std::fs::read_to_string(&args[2])?;
-    let mut s = llm.session("Ets un assistent que resumeix reunions en català. Respon sempre en català correcte.", &doc)?;
+    let mut s = llm.session("Ets un assistent que resumeix reunions en català. Respon sempre en català correcte.", &doc, false)?;
     println!("lectura: {} tokens en {:.1}s ({:.0} tok/s)", s.prefix_tokens(), s.read_seconds, s.prefix_tokens() as f32 / s.read_seconds);
     let a = s.ask("Proposa un títol breu (màxim 8 paraules) per a aquesta reunió. Respon només amb el títol.", 40, None)?;
     println!("títol ({:.1}s, {} tokens): {}", a.seconds, a.generated_tokens, a.text);

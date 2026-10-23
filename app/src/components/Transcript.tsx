@@ -369,25 +369,25 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
  * Shown while the recording is processed (speakers, Whisper's text, punctuation, cover). The stages report no
  * progress, so the bar follows the measured speed and waits at 95% until the stage really ends.
  */
-function FinalPassBanner({ stage, estimateSeconds, startedAt }: { stage: PostStage; estimateSeconds: number; startedAt: number }) {
+function FinalPassBanner({ stage, estimateSeconds, startedAt, pausedAt }: { stage: PostStage; estimateSeconds: number; startedAt: number; pausedAt?: number }) {
   const { t } = useTranslation("transcript");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const elapsed = (now - startedAt) / 1000;
+  const elapsed = ((pausedAt ?? now) - startedAt) / 1000;
   const progress = Math.min(0.95, elapsed / Math.max(estimateSeconds, 1));
   const left = Math.max(0, estimateSeconds - elapsed);
-  const remaining = left < 45 ? t("almostDone") : t("minutesLeft", { minutes: Math.round(left / 60) || 1 });
+  const remaining = pausedAt ? t("paused") : left < 45 ? t("almostDone") : t("minutesLeft", { minutes: Math.round(left / 60) || 1 });
   return (
     <div role="status" className="mt-5 rounded-lg bg-muted px-3.5 py-3">
       <div className="flex items-center gap-2 text-[13px]">
-        <span className="size-3.5 animate-spin rounded-full border-2 border-text-secondary/30 border-t-text-secondary" aria-hidden />
+        <span className={cn("size-3.5 rounded-full border-2 border-text-secondary/30 border-t-text-secondary", !pausedAt && "animate-spin")} aria-hidden />
         <span className="font-medium">{t(`stages.${stage}.title`)}</span>
         <span className="text-muted-foreground">{remaining}</span>
       </div>
-      <p className="mt-1 text-[12px] text-muted-foreground">{t(`stages.${stage}.hint`)}</p>
+      <p className="mt-1 text-[12px] text-muted-foreground">{pausedAt ? t("pausedHint") : t(`stages.${stage}.hint`)}</p>
       <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-mm-meter-off">
         <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
       </div>

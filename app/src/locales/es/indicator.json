@@ -2,5 +2,7 @@
   "openTitle": "Murmur está grabando. Abrir Murmur",
   "open": "Abrir Murmur",
   "capture": "Capturar la pantalla de la reunión",
-  "stop": "Detener la grabación"
+  "stop": "Detener la grabación",
+  "confirmStop": "Sí, detener la grabación",
+  "keepRecording": "Seguir grabando"
 }

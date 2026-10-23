@@ -97,7 +97,10 @@ Icona de 104 pt, logotip, versió, una frase que explica que tot es processa en 
 - **Gravant** (`MenuBarRecording`): barres plenes i punt vermell. `isTemplate = false`, perquè el vermell s'ha de veure.
 
 ### Indicador de gravació
-Mentre es grava, una píndola vertical a la vora dreta de la pantalla (finestra pròpia, transparent, sempre al davant, a tots els escriptoris). Fons `recordingPill`, amplada 40, radi 20: punt `recordingDot` que parpelleja, les dues barres de nivell `recordingLevel` (com a la píndola de gravació) i un botó rodó d'aturar. El punt i les barres tornen a obrir Murmur. S'arrossega per les vores i recorda on la deixes. Es pot desactivar a Configuració › General › Avisos.
+Mentre es grava, una píndola vertical a la vora dreta de la pantalla (finestra pròpia, transparent, sempre al davant, a tots els escriptoris). Fons `recordingPill`, amplada 52, radi 26: punt `recordingDot` de 12 que parpelleja, les dues barres de nivell `recordingLevel` de 4×16 (com a la píndola de gravació), el botó de captura i un botó petit d'aturar. El punt i les barres tornen a obrir Murmur.
+- **La captura és el botó principal:** rodó de 44, fons `recordingLevel` i càmera de 20 en el color de la píndola. En fer la captura, la càmera es canvia un moment per una marca de fet.
+- **Aturar demana confirmació:** el botó d'aturar és de 32, un quadrat de 12 sense fons i a mig to. En clicar-lo, el lloc de la càmera passa a ser el botó vermell d'aturar (44, `recordingDot`) i el seu, una creu per continuar gravant. Torna sol a l'estat normal al cap de 4 s o amb Esc. Un doble clic cau a la creu, no atura res.
+- S'arrossega per les vores i recorda on la deixes. Es pot desactivar a Configuració › General › Avisos.
 
 ### Avisos (toasts)
 Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16, ombra suau, `toastBackground`). Tenen un botó rodó de tancar a la cantonada superior esquerra.

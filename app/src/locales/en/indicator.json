@@ -2,5 +2,7 @@
   "openTitle": "Murmur is recording. Open Murmur",
   "open": "Open Murmur",
   "capture": "Capture Meeting Screen",
-  "stop": "Stop Recording"
+  "stop": "Stop Recording",
+  "confirmStop": "Yes, stop recording",
+  "keepRecording": "Keep recording"
 }

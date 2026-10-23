@@ -176,6 +176,10 @@ export default function App() {
   const meeting = (state.selectedId && state.open[state.selectedId]) || null;
   const recording = Object.values(state.open).find((m) => m.status === "recording") ?? null;
 
+  // While recording, the work after earlier meetings waits (gate.rs): their banners say so.
+  const isRecording = !!recording;
+  useEffect(() => dispatch({ type: "postPaused", paused: isRecording }), [isRecording, dispatch]);
+
   // Full-text search in SQLite; in a plain browser (UI work) a simple scan of what's loaded.
   const openRef = useRef(state.open);
   openRef.current = state.open;

@@ -61,8 +61,9 @@ impl Llm {
     }
 
     /// Reads `system` + `document` into a fresh context. Questions are then asked in the same
-    /// user turn, right after the document (Gemma 4 format, thinking off).
-    pub fn session(&self, system: &str, document: &str) -> Result<Session<'_>> {
+    /// user turn, right after the document (Gemma 4 format, thinking off). A `pausable` session
+    /// stops while a recording is going on (gate.rs).
+    pub fn session(&self, system: &str, document: &str, pausable: bool) -> Result<Session<'_>> {
         let prefix = format!("<bos><|turn>system\n{system}<turn|>\n<|turn>user\n{document}\n\n---\n");
         let tokens = self.model.vocab().tokenize(prefix.as_bytes(), false, true);
         let n_ctx = (tokens.len() as u32 + ANSWER_ROOM).next_multiple_of(256);
@@ -74,7 +75,7 @@ impl Llm {
             .model
             .new_context(backend()?, params)
             .context(tr!("llm_context_failed"))?;
-        let mut session = Session { model: &self.model, ctx, prefix_len: 0, read_seconds: 0.0 };
+        let mut session = Session { model: &self.model, ctx, prefix_len: 0, read_seconds: 0.0, pausable };
         let t0 = Instant::now();
         session.feed(&tokens, 0, false)?;
         session.prefix_len = tokens.len() as i32;
@@ -88,9 +89,16 @@ pub struct Session<'m> {
     ctx: LlamaContext<'m>,
     prefix_len: i32,
     pub read_seconds: f32,
+    pausable: bool,
 }
 
 impl Session<'_> {
+    fn pause(&self) {
+        if self.pausable {
+            crate::gate::wait();
+        }
+    }
+
     pub fn prefix_tokens(&self) -> usize {
         self.prefix_len as usize
     }
@@ -99,6 +107,7 @@ impl Session<'_> {
     fn feed(&mut self, tokens: &[LlamaToken], pos: i32, want_last: bool) -> Result<()> {
         let mut batch = LlamaBatch::new(BATCH, 1);
         for (chunk_index, chunk) in tokens.chunks(BATCH).enumerate() {
+            self.pause();
             batch.clear();
             let last_chunk = (chunk_index + 1) * BATCH >= tokens.len();
             for (i, t) in chunk.iter().enumerate() {
@@ -148,6 +157,7 @@ impl Session<'_> {
             let mut batch = LlamaBatch::new(1, 1);
             let mut last_logits = (tokens.len() - 1) as i32 % BATCH as i32;
             while generated < max_tokens {
+                self.pause();
                 let token = match grammar.as_mut() {
                     Some(grammar) => {
                         let token = constrained_greedy(&self.ctx, last_logits, grammar);

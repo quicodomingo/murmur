@@ -45,6 +45,8 @@ export type PostProcess = {
   startedAt: number;
   /** How long each finished stage took, in seconds. */
   took: Partial<Record<PostStage, number>>;
+  /** Set while another meeting is recording: the work waits (gate.rs) and the clock stops. */
+  pausedAt?: number;
 };
 
 export type Action =
@@ -66,6 +68,8 @@ export type Action =
   | { type: "notes"; id: string; doc: JSONContent }
   | { type: "audio"; id: string; path: string | null }
   | { type: "postStage"; id: string; stage: PostStage; steps: PostStage[]; estimateSeconds: number }
+  /** A recording started or stopped: the work after other recordings waits meanwhile. */
+  | { type: "postPaused"; paused: boolean }
   | { type: "speakersVerified"; id: string; base: number; assignments: Assignment[] }
   /** Whisper's text for one channel (`base`), keyed by each utterance's start. */
   | { type: "retranscribed"; id: string; base: number; texts: { start: number; text: string }[] }
@@ -160,8 +164,20 @@ export function reducer(state: State, action: Action): State {
       const previous = state.finalPass[action.id];
       const took = { ...previous?.took };
       if (previous && previous.stage !== action.stage) took[previous.stage] = (Date.now() - previous.startedAt) / 1000;
-      const run: PostProcess = { stage: action.stage, steps: action.steps, estimateSeconds: action.estimateSeconds, startedAt: Date.now(), took };
+      const recording = Object.values(state.open).some((m) => m.status === "recording");
+      const run: PostProcess = { stage: action.stage, steps: action.steps, estimateSeconds: action.estimateSeconds, startedAt: Date.now(), took, pausedAt: recording ? Date.now() : undefined };
       return updateMeeting({ ...state, finalPass: { ...state.finalPass, [action.id]: run } }, action.id, (m) => ({ ...m, status: "processing" }));
+    }
+    case "postPaused": {
+      const now = Date.now();
+      const finalPass = Object.fromEntries(
+        Object.entries(state.finalPass).map(([id, run]) => {
+          if (action.paused) return [id, run.pausedAt ? run : { ...run, pausedAt: now }];
+          // The time spent waiting doesn't count towards the estimate.
+          return [id, run.pausedAt ? { ...run, startedAt: run.startedAt + (now - run.pausedAt), pausedAt: undefined } : run];
+        }),
+      );
+      return { ...state, finalPass };
     }
     case "speakersVerified":
       return updateMeeting(state, action.id, (m) => relabel(m, action.base, action.assignments));
