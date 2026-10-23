@@ -19,7 +19,7 @@ import { UpdatesDialog } from "@/components/UpdatesDialog";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/Sidebar";
-import { tagCounts } from "@/components/Tags";
+import { MeetingTags, tagCounts } from "@/components/Tags";
 import { Transcript } from "@/components/Transcript";
 import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -535,6 +535,18 @@ export default function App() {
       toast.error(String(e));
     }
   };
+  const tagsOf = (m: Meeting, className: string) => (
+    <MeetingTags
+      tags={m.tags ?? []}
+      all={allTags}
+      onChange={(tags) => dispatch({ type: "tags", id: m.id, tags })}
+      onOpen={(tag) => {
+        setTagFilter(tag);
+        setShowSidebar(true);
+      }}
+      className={className}
+    />
+  );
   const renderCover = () =>
     meeting && (
       <Cover
@@ -547,6 +559,7 @@ export default function App() {
         onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
         onTasks={(tasks) => dispatch({ type: "coverTasks", id: meeting.id, tasks })}
         onPrint={printCover}
+        tags={tagsOf(meeting, "mt-2")}
       />
     );
   const renderTranscript = (compact: boolean) =>
@@ -564,12 +577,7 @@ export default function App() {
         onReassign={(utteranceId, speaker, version) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker, version })}
         onRename={(speaker, name, version) => dispatch({ type: "rename", id: meeting.id, speaker, name, version })}
         onEdit={(utteranceId, text) => dispatch({ type: "edit", id: meeting.id, utteranceId, text })}
-        allTags={allTags}
-        onTags={(tags) => dispatch({ type: "tags", id: meeting.id, tags })}
-        onOpenTag={(tag) => {
-          setTagFilter(tag);
-          setShowSidebar(true);
-        }}
+        tags={showCover ? undefined : tagsOf(meeting, "mt-2.5")}
         onRemoveScreen={(s) =>
           backend
             .deleteScreen(s.path)

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { AlignLeft, Check, Plus, Printer, RefreshCw, Sparkles, X } from "lucide-react";
@@ -31,6 +31,8 @@ type Props = {
   onTasks: (tasks: Task[]) => void;
   /** "PDF o envia…": the system print panel (Save as PDF, Mail, Messages). */
   onPrint: () => void;
+  /** The meeting's tags (MeetingTags), under the title. */
+  tags?: ReactNode;
 };
 
 type Task = NonNullable<CoverData["tasks"]>[number];
@@ -44,6 +46,7 @@ export function Cover(props: Props) {
       <article className="mx-auto max-w-[760px] px-10 pb-20 pt-11">
         <p className="text-[13px] text-muted-foreground">{meta(meeting)}</p>
         <TitleInput title={meeting.title} onChange={props.onTitle} />
+        {props.tags && <div className="print:hidden">{props.tags}</div>}
         {generating ? (
           <Processing {...props} run={run!} />
         ) : meeting.cover ? (
