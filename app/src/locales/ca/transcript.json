@@ -14,7 +14,8 @@
   "almostDone": "falta poc",
   "minutesLeft": "uns {{minutes}} min",
   "paused": "en pausa",
-  "pausedHint": "Continuarà quan acabis de gravar, perquè la gravació nova vagi fina.",
+  "pausedRecording": "Continuarà quan acabis de gravar, perquè la gravació nova vagi fina.",
+  "pausedCall": "Hi ha una trucada en marxa. Continuarà quan s'acabi, perquè l'ordinador no vagi carregat.",
   "stages": {
     "speakers": {
       "title": "Verificant parlants…",

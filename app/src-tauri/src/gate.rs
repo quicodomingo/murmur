@@ -1,20 +1,38 @@
 //! Keeps the heavy work after a recording (speaker check, Whisper, punctuation, cover) out of
-//! the way of a new recording: it waits while one is going on, and one meeting is processed at
-//! a time. Whisper runs in its own process, so it's paused on the spot (SIGSTOP); the rest
+//! the way of a new meeting: it waits while Murmur records, or while another app uses the
+//! microphone (a call in Meet, Teams, Zoom…, as "Reunió detectada" sees it), and one meeting is
+//! processed at a time. Whisper runs in its own process, so it's paused on the spot (SIGSTOP); the rest
 //! checks `wait` between steps. The speaker check is a single call into sherpa-onnx: once
 //! started it finishes, which takes a few minutes at most.
 
-use std::sync::{Condvar, Mutex, MutexGuard};
+use std::sync::{Condvar, Mutex, MutexGuard, OnceLock};
+
+use serde::Serialize;
+use tauri::{AppHandle, Emitter};
+
+/// Why the work waits; the UI says it ("post-paused" event).
+#[derive(Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Busy {
+    recording: bool,
+    call: bool,
+}
+
+impl Busy {
+    fn any(self) -> bool {
+        self.recording || self.call
+    }
+}
 
 struct Gate {
-    recording: Mutex<bool>,
+    busy: Mutex<Busy>,
     changed: Condvar,
     /// The Whisper process running now, if any.
     whisper: Mutex<Option<u32>>,
 }
 
 static GATE: Gate = Gate {
-    recording: Mutex::new(false),
+    busy: Mutex::new(Busy { recording: false, call: false }),
     changed: Condvar::new(),
     whisper: Mutex::new(None),
 };
@@ -22,24 +40,53 @@ static GATE: Gate = Gate {
 /// One meeting's heavy work at a time.
 static HEAVY: Mutex<()> = Mutex::new(());
 
+static APP: OnceLock<AppHandle> = OnceLock::new();
+
+/// To tell the UI when the work pauses and resumes.
+pub fn init(app: AppHandle) {
+    let _ = APP.set(app);
+}
+
 /// Called when a recording starts or stops.
 pub fn set_recording(on: bool) {
-    *GATE.recording.lock().unwrap() = on;
+    update(|b| b.recording = on);
+}
+
+/// Another app started or stopped using the microphone.
+pub fn set_call(on: bool) {
+    update(|b| b.call = on);
+}
+
+fn update(change: impl FnOnce(&mut Busy)) {
+    let (was, now) = {
+        let mut busy = GATE.busy.lock().unwrap();
+        let was = *busy;
+        change(&mut busy);
+        (was, *busy)
+    };
+    if was == now {
+        return;
+    }
     GATE.changed.notify_all();
-    if let Some(pid) = *GATE.whisper.lock().unwrap() {
-        signal(pid, on);
+    if was.any() != now.any() {
+        if let Some(pid) = *GATE.whisper.lock().unwrap() {
+            signal(pid, now.any());
+        }
+    }
+    if let Some(app) = APP.get() {
+        let _ = app.emit("post-paused", now);
     }
 }
 
-pub fn recording() -> bool {
-    *GATE.recording.lock().unwrap()
+fn paused() -> bool {
+    GATE.busy.lock().unwrap().any()
 }
 
-/// Blocks while a recording is going on.
+/// Blocks while Murmur records or another app uses the microphone.
 pub fn wait() {
-    let mut recording = GATE.recording.lock().unwrap();
-    while *recording {
-        recording = GATE.changed.wait(recording).unwrap();
+    let mut busy = GATE.busy.lock().unwrap();
+    while busy.any() {
+        busy = GATE.changed.wait(busy).unwrap();
     }
 }
 
@@ -48,12 +95,12 @@ pub fn heavy() -> MutexGuard<'static, ()> {
     HEAVY.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// The Whisper process started (`Some`) or ended (`None`); it's paused if a recording is on.
+/// The Whisper process started (`Some`) or ended (`None`); it starts paused if the work waits.
 pub fn whisper(pid: Option<u32>) {
     let mut slot = GATE.whisper.lock().unwrap();
     *slot = pid;
     if let Some(pid) = pid {
-        if recording() {
+        if paused() {
             signal(pid, true);
         }
     }

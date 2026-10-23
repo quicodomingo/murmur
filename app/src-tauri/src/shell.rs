@@ -420,6 +420,8 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
         loop {
             std::thread::sleep(Duration::from_millis(1500));
             let users: HashSet<String> = micwatch::mic_users().into_iter().map(|u| u.name).collect();
+            // A call going on: the work after earlier meetings waits for it to end.
+            crate::gate::set_call(!users.is_empty());
             let shell = shell(&app);
             // An app that let go of the microphone may ask again next time.
             shell.dismissed.lock().unwrap().retain(|s| users.iter().any(|u| s.starts_with(u.as_str())));

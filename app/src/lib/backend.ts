@@ -122,6 +122,9 @@ export const captureScreen = (meetingId: string, t: number) => invoke<string>("c
 export const playbackAudio = (meetingId: string, audioPath: string) => invoke<string>("playback_audio", { meetingId, audioPath });
 export const exportAudio = (meetingId: string, audioPath: string, dest: string) => invoke<void>("export_audio", { meetingId, audioPath, dest });
 export const deleteScreen = (path: string) => invoke<void>("delete_screen", { path });
+/** The work after a recording waits while Murmur records or another app uses the mic (gate.rs). */
+export const onPostPaused = (fn: (busy: { recording: boolean; call: boolean }) => void) =>
+  listen<{ recording: boolean; call: boolean }>("post-paused", (e) => fn(e.payload));
 /** The indicator's camera button asks the main window for a screenshot. */
 export const onCaptureRequest = (fn: () => void) => listen("capture-request", () => fn());
 

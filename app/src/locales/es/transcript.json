@@ -14,7 +14,8 @@
   "almostDone": "falta poco",
   "minutesLeft": "unos {{minutes}} min",
   "paused": "en pausa",
-  "pausedHint": "Seguirá cuando termines de grabar, para que la grabación nueva vaya fluida.",
+  "pausedRecording": "Seguirá cuando termines de grabar, para que la grabación nueva vaya fluida.",
+  "pausedCall": "Hay una llamada en curso. Seguirá cuando termine, para no cargar el ordenador.",
   "stages": {
     "speakers": {
       "title": "Verificando hablantes…",

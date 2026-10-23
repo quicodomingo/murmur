@@ -963,6 +963,7 @@ pub fn run() {
             if let Ok(data) = app.path().app_data_dir() {
                 engine::set_app_models_dir(data.join("models"));
             }
+            gate::init(app.handle().clone());
             shell::setup(app)?;
             Ok(())
         })

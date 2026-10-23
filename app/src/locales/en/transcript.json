@@ -14,7 +14,8 @@
   "almostDone": "almost done",
   "minutesLeft": "about {{minutes}} min",
   "paused": "paused",
-  "pausedHint": "It will continue when you stop recording, so the new recording runs smoothly.",
+  "pausedRecording": "It will continue when you stop recording, so the new recording runs smoothly.",
+  "pausedCall": "A call is going on. It will continue when it ends, so your Mac isn't slowed down.",
   "stages": {
     "speakers": {
       "title": "Checking speakers…",

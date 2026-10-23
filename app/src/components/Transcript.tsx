@@ -19,6 +19,8 @@ type Props = {
   /** Scroll to (and briefly highlight) a search result. */
   jump: Jump | null;
   finalPass: State["finalPass"][string] | null;
+  /** Why the final pass is waiting, if it is. */
+  postPause: State["postPause"];
   partial: Record<Channel, string>;
   hoveredNote: string | null;
   onHoverNote: (id: string | null) => void;
@@ -137,7 +139,7 @@ export function Transcript(props: Props) {
             {speakers.length > 0 && ` · ${t("participants", { count: speakers.length })}`}
           </p>
 
-          {props.finalPass && <FinalPassBanner {...props.finalPass} />}
+          {props.finalPass && <FinalPassBanner {...props.finalPass} pausedBy={props.postPause} />}
 
           {meeting.utterances.length === 0 && live.length === 0 && (
             <p className="mt-12 text-[15px] text-text-secondary">
@@ -369,7 +371,19 @@ function EditBox({ text, onDone }: { text: string; onDone: (value: string | null
  * Shown while the recording is processed (speakers, Whisper's text, punctuation, cover). The stages report no
  * progress, so the bar follows the measured speed and waits at 95% until the stage really ends.
  */
-function FinalPassBanner({ stage, estimateSeconds, startedAt, pausedAt }: { stage: PostStage; estimateSeconds: number; startedAt: number; pausedAt?: number }) {
+function FinalPassBanner({
+  stage,
+  estimateSeconds,
+  startedAt,
+  pausedAt,
+  pausedBy,
+}: {
+  stage: PostStage;
+  estimateSeconds: number;
+  startedAt: number;
+  pausedAt?: number;
+  pausedBy: State["postPause"];
+}) {
   const { t } = useTranslation("transcript");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -387,7 +401,7 @@ function FinalPassBanner({ stage, estimateSeconds, startedAt, pausedAt }: { stag
         <span className="font-medium">{t(`stages.${stage}.title`)}</span>
         <span className="text-muted-foreground">{remaining}</span>
       </div>
-      <p className="mt-1 text-[12px] text-muted-foreground">{pausedAt ? t("pausedHint") : t(`stages.${stage}.hint`)}</p>
+      <p className="mt-1 text-[12px] text-muted-foreground">{pausedAt ? t(pausedBy === "call" ? "pausedCall" : "pausedRecording") : t(`stages.${stage}.hint`)}</p>
       <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-mm-meter-off">
         <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
       </div>
