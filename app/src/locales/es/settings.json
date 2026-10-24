@@ -150,13 +150,26 @@
   "intelligence": {
     "cover": "Portada",
     "summarize": "Generar la portada al terminar la grabación",
-    "summarizeHint": "Un modelo de lenguaje lee la transcripción y hace el título, el resumen, las decisiones, las tareas y las partes. Tarda unos 2–3 minutos para una reunión de 20 minutos; puedes seguir trabajando mientras tanto.",
+    "summarizeHint": "Un modelo de lenguaje lee la transcripción y hace el título, el resumen, las decisiones, las tareas y las partes. Puedes seguir trabajando mientras tanto.",
     "gemmaModel": "Gemma 4 E4B, de Google",
     "privacy": "Todo se hace en este ordenador: la transcripción no sale de aquí. Los modelos solo se descargan si activas la función, y puedes borrarlos cuando quieras.",
     "coverLanguage": "Idioma de la portada",
     "coverLanguageHint": "En el idioma de la reunión, «Catalán + castellano» se escribe en catalán. Las reuniones grabadas antes de esta versión usan el de la interfaz.",
     "coverLanguageInterface": "El de Murmur",
-    "coverLanguageMeeting": "El de la reunión"
+    "coverLanguageMeeting": "El de la reunión",
+    "engine": "Quién la escribe",
+    "engineLocal": "Este Mac",
+    "engineLocalHint": "Gemma, en el ordenador. La transcripción no sale de aquí, pero tarda unos 2–3 minutos para una reunión de 20 minutos.",
+    "engineCloudHint": "Más rápido y con más calidad, pero la transcripción se envía a {{provider}}. Hace falta una clave de API propia, que se paga aparte según el uso.",
+    "providers": {
+      "anthropic": "Claude",
+      "openai": "OpenAI"
+    },
+    "companies": {
+      "anthropic": "Anthropic",
+      "openai": "OpenAI"
+    },
+    "privacyCloud": "Cada vez que se genera una portada, el texto de la transcripción y las notas se envían a {{provider}}. El audio nunca sale de este ordenador, y la clave se guarda en el llavero de macOS."
   },
   "model": {
     "deleteMessage": "Se borrará {{name}} ({{size}}). Puedes volver a descargarlo cuando quieras.",
@@ -189,6 +202,21 @@
     "reset": "Restablecer",
     "meetingTitle": "«{{title}}»",
     "resultTime": "Respuesta en {{seconds}} s · {{tokens}} tokens · total {{total}} s con la lectura",
-    "errorTime": "Error · total {{total}} s con la lectura"
+    "errorTime": "Error · total {{total}} s con la lectura",
+    "needKey": "Primero conecta la cuenta."
+  },
+  "cloud": {
+    "keyLabel": "Clave de API de {{company}}",
+    "keyHint": "No sirve la suscripción a Claude o ChatGPT: hace falta una clave de API, que se factura aparte según el uso.",
+    "createKey": "Crea una en {{site}}",
+    "connect": "Conectar",
+    "checking": "Comprobando…",
+    "connected": "Cuenta de {{company}} conectada",
+    "keySaved": "Clave guardada en el llavero, termina en …{{hint}}",
+    "disconnect": "Desconectar",
+    "disconnectTitle": "¿Quieres desconectar la cuenta?",
+    "disconnectMessage": "Se borrará la clave de {{company}} del llavero. Las portadas que ya tienes no cambian.",
+    "model": "Modelo",
+    "modelHint": "Los más grandes escriben mejor y cuestan más por portada."
   }
 }

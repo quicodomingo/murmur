@@ -3,8 +3,9 @@ import { locale, t, UI_LANGUAGES, uiLanguage, type UiLanguage } from "./i18n";
 import { notesDoc, notesFromDoc } from "./notes";
 import type { Cover, Language, LlmResult, LlmTask, Meeting } from "./types";
 
-// The cover is written by the local language model (Gemma 4 E4B, lib.rs run_llm): it reads the
-// transcript once and answers one prompt per part. Every answer is JSON constrained by a schema,
+// The cover is written by the local language model (Gemma 4 E4B, lib.rs run_llm), or by Claude or
+// OpenAI with the user's key (lib/cloud.ts): it reads the transcript once and answers one prompt
+// per part. Every answer is JSON constrained by a schema,
 // so the prompts can be edited in the settings without breaking the parsing; the schemas can't.
 
 export type PromptId = "system" | "title" | "tone" | "summary" | "decisions" | "tasks" | "parts";
@@ -267,8 +268,12 @@ export function keepTaskEdits(next: Cover, previous: Cover | null | undefined): 
   return { ...next, tasks: [...tasks, ...previous.tasks.filter((t) => t.manual && !known.has(key(t.text)))] };
 }
 
-/** Rough time for the whole cover, measured on an M4 (20 min meeting: 6,500 tokens read in 41 s, 6 parts in 100 s). */
-export function coverEstimate(document: string, parts: number, loaded = false): number {
+/**
+ * Rough time for the whole cover, measured on an M4 (20 min meeting: 6,500 tokens read in 41 s,
+ * 6 parts in 100 s). In the cloud (`cloud`), a few seconds a part.
+ */
+export function coverEstimate(document: string, parts: number, loaded = false, cloud = false): number {
+  if (cloud) return parts * 6;
   const tokens = document.length / 3.2;
   return (loaded ? 0 : 10) + tokens / 160 + parts * 17;
 }
@@ -292,8 +297,13 @@ const optional = (s: unknown) => {
 };
 
 /** Turns the model's answers into a cover (and the title it proposed, if any). */
-export function buildCover(results: LlmResult[], meeting: Meeting, lng: UiLanguage = uiLanguage()): { cover: Cover; title: string | null } {
-  const cover: Cover = { generatedAt: Date.now(), lang: lng };
+export function buildCover(
+  results: LlmResult[],
+  meeting: Meeting,
+  lng: UiLanguage = uiLanguage(),
+  writtenBy?: string,
+): { cover: Cover; title: string | null } {
+  const cover: Cover = { generatedAt: Date.now(), lang: lng, ...(writtenBy && { writtenBy }) };
   let title: string | null = null;
   const errors: Record<string, string> = {};
   const max = meeting.duration;

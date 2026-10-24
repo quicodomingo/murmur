@@ -4,6 +4,9 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { JSONContent } from "@tiptap/core";
 
 import type {
+  CloudEngine,
+  CloudModel,
+  CloudProvider,
   Cover,
   EngineEvent,
   FinalPassDone,
@@ -163,10 +166,20 @@ export const onModelDownloadDone = (fn: (e: { id: ModelId; error: string | null;
 /** Punctuation and capitals for consecutive utterances; returns their new texts. */
 export const punctuate = (texts: string[], speakers: number[]) => invoke<string[]>("punctuate", { texts, speakers });
 
-/** Reads `document` once with the local language model and answers each task about it. */
-export const runLlm = (opts: { job: string; system: string; document: string; tasks: LlmTask[]; keepLoaded: boolean }) =>
+/**
+ * Reads `document` once with the local language model and answers each task about it; with an
+ * `engine`, Claude or OpenAI answer instead (cloud.rs).
+ */
+export const runLlm = (opts: { job: string; system: string; document: string; tasks: LlmTask[]; keepLoaded: boolean; engine: CloudEngine | null }) =>
   invoke<LlmResult[]>("run_llm", opts);
 export const releaseLlm = () => invoke<void>("release_llm");
+
+/** The saved API keys' last characters (the keys stay in the keychain); null = not connected. */
+export const cloudStatus = () => invoke<Record<CloudProvider, string | null>>("cloud_status");
+/** Checks the key, saves it to the keychain and returns the models it can use. */
+export const cloudConnect = (provider: CloudProvider, key: string) => invoke<CloudModel[]>("cloud_connect", { provider, key });
+export const cloudDisconnect = (provider: CloudProvider) => invoke<void>("cloud_disconnect", { provider });
+export const cloudModels = (provider: CloudProvider) => invoke<CloudModel[]>("cloud_models", { provider });
 export const onLlmProgress = (fn: (e: LlmProgress) => void) => listen<LlmProgress>("llm-progress", (e) => fn(e.payload));
 
 export async function subscribe(handlers: {

@@ -244,6 +244,48 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "No se ha podido crear el contexto del modelo",
             "Couldn't create the model context",
         ],
+        // Cover written by Claude or OpenAI (cloud.rs).
+        "cloud_no_key" => [
+            "Falta la clau d'API: connecta el compte a la configuració",
+            "Falta la clave de API: conecta la cuenta en los ajustes",
+            "The API key is missing: connect the account in Settings",
+        ],
+        "cloud_keychain_failed" => [
+            "No s'ha pogut desar la clau al clauer: {error}",
+            "No se ha podido guardar la clave en el llavero: {error}",
+            "Couldn't save the key to the keychain: {error}",
+        ],
+        "cloud_bad_key" => [
+            "La clau d'API no és vàlida o no té permís",
+            "La clave de API no es válida o no tiene permiso",
+            "The API key isn't valid or lacks permission",
+        ],
+        "cloud_rate_limited" => [
+            "S'ha arribat al límit d'ús del compte. Torna-ho a provar d'aquí a una estona",
+            "Se ha llegado al límite de uso de la cuenta. Vuelve a probarlo dentro de un rato",
+            "The account's usage limit was reached. Try again in a while",
+        ],
+        "cloud_unavailable" => [
+            "El servei no respon ara mateix (error {code})",
+            "El servicio no responde ahora mismo (error {code})",
+            "The service isn't responding right now (error {code})",
+        ],
+        "cloud_offline" => [
+            "No s'ha pogut connectar. Comprova la connexió a internet",
+            "No se ha podido conectar. Comprueba la conexión a internet",
+            "Couldn't connect. Check the internet connection",
+        ],
+        "cloud_refused" => [
+            "El model no ha volgut respondre",
+            "El modelo no ha querido responder",
+            "The model declined to answer",
+        ],
+        "cloud_too_long" => [
+            "La resposta ha quedat tallada",
+            "La respuesta se ha quedado cortada",
+            "The answer was cut off",
+        ],
+        "cloud_empty" => ["Resposta buida", "Respuesta vacía", "Empty answer"],
         "punct_model_missing" => [
             "Falta el model de puntuació {path}",
             "Falta el modelo de puntuación {path}",

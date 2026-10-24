@@ -150,13 +150,26 @@
   "intelligence": {
     "cover": "Portada",
     "summarize": "Genera la portada en acabar la gravació",
-    "summarizeHint": "Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions, les tasques i les parts. Triga uns 2–3 minuts per a una reunió de 20 minuts; pots continuar treballant mentrestant.",
+    "summarizeHint": "Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions, les tasques i les parts. Pots continuar treballant mentrestant.",
     "gemmaModel": "Gemma 4 E4B, de Google",
     "privacy": "Tot es fa en aquest ordinador: la transcripció no surt d'aquí. Els models es descarreguen només si actives la funció, i els pots esborrar quan vulguis.",
     "coverLanguage": "Idioma de la portada",
     "coverLanguageHint": "En l'idioma de la reunió, «Català + castellà» s'escriu en català. Les reunions gravades abans d'aquesta versió fan servir el de la interfície.",
     "coverLanguageInterface": "El de Murmur",
-    "coverLanguageMeeting": "El de la reunió"
+    "coverLanguageMeeting": "El de la reunió",
+    "engine": "Qui l'escriu",
+    "engineLocal": "Aquest Mac",
+    "engineLocalHint": "Gemma, a l'ordinador. La transcripció no en surt, però triga uns 2–3 minuts per a una reunió de 20 minuts.",
+    "engineCloudHint": "Més ràpid i amb més qualitat, però la transcripció s'envia a {{provider}}. Cal una clau d'API pròpia, que es paga a part segons l'ús.",
+    "providers": {
+      "anthropic": "Claude",
+      "openai": "OpenAI"
+    },
+    "companies": {
+      "anthropic": "Anthropic",
+      "openai": "OpenAI"
+    },
+    "privacyCloud": "Cada vegada que es genera una portada, el text de la transcripció i les notes s'envien a {{provider}}. L'àudio no surt mai d'aquest ordinador, i la clau es desa al clauer de macOS."
   },
   "model": {
     "deleteMessage": "S'esborrarà {{name}} ({{size}}). El pots tornar a descarregar quan vulguis.",
@@ -189,6 +202,21 @@
     "reset": "Restableix",
     "meetingTitle": "«{{title}}»",
     "resultTime": "Resposta en {{seconds}} s · {{tokens}} tokens · total {{total}} s amb la lectura",
-    "errorTime": "Error · total {{total}} s amb la lectura"
+    "errorTime": "Error · total {{total}} s amb la lectura",
+    "needKey": "Primer connecta el compte."
+  },
+  "cloud": {
+    "keyLabel": "Clau d'API d'{{company}}",
+    "keyHint": "No serveix la subscripció a Claude o ChatGPT: cal una clau d'API, que es factura a part segons l'ús.",
+    "createKey": "Crea'n una a {{site}}",
+    "connect": "Connecta",
+    "checking": "Comprovant…",
+    "connected": "Compte d'{{company}} connectat",
+    "keySaved": "Clau desada al clauer, acaba en …{{hint}}",
+    "disconnect": "Desconnecta",
+    "disconnectTitle": "Vols desconnectar el compte?",
+    "disconnectMessage": "S'esborrarà la clau d'{{company}} del clauer. Les portades que ja tens no canvien.",
+    "model": "Model",
+    "modelHint": "Els més grans escriuen millor i costen més per portada."
   }
 }

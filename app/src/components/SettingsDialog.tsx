@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
-import { AudioLines, CalendarDays, Check, ChevronRight, Contrast, Lock, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { AudioLines, CalendarDays, Check, ChevronRight, CloudUpload, Contrast, Lock, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -11,10 +12,11 @@ import { Switch } from "@/components/ui/switch";
 import { THEMES, type Theme } from "@/lib/appearance";
 import * as backend from "@/lib/backend";
 import { locale, systemLanguage, UI_LANGUAGE_NAMES, UI_LANGUAGES, type UiLanguagePref } from "@/lib/i18n";
+import { cloudModel, connectCloud, coverEngine, disconnectCloud, KEYS_URL, loadCloudModels, PROVIDERS, useCloud } from "@/lib/cloud";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
-import type { Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
+import type { CloudProvider, Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MEETING_LANGUAGES } from "./StartOptions";
 
@@ -763,6 +765,9 @@ function IntelligenceTab({
 }) {
   const { t } = useTranslation("settings");
   const models = useModels();
+  const cloud = useCloud();
+  const provider = settings.coverEngine === "local" ? null : settings.coverEngine;
+  const ready = provider ? !!cloud.status[provider] : !!models.status.llm?.installed;
   return (
     <>
       <Group title={t("intelligence.cover")}>
@@ -770,9 +775,34 @@ function IntelligenceTab({
           label={t("intelligence.summarize")}
           hint={t("intelligence.summarizeHint")}
         >
-          <Switch checked={settings.summarize} onCheckedChange={(on) => enableWithModel(models, "llm", on, () => onChange({ summarize: on }))} />
+          <Switch
+            checked={settings.summarize}
+            onCheckedChange={(on) => (provider ? onChange({ summarize: on }) : enableWithModel(models, "llm", on, () => onChange({ summarize: on })))}
+          />
         </Row>
-        <ModelRow id="llm" name={t("intelligence.gemmaModel")} enabled={settings.summarize} onDisable={() => onChange({ summarize: false })} />
+        <Row
+          label={<span id="cover-engine-label">{t("intelligence.engine")}</span>}
+          hint={provider ? t("intelligence.engineCloudHint", { provider: t(`intelligence.companies.${provider}`) }) : t("intelligence.engineLocalHint")}
+        >
+          <Segmented
+            value={settings.coverEngine}
+            options={[
+              { value: "local", label: t("intelligence.engineLocal") },
+              ...PROVIDERS.map((p) => ({ value: p, label: t(`intelligence.providers.${p}`) })),
+            ]}
+            onChange={(coverEngine) => {
+              onChange({ coverEngine });
+              // Back to the local model: fetch it if the cover is on and it isn't there.
+              if (coverEngine === "local" && settings.summarize) enableWithModel(models, "llm", true, () => {});
+            }}
+            labelledBy="cover-engine-label"
+          />
+        </Row>
+        {provider ? (
+          <CloudRow key={provider} provider={provider} settings={settings} onChange={onChange} />
+        ) : (
+          <ModelRow id="llm" name={t("intelligence.gemmaModel")} enabled={settings.summarize} onDisable={() => onChange({ summarize: false })} />
+        )}
         <Row label={<span id="cover-language-label">{t("intelligence.coverLanguage")}</span>} hint={t("intelligence.coverLanguageHint")}>
           <Segmented
             value={settings.coverLanguage}
@@ -786,13 +816,142 @@ function IntelligenceTab({
         </Row>
       </Group>
       <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
-        <Lock className="mt-px size-3 shrink-0" aria-hidden />
-        <span>{t("intelligence.privacy")}</span>
+        {provider ? <CloudUpload className="mt-px size-3 shrink-0" aria-hidden /> : <Lock className="mt-px size-3 shrink-0" aria-hidden />}
+        <span>{provider ? t("intelligence.privacyCloud", { provider: t(`intelligence.companies.${provider}`) }) : t("intelligence.privacy")}</span>
       </p>
-      <PromptsEditor settings={settings} onChange={onChange} meeting={meeting} llmReady={!!models.status.llm?.installed} onLlmLoaded={onLlmLoaded} />
+      <PromptsEditor
+        settings={settings}
+        onChange={onChange}
+        meeting={meeting}
+        ready={ready}
+        blockedHint={provider ? t("prompts.needKey") : t("prompts.needModel")}
+        onLlmLoaded={onLlmLoaded}
+      />
     </>
   );
 }
+
+/**
+ * Claude or OpenAI under "Qui l'escriu": the API key (checked, then saved to the keychain; it
+ * never comes back here) and, once connected, the model.
+ */
+function CloudRow({ provider, settings, onChange }: { provider: CloudProvider; settings: Settings; onChange: Props["onChange"] }) {
+  const { t } = useTranslation("settings");
+  const cloud = useCloud();
+  const hint = cloud.status[provider];
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const company = t(`intelligence.companies.${provider}`);
+
+  useEffect(() => {
+    if (hint) loadCloudModels(provider);
+  }, [hint, provider]);
+
+  const connect = async () => {
+    if (!key.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await connectCloud(provider, key);
+      setKey("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disconnect = async () => {
+    const message = t("cloud.disconnectMessage", { company });
+    const confirmed = backend.isTauri()
+      ? await ask(message, { title: t("cloud.disconnectTitle"), kind: "warning", okLabel: t("cloud.disconnect"), cancelLabel: t("common:cancel") })
+      : window.confirm(message);
+    if (confirmed) await disconnectCloud(provider).catch((e) => toast.error(String(e)));
+  };
+
+  const sub = "bg-black/[0.015] py-2 pl-6 pr-3 dark:bg-white/[0.02]";
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
+
+  if (!hint) {
+    return (
+      <div className={sub}>
+        <label htmlFor="cloud-key" className="text-[12px]">
+          {t("cloud.keyLabel", { company })}
+        </label>
+        <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+          {t("cloud.keyHint")}{" "}
+          <button type="button" onClick={() => openLink(KEYS_URL[provider])} className="text-mm-link hover:underline">
+            {t("cloud.createKey", { site: new URL(KEYS_URL[provider]).host })}
+          </button>
+        </div>
+        <form
+          className="mt-1.5 flex items-center gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            connect();
+          }}
+        >
+          <input
+            id="cloud-key"
+            type="password"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder={provider === "anthropic" ? "sk-ant-…" : "sk-…"}
+            autoComplete="off"
+            spellCheck={false}
+            aria-invalid={!!error}
+            aria-describedby={error ? "cloud-key-error" : undefined}
+            className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 font-mono text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive"
+          />
+          <button type="submit" className={button} disabled={busy || !key.trim()}>
+            {busy ? t("cloud.checking") : t("cloud.connect")}
+          </button>
+        </form>
+        {error && (
+          <p id="cloud-key-error" role="alert" className="mt-1 text-[11px] text-destructive">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const list = cloud.models[provider];
+  const model = cloudModel(provider, settings);
+  return (
+    <>
+      <div className={cn(sub, "flex items-center gap-4")}>
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px]">{t("cloud.connected", { company })}</div>
+          <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">{t("cloud.keySaved", { hint })}</div>
+        </div>
+        <button type="button" className={cn(button, "text-destructive")} onClick={disconnect}>
+          {t("cloud.disconnect")}
+        </button>
+      </div>
+      <Row label={t("cloud.model")} hint={cloud.errors[provider] ?? t("cloud.modelHint")}>
+        <select
+          value={model}
+          onChange={(e) => onChange({ cloudModels: { ...settings.cloudModels, [provider]: e.target.value } })}
+          aria-label={t("cloud.model")}
+          disabled={!list}
+          className="h-6 max-w-56 truncate rounded-md border border-input bg-background px-1.5 text-[13px] disabled:opacity-60"
+        >
+          {!list && <option value={model}>{model}</option>}
+          {list && !list.some((m) => m.id === model) && <option value={model}>{model}</option>}
+          {list?.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+      </Row>
+    </>
+  );
+}
+
+const openLink = (url: string) => (backend.isTauri() ? openUrl(url) : Promise.resolve(window.open(url, "_blank"))).catch(() => {});
 
 /** Turning a feature on fetches its model if it isn't there yet. */
 function enableWithModel(models: ReturnType<typeof useModels>, id: ModelId, on: boolean, apply: () => void) {
@@ -877,13 +1036,17 @@ function PromptsEditor({
   settings,
   onChange,
   meeting,
-  llmReady,
+  ready,
+  blockedHint,
   onLlmLoaded,
 }: {
   settings: Settings;
   onChange: Props["onChange"];
   meeting: Meeting | null;
-  llmReady: boolean;
+  /** The chosen engine can answer: local model downloaded, or account connected. */
+  ready: boolean;
+  /** What to do first when it can't. */
+  blockedHint: string;
   onLlmLoaded: () => void;
 }) {
   const { t } = useTranslation("settings");
@@ -907,7 +1070,7 @@ function PromptsEditor({
                 <span className="flex-1">{p.label}</span>
                 {edited && <span className="rounded bg-mm-fill-subtle px-1.5 py-px text-[11px] font-medium text-foreground">{t("prompts.edited")}</span>}
               </button>
-              {expanded && <PromptEditor id={p.id} settings={settings} onChange={onChange} meeting={meeting} llmReady={llmReady} onLlmLoaded={onLlmLoaded} />}
+              {expanded && <PromptEditor id={p.id} settings={settings} onChange={onChange} meeting={meeting} ready={ready} blockedHint={blockedHint} onLlmLoaded={onLlmLoaded} />}
             </div>
           );
         })}
@@ -924,14 +1087,16 @@ function PromptEditor({
   settings,
   onChange,
   meeting,
-  llmReady,
+  ready,
+  blockedHint,
   onLlmLoaded,
 }: {
   id: PromptId;
   settings: Settings;
   onChange: Props["onChange"];
   meeting: Meeting | null;
-  llmReady: boolean;
+  ready: boolean;
+  blockedHint: string;
   onLlmLoaded: () => void;
 }) {
   const { t } = useTranslation("settings");
@@ -957,7 +1122,8 @@ function PromptEditor({
     const unlisten = await backend.onLlmProgress((e) => e.job === job && setProgress(e));
     const started = Date.now();
     try {
-      onLlmLoaded();
+      const engine = coverEngine(settings);
+      if (!engine) onLlmLoaded();
       // The general instructions are tried with the title (the quickest part).
       const [answer] = await backend.runLlm({
         job,
@@ -965,6 +1131,7 @@ function PromptEditor({
         document: coverDocument(meeting),
         tasks: llmTasks(settings.prompts, [id === "system" ? "title" : id]),
         keepLoaded: true,
+        engine,
       });
       setResult({ answer, readSeconds: null, total: (Date.now() - started) / 1000 });
     } catch (e) {
@@ -989,7 +1156,7 @@ function PromptEditor({
       : progress.step === "reading"
         ? t("prompts.reading")
         : t("prompts.writing");
-  const blocked = !llmReady ? t("prompts.needModel") : !meeting ? t("prompts.needMeeting") : null;
+  const blocked = !ready ? blockedHint : !meeting ? t("prompts.needMeeting") : null;
 
   return (
     <div className="px-3 pb-3">

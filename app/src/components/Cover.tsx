@@ -23,6 +23,8 @@ type Props = {
   run: PostProcess | null;
   /** Why a cover can't be generated now (model missing, recording…); null = it can. */
   blocked: string | null;
+  /** The cloud model that would write it now (Settings › Intel·ligència); null = the local one. */
+  writer?: string | null;
   onGenerate: () => void;
   onJump: (t: number) => void;
   onShowTranscript: () => void;
@@ -123,7 +125,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-text-secondary">
         <span className="flex items-center gap-1.5">
           <LogoMark size={13} />
-          {t("generatedHere")}
+          {cover.writtenBy ? t("generatedBy", { model: cover.writtenBy }) : t("generatedHere")}
         </span>
         <span className="flex items-center gap-1 print:hidden">
           <button
@@ -563,7 +565,7 @@ function Processing({ meeting, run, onShowTranscript }: Props & { run: PostProce
 
 // --- Empty ---------------------------------------------------------------------------------
 
-function Empty({ meeting, blocked, onGenerate, onShowTranscript }: Props) {
+function Empty({ meeting, blocked, writer, onGenerate, onShowTranscript }: Props) {
   const { t } = useTranslation("cover");
   const hasText = meeting.utterances.length > 0;
   return (
@@ -571,7 +573,7 @@ function Empty({ meeting, blocked, onGenerate, onShowTranscript }: Props) {
       <Sparkles className="mx-auto size-6 text-text-secondary" strokeWidth={1.5} aria-hidden />
       <h2 className="mt-2 text-[15px] font-semibold">{t("emptyTitle")}</h2>
       <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
-        {hasText ? t("emptyHelp") : t("emptyNoText")}
+        {hasText ? (writer ? t("emptyHelpCloud", { model: writer }) : t("emptyHelp")) : t("emptyNoText")}
       </p>
       {blocked && hasText && <p className="mx-auto mt-2 max-w-sm text-[12px] text-text-secondary">{blocked}</p>}
       <div className="mt-4 flex justify-center gap-2">

@@ -7,6 +7,7 @@ pub mod diarize;
 pub mod engine;
 pub mod gate;
 pub mod i18n;
+pub mod cloud;
 pub mod llm;
 pub mod micwatch;
 pub mod models;
@@ -653,7 +654,13 @@ async fn run_llm(
     document: String,
     tasks: Vec<LlmTask>,
     keep_loaded: bool,
+    engine: Option<cloud::Engine>,
 ) -> Result<Vec<LlmResult>, String> {
+    if let Some(engine) = engine {
+        return tauri::async_runtime::spawn_blocking(move || run_cloud(&app, &job, &engine, &system, &document, &tasks))
+            .await
+            .map_err(|e| e.to_string())?;
+    }
     tauri::async_runtime::spawn_blocking(move || {
         // A cover waits for any recording and for the other meetings' work; trying out prompts doesn't.
         let _heavy = (!keep_loaded).then(|| {
@@ -714,6 +721,79 @@ async fn run_llm(
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// The same with Claude or OpenAI: nothing to load and light on the Mac, so it doesn't wait for
+/// recordings (gate.rs). Only text leaves the computer.
+fn run_cloud(
+    app: &AppHandle,
+    job: &str,
+    engine: &cloud::Engine,
+    system: &str,
+    document: &str,
+    tasks: &[LlmTask],
+) -> Result<Vec<LlmResult>, String> {
+    let progress = |step: &str, done: usize| {
+        let _ = app.emit(
+            "llm-progress",
+            LlmProgress { job: job.into(), step: step.into(), done, total: tasks.len(), read_seconds: None },
+        );
+    };
+    let key = cloud::key(engine.provider).map_err(|e| format!("{e:#}"))?;
+    progress("reading", 0);
+    let mut results = Vec::with_capacity(tasks.len());
+    for (i, task) in tasks.iter().enumerate() {
+        progress(&task.id, i);
+        results.push(match cloud::ask(engine, &key, system, document, &task.prompt, task.schema.as_deref()) {
+            Ok(a) => LlmResult { id: task.id.clone(), text: Some(a.text), error: None, seconds: a.seconds, tokens: a.generated_tokens },
+            Err(e) => LlmResult { id: task.id.clone(), text: None, error: Some(format!("{e:#}")), seconds: 0.0, tokens: 0 },
+        });
+    }
+    progress("done", tasks.len());
+    Ok(results)
+}
+
+#[derive(Serialize)]
+struct CloudStatus {
+    /// The saved key's last characters, per provider; None = not connected.
+    anthropic: Option<String>,
+    openai: Option<String>,
+}
+
+#[tauri::command]
+async fn cloud_status() -> Result<CloudStatus, String> {
+    tauri::async_runtime::spawn_blocking(|| CloudStatus {
+        anthropic: cloud::key_hint(cloud::Provider::Anthropic),
+        openai: cloud::key_hint(cloud::Provider::OpenAI),
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+/// Checks the key and saves it to the keychain; returns the models it can use.
+#[tauri::command]
+async fn cloud_connect(provider: cloud::Provider, key: String) -> Result<Vec<cloud::CloudModel>, String> {
+    tauri::async_runtime::spawn_blocking(move || cloud::connect(provider, &key).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn cloud_disconnect(provider: cloud::Provider) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || cloud::disconnect(provider).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn cloud_models(provider: cloud::Provider) -> Result<Vec<cloud::CloudModel>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let key = cloud::key(provider)?;
+        cloud::list_models(provider, &key)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| format!("{e:#}"))
 }
 
 /// Frees the language model (closing the prompt editor).
@@ -1051,6 +1131,10 @@ pub fn run() {
             punctuate,
             run_llm,
             release_llm,
+            cloud_status,
+            cloud_connect,
+            cloud_disconnect,
+            cloud_models,
             shell::current_toast,
             shell::dismiss_toast,
             shell::toast_start,

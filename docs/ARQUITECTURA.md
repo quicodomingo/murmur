@@ -12,7 +12,7 @@ Murmur transcriu en directe amb models petits i ràpids. Quan s'atura la gravaci
 | Transcripció | Conformer-Transducer català i castellà (Projecte AINA) amb sherpa-onnx; en anglès, Parakeet TDT-CTC 110M | Whisper large-v3-turbo (whisper.cpp), només en reunions d'una sola llengua |
 | Parlants | Embeddings NeMo TitaNet-small i agrupació en línia | Segmentació pyannote 3.0 + embeddings 3D-Speaker |
 | Puntuació | | Model de Softcatalà (català, sense Whisper) |
-| Portada i resum | | Gemma 4 E4B local, opcional |
+| Portada i resum | | Gemma 4 E4B local, opcional; o Claude / OpenAI amb la clau de l'usuari |
 
 Fases del projecte:
 
@@ -148,6 +148,7 @@ Editor Tiptap 3 (títols, negreta, cursiva, subratllat, ratllat, llistes i tasqu
 ### Portada (`lib/cover.ts`, `Cover.tsx`)
 
 - El model llegeix la transcripció i, al final, les notes amb el minut en què es van escriure (també compten com a font de tasques i decisions). Cada part es demana amb un prompt propi i una resposta JSON limitada per un esquema, així que els prompts es poden editar a la configuració sense trencar res.
+- **Qui l'escriu** (`settings.coverEngine`): Gemma al Mac (per defecte), o Claude o OpenAI amb la clau d'API de l'usuari (`cloud.rs`, `lib/cloud.ts`). La clau es comprova llistant els models del compte, es desa al clauer de macOS (servei `com.quicodomingo.murmur.cloud`) i no torna mai a la interfície, que només en sap les quatre últimes lletres. `run_llm` rep l'`engine` i fa una crida per part amb els mateixos prompts; els esquemes es tornen estrictes (objectes tancats, tots els camps obligatoris, sense mides de llista). El document va primer i igual a cada crida, perquè la memòria cau del proveïdor el llegeixi un sol cop. Al núvol no s'espera que acabi la gravació (`gate.rs`), perquè no carrega el Mac. La portada desa el nom del model (`writtenBy`) i ho diu sota l'entradeta. Només surt text: transcripció i notes, mai àudio.
 - **Idioma** (`settings.coverLanguage`): el de la interfície (per defecte) o el de la reunió. «Català + castellà» s'escriu en català, i les reunions sense idioma desat fan servir el de la interfície (`coverLanguageFor`).
 - **To:** es desa com un identificador fix (`constructive`, `tense`…) i es tradueix en mostrar-lo. Les portades antigues en català es continuen llegint.
 - **Tasques:** només accions que algú demana o es compromet a fer. Es poden marcar, editar, assignar, eliminar i afegir; en tornar a generar, es conserven les afegides a mà i les marcades.

@@ -29,6 +29,7 @@ import { clock, duration, toMarkdown } from "@/lib/format";
 import { exportMeeting, type ExportFormat } from "@/lib/export";
 import { defaultTitle } from "@/lib/cover";
 import { locale, t as translate } from "@/lib/i18n";
+import { cloudModelName, coverEngine, loadCloudModels, useCloud } from "@/lib/cloud";
 import { modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
@@ -140,6 +141,13 @@ export default function App() {
   // Cover or transcript in the main area (the cover only exists after a recording).
   const [view, setView] = useStoredState("transcriptor.view.v1", { cover: true });
   const models = useModels();
+  const cloud = useCloud();
+  // The models' names, for the cover ("Generat amb Claude Opus 5.5").
+  const cloudProvider = settings.coverEngine === "local" ? null : settings.coverEngine;
+  const cloudConnected = !!cloudProvider && !!cloud.status[cloudProvider];
+  useEffect(() => {
+    if (cloudProvider && cloudConnected) loadCloudModels(cloudProvider);
+  }, [cloudProvider, cloudConnected]);
   // Until the status is read, assume it's there (no flash of "Falta el model").
   const transcriptionReady = !backend.isTauri() || !models.loaded || !!models.status.transcription?.installed;
   useEffect(() => {
@@ -453,8 +461,9 @@ export default function App() {
   const coverAvailable =
     !!meeting && meeting.status !== "recording" && (!!meeting.cover || !!run?.steps.includes("cover") || settings.summarize);
   const showCover = coverAvailable && view.cover;
-  const coverBlocked = !models.status.llm?.installed
-    ? t("coverNeedsModel")
+  const engine = coverEngine(settings);
+  const coverBlocked = (engine ? !cloud.status[engine.provider] : !models.status.llm?.installed)
+    ? t(engine ? "coverNeedsKey" : "coverNeedsModel")
     : recording
       ? t("coverAfterRecording")
       : meeting?.status === "processing"
@@ -553,6 +562,7 @@ export default function App() {
         meeting={meeting}
         run={run}
         blocked={coverBlocked}
+        writer={engine ? cloudModelName(engine) : null}
         onGenerate={() => post.generateCover(meeting.id)}
         onJump={jumpTo}
         onShowTranscript={() => setView({ cover: false })}

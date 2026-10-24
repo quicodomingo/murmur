@@ -63,6 +63,8 @@ export type Cover = {
   basis?: string;
   /** The interface language it was written in (lib/cover.ts coverLanguage); none = Catalan. */
   lang?: UiLanguage;
+  /** The cloud model that wrote it ("Claude Sonnet 5.5"); none = the local model, on this Mac. */
+  writtenBy?: string;
   excerpt?: string;
   /** `label`: a tone id (lib/cover.ts TONES); older covers saved the Catalan name (toneId reads both). */
   tone?: { label: string; reason: string };
@@ -121,6 +123,11 @@ export type ModelId = "transcription" | "punctuation" | "llm" | "english" | "whi
 export type ModelStatus = { id: ModelId; installed: boolean; bytes: number; downloaded: number; downloadable: boolean; required: boolean };
 
 /** What the local language model is doing (lib.rs run_llm). */
+/** Who can write the cover instead of the local model, with the user's own API key (cloud.rs). */
+export type CloudProvider = "anthropic" | "openai";
+export type CloudEngine = { provider: CloudProvider; model: string };
+export type CloudModel = { id: string; name: string };
+
 export type LlmProgress = { job: string; step: string; done: number; total: number; readSeconds: number | null };
 export type LlmTask = { id: string; prompt: string; maxTokens: number; schema: string | null };
 export type LlmResult = { id: string; text: string | null; error: string | null; seconds: number; tokens: number };

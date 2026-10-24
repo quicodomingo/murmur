@@ -9,6 +9,7 @@
   "deleteMessage": "Se eliminarán la transcripción y las notas de «{{title}}». No se puede deshacer.",
   "deleteTitle": "¿Quieres eliminar la reunión?",
   "coverNeedsModel": "Activa la portada en Ajustes › Inteligencia y descarga el modelo.",
+  "coverNeedsKey": "Conecta la cuenta en Ajustes › Inteligencia para generar la portada.",
   "coverAfterRecording": "Se podrá generar cuando termine la grabación.",
   "coverAfterProcessing": "Espera a que termine el procesamiento.",
   "exportAudioTitle": "Exportar el audio",

@@ -9,6 +9,7 @@
   "deleteMessage": "S'eliminaran la transcripció i les notes de «{{title}}». No es pot desfer.",
   "deleteTitle": "Vols eliminar la reunió?",
   "coverNeedsModel": "Activa la portada a Configuració › Intel·ligència i descarrega el model.",
+  "coverNeedsKey": "Connecta el compte a Configuració › Intel·ligència per generar la portada.",
   "coverAfterRecording": "Es podrà generar quan acabi la gravació.",
   "coverAfterProcessing": "Espera que acabi el processament.",
   "exportAudioTitle": "Exporta l'àudio",

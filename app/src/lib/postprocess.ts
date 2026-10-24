@@ -16,6 +16,7 @@ import {
   renamedSpeakers,
   renameInCover,
 } from "./cover";
+import { cloudModelName, coverEngine, coverReady } from "./cloud";
 import { locale, t } from "./i18n";
 import { modelInstalled } from "./models";
 import type { Settings } from "./settings";
@@ -43,7 +44,7 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
     const stages: PostStage[] = [];
     const catalan = language === "ca" || language === "ca-es";
     if (s.punctuate && catalan && !rustStages.includes("text") && modelInstalled("punctuation")) stages.push("punctuation");
-    if (s.summarize && modelInstalled("llm")) stages.push("cover");
+    if (s.summarize && coverReady(s)) stages.push("cover");
     return stages;
   };
 
@@ -96,7 +97,8 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
           const lng = coverLanguageFor(meeting, config.current.coverLanguage);
           const document = coverDocument(meeting, lng);
           const tasks = llmTasks(config.current.prompts, undefined, lng);
-          dispatch({ type: "postStage", id, stage, steps, estimateSeconds: coverEstimate(document, tasks.length) });
+          const engine = coverEngine(config.current);
+          dispatch({ type: "postStage", id, stage, steps, estimateSeconds: coverEstimate(document, tasks.length, false, !!engine) });
           try {
             const results = await backend.runLlm({
               job: id,
@@ -104,8 +106,9 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
               document,
               tasks,
               keepLoaded: false,
+              engine,
             });
-            const built = buildCover(results, meeting, lng);
+            const built = buildCover(results, meeting, lng, engine ? cloudModelName(engine) : undefined);
             const title = built.title;
             // Speakers renamed while it was being written: the cover gets their new names. Other
             // changes made meanwhile (text, notes, reassigned lines) show it's out of date.

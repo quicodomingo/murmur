@@ -9,6 +9,7 @@
   "deleteMessage": "The transcript and notes of “{{title}}” will be deleted. This can't be undone.",
   "deleteTitle": "Delete this meeting?",
   "coverNeedsModel": "Turn on the cover in Settings › Intelligence and download the model.",
+  "coverNeedsKey": "Connect the account in Settings › Intelligence to generate the cover.",
   "coverAfterRecording": "It can be generated once the recording ends.",
   "coverAfterProcessing": "Wait for processing to finish.",
   "exportAudioTitle": "Export Audio",

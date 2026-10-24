@@ -54,6 +54,7 @@ objc2-foundation = { version = "0.3", features = ["NSDate", "NSArray", "NSString
 objc2-event-kit = { version = "0.3", features = ["EKEventStore", "EKCalendar", "EKCalendarItem", "EKEvent", "EKParticipant", "EKSource", "EKTypes", "EKObject", "block2", "objc2-app-kit"] }
 core-graphics = "0.24"
 core-foundation = "0.10"
+security-framework = "3"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["NSColor", "NSColorSpace", "std"] }
 
 

@@ -102,7 +102,8 @@ Entre reunions (bloc 5):
 - [ ] Primera publicació (0.2.0) i provar una actualització real amb la 0.2.1.
 - [x] Portada: tasques editables, notes com a font, avís de portada desactualitzada i «PDF o envia…».
 - [ ] Google Calendar directe (OAuth) per a Windows, si cal.
-- [ ] Intel·ligència: model local o clau pròpia d'OpenAI / Anthropic, desada al clauer del sistema. Només s'envia text, mai àudio.
+- [x] Intel·ligència: la portada amb el model local o amb Claude / OpenAI i la clau pròpia, desada al clauer del sistema, triant el model. Només s'envia text (transcripció i notes), mai àudio.
+- [ ] Provar la portada amb Claude i OpenAI amb claus reals i comparar-la amb Gemma (qualitat, temps i cost per reunió).
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
 - [x] Triar l'idioma i si sou més gent a la sala just abans de gravar (pantalla inicial, barra lateral i avisos), i canviar «Som més a la sala» durant la gravació.
 - [ ] Canviar l'idioma durant la gravació (canvi de model en directe, l'àudio d'aquells segons espera a la cua).
