@@ -280,14 +280,16 @@ function Models({ step, onBack, onClose, onChange }: { step: number; onBack: () 
   const [started, setStarted] = useState(false);
   const status = (id: ModelId) => models.status[id];
   const installed = (ids: ModelId[]) => ids.every((id) => status(id)?.installed);
-  const wanted: ModelId[] = ["transcription", ...(tools ? TOOLS : [])];
+  // Punctuation isn't published yet: leave out what can't be downloaded.
+  const toolIds = TOOLS.filter((id) => status(id)?.downloadable !== false);
+  const wanted: ModelId[] = ["transcription", ...(tools ? toolIds : [])];
   const busy = wanted.some((id) => models.downloading[id] || models.queued.includes(id));
   const ready = started && installed(wanted);
   const failed = wanted.map((id) => models.errors[id]).find(Boolean);
   const phase = ready ? "ready" : started && (busy || !failed) ? "downloading" : "choose";
 
   const start = () => {
-    if (tools) onChange({ punctuate: true, summarize: true });
+    if (tools) onChange({ punctuate: toolIds.includes("punctuation"), summarize: true });
     setStarted(true);
     downloadQueue(wanted);
   };
@@ -335,10 +337,10 @@ function Models({ step, onBack, onClose, onChange }: { step: number; onBack: () 
             icon={<Sparkles className="size-4" />}
             name={t("models.toolsName")}
             badge={t("models.optional")}
-            size={size(TOOLS)}
+            size={size(toolIds)}
             text={t("models.toolsText")}
-            state={tools ? rowState(TOOLS) : "idle"}
-            progress={progress(TOOLS)}
+            state={tools ? rowState(toolIds) : "idle"}
+            progress={progress(toolIds)}
             error={tools ? (models.errors.punctuation ?? models.errors.llm) : undefined}
             last
             control={<Switch checked={tools} disabled={started && phase !== "choose"} onCheckedChange={setTools} aria-label={t("models.toolsName")} />}
