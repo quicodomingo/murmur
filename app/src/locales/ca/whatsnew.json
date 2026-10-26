@@ -6,6 +6,22 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.6.0": [
+      {
+        "title": "Cloudflare es configura des de Murmur",
+        "text": "Obre Cloudflare amb el token ja preparat, enganxa'l i Murmur hi publica el teu espai per compartir. No cal cap terminal.",
+        "link": "share",
+        "linkLabel": "Configura-ho"
+      },
+      {
+        "title": "Comparteix també les captures i l'àudio",
+        "text": "Tria què hi surt. Qui obre l'enllaç pot escoltar la gravació, saltar a cada minut i baixar-ho tot en Markdown. Les reunions compartides porten una icona d'enllaç."
+      },
+      {
+        "title": "Torna a transcriure en un altre idioma",
+        "text": "Si vas gravar amb l'idioma equivocat, al menú del títol de la reunió Whisper la torna a escoltar en català, castellà o anglès."
+      }
+    ],
     "0.5.0": [
       {
         "title": "Comparteix una reunió amb un enllaç",

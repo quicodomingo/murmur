@@ -6,6 +6,22 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.6.0": [
+      {
+        "title": "Set up Cloudflare from Murmur",
+        "text": "Open Cloudflare with the token ready, paste it, and Murmur publishes your sharing space there. No terminal needed.",
+        "link": "share",
+        "linkLabel": "Set it up"
+      },
+      {
+        "title": "Share screenshots and audio too",
+        "text": "Choose what's included. Whoever opens the link can listen to the recording, jump to any minute and download it all as Markdown. Shared meetings show a link icon."
+      },
+      {
+        "title": "Transcribe again in another language",
+        "text": "If you recorded in the wrong language, Whisper listens to it again in Catalan, Spanish or English, from the meeting's title menu."
+      }
+    ],
     "0.5.0": [
       {
         "title": "Share a meeting with a link",

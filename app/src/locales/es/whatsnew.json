@@ -6,6 +6,22 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.6.0": [
+      {
+        "title": "Cloudflare se configura desde Murmur",
+        "text": "Abre Cloudflare con el token ya preparado, pégalo y Murmur publica allí tu espacio para compartir. No hace falta ningún terminal.",
+        "link": "share",
+        "linkLabel": "Configurarlo"
+      },
+      {
+        "title": "Comparte también las capturas y el audio",
+        "text": "Elige qué aparece. Quien abre el enlace puede escuchar la grabación, saltar a cada minuto y descargarlo todo en Markdown. Las reuniones compartidas llevan un icono de enlace."
+      },
+      {
+        "title": "Vuelve a transcribir en otro idioma",
+        "text": "Si grabaste con el idioma equivocado, en el menú del título de la reunión Whisper vuelve a escucharla en catalán, castellano o inglés."
+      }
+    ],
     "0.5.0": [
       {
         "title": "Comparte una reunión con un enlace",
