@@ -6,6 +6,30 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.4.0": [
+      {
+        "title": "Etiquetas para ordenar las reuniones",
+        "text": "Pon tantas como quieras bajo el título de la reunión. Puedes filtrarlas en la barra lateral y buscarlas. Con el clic derecho las renombras, las juntas o las borras."
+      },
+      {
+        "title": "Elige antes de empezar",
+        "text": "Al empezar a grabar puedes elegir el idioma y decir si hay más gente en la sala. Si alguien entra a media reunión, puedes cambiarlo sin detener la grabación."
+      },
+      {
+        "title": "La portada, también con Claude u OpenAI",
+        "text": "Si usas tu cuenta y tu clave, la portada se escribe en segundos y puedes elegir el modelo. Solo se envía el texto, nunca el audio. Por defecto todo se sigue haciendo en este Mac.",
+        "link": "intelligence",
+        "linkLabel": "Elige quién la escribe"
+      },
+      {
+        "title": "Una barra de grabación más cómoda",
+        "text": "La captura de pantalla es el botón principal, y para detener la grabación se te pide confirmación. Las capturas de una reunión también se pueden exportar."
+      },
+      {
+        "title": "Un solo trabajo a la vez",
+        "text": "Mientras grabas otra reunión o tienes una llamada, Murmur espera para terminar la reunión anterior. Así el ordenador no se ralentiza. Además, cada participante de una llamada tiene su propio color."
+      }
+    ],
     "0.3.0": [
       {
         "title": "Reuniones en catalán, castellano o inglés",

@@ -6,6 +6,30 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.4.0": [
+      {
+        "title": "Tags to organise your meetings",
+        "text": "Add as many as you like under a meeting's title. You can filter by them in the sidebar and search for them. Right-click to rename, merge or delete them."
+      },
+      {
+        "title": "Choose before you start",
+        "text": "When you start recording you can pick the language and say whether more people are in the room. If someone joins halfway through, you can change it without stopping the recording."
+      },
+      {
+        "title": "Covers by Claude or OpenAI too",
+        "text": "With your own account and key, the cover is written in seconds and you can pick the model. Only the text is sent, never the audio. By default everything still happens on this Mac.",
+        "link": "intelligence",
+        "linkLabel": "Choose who writes it"
+      },
+      {
+        "title": "A handier recording bar",
+        "text": "The screenshot is now the main button, and stopping a recording asks you to confirm. You can also export a meeting's screenshots."
+      },
+      {
+        "title": "One job at a time",
+        "text": "While you're recording another meeting or on a call, Murmur waits before finishing the previous one, so your Mac doesn't slow down. Each speaker in a call also gets their own colour."
+      }
+    ],
     "0.3.0": [
       {
         "title": "Meetings in Catalan, Spanish or English",

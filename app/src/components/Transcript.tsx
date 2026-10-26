@@ -182,7 +182,7 @@ export function Transcript(props: Props) {
               const speaker = channel === "mic" ? 0 : SYSTEM_SPEAKER_BASE;
               return (
                 <div key={channel} className="mt-3 px-3">
-                  <Flag speaker={speaker} you={channel === "mic" && isYou(meeting, 0)} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
+                  <Flag speaker={speaker} you={channel === "mic" && isYou(meeting, 0)} order={speakers.filter((s) => !s.you).map((s) => s.id)} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
                   <p className="mt-1 text-[16px] leading-[1.65] text-muted-foreground" aria-live="off">
                     {text}
                     <span className="mm-caret ml-0.5 inline-block h-[18px] w-[2px] translate-y-[3px] bg-mm-caret" />

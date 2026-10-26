@@ -20,16 +20,23 @@ const HUES = 4;
 /** In a call, the microphone's first voice is the user ("Tu"), always in the theme's `you` colour. */
 export const isYou = (m: Pick<Meeting, "sources">, speaker: number) => !!(m.sources?.mic && m.sources.system) && speaker === 0;
 
-/** Solid colour (charts), tint (tag background) and text colour of a speaker. */
-export function speakerTone(speaker: number, you = false) {
+/**
+ * A meeting's speakers in colour order, without "Tu": the room's voices and then the call's, so
+ * the two channels' numbering (0, 1… and 100, 101…) doesn't give two people the same colour.
+ */
+export const toneOrder = (m: Pick<Meeting, "sources">, ids: number[]) => ids.filter((id) => !isYou(m, id));
+
+/** Solid colour (charts), tint (tag background) and text colour of a speaker, by its place in `order`. */
+export function speakerTone(speaker: number, you = false, order?: number[]) {
   if (you) return { solid: "var(--mm-you)", tint: "var(--mm-you)", text: "var(--mm-on-you)" };
-  const n = ((speaker >= SYSTEM_SPEAKER_BASE ? speaker - SYSTEM_SPEAKER_BASE : speaker) % HUES) + 1;
+  const slot = order?.indexOf(speaker) ?? -1;
+  const n = ((slot >= 0 ? slot : speaker >= SYSTEM_SPEAKER_BASE ? speaker - SYSTEM_SPEAKER_BASE : speaker) % HUES) + 1;
   return { solid: `var(--mm-speaker-${n})`, tint: `var(--mm-speaker-${n}-tint)`, text: `var(--mm-speaker-${n}-text)` };
 }
 
 /** Small tinted name tag, like the collaborator flags in a shared document. */
-export function Flag({ speaker, name, you, className }: { speaker: number; name: string; you?: boolean; className?: string }) {
-  const tone = speakerTone(speaker, you);
+export function Flag({ speaker, name, you, order, className }: { speaker: number; name: string; you?: boolean; order?: number[]; className?: string }) {
+  const tone = speakerTone(speaker, you, order);
   return (
     <span
       className={cn("inline-flex h-5 items-center rounded-[5px] px-1.5 text-[12px] font-semibold", className)}
@@ -56,6 +63,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
   // Meetings saved before calendars had no guests (null from the database).
   const { t } = useTranslation("speakers");
   const guests = invited ?? [];
+  const order = speakers.filter((s) => !s.you).map((s) => s.id);
   const name = speakers.find((s) => s.id === speaker)?.name ?? t("defaultName", { n: speaker + 1 });
   // The numbering version is captured when renaming starts: the final pass may renumber meanwhile.
   const [renaming, setRenaming] = useState<{ id: number; version: number } | null>(null);
@@ -66,6 +74,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
       <RenameInput
         speaker={renaming.id}
         you={speakers.find((s) => s.id === renaming.id)?.you}
+        order={order}
         initial={current}
         suggestions={guests}
         onDone={(value) => {
@@ -84,13 +93,13 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" className="rounded-[4px] focus-visible:outline-2 focus-visible:outline-ring" aria-label={t("changeSpeaker", { name })}>
-          <Flag speaker={speaker} name={name} you={speakers.find((s) => s.id === speaker)?.you} />
+          <Flag speaker={speaker} name={name} you={speakers.find((s) => s.id === speaker)?.you} order={order} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-56">
         {speakers.map((s) => (
           <DropdownMenuItem key={s.id} onSelect={() => s.id !== speaker && onReassign(s.id, version)}>
-            <span className="size-2 rounded-full" style={{ background: speakerTone(s.id, s.you).solid }} />
+            <span className="size-2 rounded-full" style={{ background: speakerTone(s.id, s.you, order).solid }} />
             <span className="flex-1">{s.name}</span>
             {s.id === speaker && <Check className="size-3.5" />}
           </DropdownMenuItem>
@@ -129,12 +138,14 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
 function RenameInput({
   speaker,
   you,
+  order,
   initial,
   suggestions,
   onDone,
 }: {
   speaker: number;
   you?: boolean;
+  order: number[];
   initial: string;
   suggestions: string[];
   onDone: (v: string) => void;
@@ -162,7 +173,7 @@ function RenameInput({
           if (e.key === "Escape") onDone("");
         }}
         className="h-5 w-36 rounded-[5px] px-1.5 text-[12px] font-semibold outline-none ring-2 ring-ring"
-        style={{ background: speakerTone(speaker, you).tint, color: speakerTone(speaker, you).text }}
+        style={{ background: speakerTone(speaker, you, order).tint, color: speakerTone(speaker, you, order).text }}
       />
       {suggestions.length > 0 && (
         <datalist id={listId}>

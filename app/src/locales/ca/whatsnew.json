@@ -6,6 +6,30 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.4.0": [
+      {
+        "title": "Etiquetes per ordenar les reunions",
+        "text": "Posa'n tantes com vulguis sota el títol de la reunió. Pots filtrar-les a la barra lateral i cercar-les. Amb el clic dret les reanomenes, les ajuntes o les esborres."
+      },
+      {
+        "title": "Tria abans de començar",
+        "text": "En començar a gravar pots triar l'idioma i dir si hi ha més gent a la sala. Si algú entra a mitja reunió, ho pots canviar sense aturar la gravació."
+      },
+      {
+        "title": "La portada, també amb Claude o OpenAI",
+        "text": "Si vas amb el teu compte i la teva clau, la portada s'escriu en segons i pots triar el model. Només s'envia el text, mai l'àudio. Per defecte tot continua fent-se en aquest Mac.",
+        "link": "intelligence",
+        "linkLabel": "Tria qui l'escriu"
+      },
+      {
+        "title": "Una barra de gravació més còmoda",
+        "text": "La captura de pantalla és el botó principal, i per aturar la gravació se't demana confirmació. Les captures d'una reunió també es poden exportar."
+      },
+      {
+        "title": "Una sola feina alhora",
+        "text": "Mentre graves una altra reunió o tens una trucada, Murmur espera per acabar la reunió anterior. Així l'ordinador no s'alenteix. A més, cada parlant d'una trucada té el seu propi color."
+      }
+    ],
     "0.3.0": [
       {
         "title": "Reunions en català, castellà o anglès",

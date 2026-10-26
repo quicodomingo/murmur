@@ -76,7 +76,7 @@ Per organitzar les reunions (per client, projecte…). Totes grises, sense color
 - Notes: cada nota porta la seva marca de temps a l'esquerra en `timestamp`.
 
 ### Parlants
-- Colors: `speaker1` violeta, `speaker2` corall (ambre a Formigó), `speaker3` turquesa, `speaker4` magenta. **"Tu" sempre és `you`** (l'accent del tema).
+- Colors: `speaker1` violeta, `speaker2` corall (ambre a Formigó), `speaker3` turquesa, `speaker4` magenta. **"Tu" sempre és `you`** (l'accent del tema). Els colors es reparteixen per ordre: primer la gent de la sala i després la de la trucada. Així no se'n repeteix cap fins al cinquè parlant.
 - Al gràfic "Qui ha parlat", cada segment és el color sòlid; a les etiquetes i tasques, el tint amb el text fosc corresponent.
 - Més de quatre parlants: repeteix la paleta en ordre.
 

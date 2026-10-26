@@ -6,7 +6,7 @@ import { AlignLeft, Check, Plus, Printer, RefreshCw, Sparkles, X } from "lucide-
 import { LogoMark } from "@/components/Logo";
 
 import { ScreenThumbs } from "@/components/Screens";
-import { Flag, isYou, speakerTone } from "@/components/SpeakerFlag";
+import { Flag, isYou, speakerTone, toneOrder } from "@/components/SpeakerFlag";
 import { TitleInput } from "@/components/Transcript";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -111,6 +111,7 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
   // Covers written before a speaker was named still say "Parlant 1": show the name.
   const cover = renameInCover(meeting.cover!, namedSpeakers(meeting));
   const talk = talkTime(meeting);
+  const order = toneOrder(meeting, speakerIds(meeting));
   // Owners are names the model read in the transcript: match them to speakers for the colour.
   const ownerSpeaker = (owner: string) => {
     const lower = (s: string) => s.toLocaleLowerCase(locale());
@@ -174,13 +175,13 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
                 .join(", ")}
             >
               {talk.map((s) => (
-                <span key={s.speaker} className="h-full" style={{ width: `${s.share * 100}%`, background: speakerTone(s.speaker, isYou(meeting, s.speaker)).solid }} />
+                <span key={s.speaker} className="h-full" style={{ width: `${s.share * 100}%`, background: speakerTone(s.speaker, isYou(meeting, s.speaker), order).solid }} />
               ))}
             </div>
             <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
               {talk.map((s) => (
                 <li key={s.speaker} className="flex items-center gap-2 text-[13px]">
-                  <i className="block size-2 shrink-0 rounded-[2px]" style={{ background: speakerTone(s.speaker, isYou(meeting, s.speaker)).solid }} aria-hidden />
+                  <i className="block size-2 shrink-0 rounded-[2px]" style={{ background: speakerTone(s.speaker, isYou(meeting, s.speaker), order).solid }} aria-hidden />
                   <span className="min-w-0 flex-1 truncate font-medium">{s.name}</span>
                   <small className="text-[12px] tabular-nums text-muted-foreground">
                     {s.share < 0.01 ? "<1" : Math.round(s.share * 100)}% · {minutes(s.seconds)}
@@ -309,6 +310,7 @@ function TaskList({
   const update = (i: number, patch: Partial<Task>) => onChange(tasks.map((t, j) => (j === i ? { ...t, ...patch } : t)));
   const remove = (i: number) => onChange(tasks.filter((_, j) => j !== i));
   // People to give a task to: who spoke, then the calendar's guests.
+  const order = toneOrder(meeting, speakerIds(meeting));
   const people = [...new Set([...talkTime(meeting).map((s) => s.name), ...(meeting.guests ?? [])])];
 
   return (
@@ -358,7 +360,7 @@ function TaskList({
                         <button type="button" className="rounded-[4px] focus-visible:outline-2 focus-visible:outline-ring" aria-label={task.owner ? t("changeOwner", { owner: task.owner }) : t("assignTask")}>
                           {task.owner ? (
                             owner !== undefined ? (
-                              <Flag speaker={owner} you={isYou(meeting, owner)} name={task.owner} />
+                              <Flag speaker={owner} you={isYou(meeting, owner)} order={order} name={task.owner} />
                             ) : (
                               <span className="inline-flex h-5 items-center rounded-[5px] bg-mm-fill-subtle px-1.5 text-[12px] font-semibold text-foreground">{task.owner}</span>
                             )
