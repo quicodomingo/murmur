@@ -166,7 +166,8 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
         </div>
 
         {items.length > 0 && (
-          <ul className="mt-1 divide-y divide-border rounded-[10px] border border-border">
+          // min-w-0: in the dialog's grid, a long line (an error, the notes) would widen it past the window.
+          <ul className="mt-1 min-w-0 divide-y divide-border rounded-[10px] border border-border">
             {items.map((item) => {
               const progress = progressOf(item);
               return (
@@ -187,7 +188,12 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-medium">{labelOf(item)}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{detailOf(item)}</div>
+                      <div
+                        className={cn("text-[11px] text-muted-foreground", item.state === "error" ? "line-clamp-3 break-words" : "truncate")}
+                        title={detailOf(item)}
+                      >
+                        {detailOf(item)}
+                      </div>
                     </div>
                     {item.state === "active" && progress !== null && (
                       <span className="text-[11px] tabular-nums text-muted-foreground">{Math.floor(progress * 100)} %</span>

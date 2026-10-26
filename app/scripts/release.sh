@@ -57,7 +57,9 @@ echo "› Paquet d'actualització"
 KEY="${UPDATER_KEY:-$HOME/.tauri/murmur-updater.key}"
 TARBALL="$OUT/Murmur.app.tar.gz"
 rm -f "$TARBALL" "$TARBALL.sig"
-tar -czf "$TARBALL" -C "$(dirname "$APP")" Murmur.app
+# Without macOS metadata: bsdtar would add an AppleDouble `._Murmur.app`, which the updater
+# tries to unpack over the app folder and fails.
+COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$TARBALL" -C "$(dirname "$APP")" Murmur.app
 TAURI_SIGNING_PRIVATE_KEY_PASSWORD=$(security find-generic-password -s murmur-updater -w) \
   npx tauri signer sign -f "$KEY" "$TARBALL" >/dev/null
 NOTES="${RELEASE_NOTES:-Murmur $VERSION}"
