@@ -20,6 +20,8 @@ L'àudio i les captures no es comparteixen mai.
 
 Cal un compte gratuït de Cloudflare (no demana targeta) i Node.js.
 
+S'ha d'executar des de l'app Terminal, perquè iniciar sessió obre el navegador i espera la resposta:
+
 ```bash
 cd share
 ./setup.sh

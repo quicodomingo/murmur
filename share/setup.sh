@@ -7,7 +7,22 @@ cd "$(dirname "$0")"
 npm install --silent
 WRANGLER="npx wrangler"
 
-$WRANGLER whoami >/dev/null 2>&1 || $WRANGLER login
+# `wrangler whoami` succeeds even when signed out: it only says so.
+signed_in() { [[ "$($WRANGLER whoami 2>&1 </dev/null || true)" == *"You are logged in"* ]]; }
+
+if ! signed_in; then
+  # Signing in opens the browser and waits: it needs a real terminal window.
+  if [ ! -t 0 ] || [ ! -t 1 ]; then
+    echo "Cal iniciar sessió a Cloudflare, i això només es pot fer des d'una finestra de Terminal." >&2
+    echo "Obre l'app Terminal i executa-hi: cd \"$(pwd)\" && ./setup.sh" >&2
+    exit 1
+  fi
+  $WRANGLER login
+  if ! signed_in; then
+    echo "No s'ha pogut iniciar sessió a Cloudflare. Torna-ho a provar." >&2
+    exit 1
+  fi
+fi
 
 # Never stop without saying where.
 trap 'echo "S'"'"'ha aturat a la línia $LINENO. Torna-ho a provar; si es repeteix, envia el que surt a dalt." >&2' ERR
