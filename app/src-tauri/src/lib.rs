@@ -826,6 +826,72 @@ async fn share_publish(envelope: String, ttl: Option<u64>) -> Result<share::Publ
         .map_err(|e| e.to_string())?
 }
 
+/// Cloudflare's token form, filled in with the permissions Murmur needs.
+#[tauri::command]
+fn share_token_url() -> String {
+    share::token_url()
+}
+
+/// The Cloudflare accounts a token can use: checks it before publishing.
+#[tauri::command]
+async fn share_cf_accounts(token: String) -> Result<Vec<share::CfAccount>, String> {
+    tauri::async_runtime::spawn_blocking(move || share::cf_accounts(&token).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[derive(serde::Serialize)]
+struct SetupDone {
+    status: share::Status,
+    /// The workers.dev address answers already (a new one can take a few minutes).
+    ready: bool,
+}
+
+/// Publishes the Worker on the user's Cloudflare account and connects to it; progress on "share-setup".
+#[tauri::command]
+async fn share_setup(app: AppHandle, token: String, account: share::CfAccount) -> Result<SetupDone, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        share::setup(&token, &account, |step| {
+            let _ = app.emit("share-setup", step);
+        })
+        .map(|(status, ready)| SetupDone { status, ready })
+        .map_err(|e| format!("{e:#}"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// One encrypted file of a shared meeting, sent as raw bytes; which one, in the headers.
+#[tauri::command]
+async fn share_upload_file(request: tauri::ipc::Request<'_>) -> Result<(), String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err(tr!("share_not_worker").into());
+    };
+    let header = |name: &str| request.headers().get(name).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let (id, name, ttl) = (header("x-share-id"), header("x-share-file"), header("x-share-ttl").parse::<u64>().ok());
+    let bytes = bytes.clone();
+    tauri::async_runtime::spawn_blocking(move || share::upload_file(&id, &name, ttl, &bytes).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// A meeting's screenshot, or its audio as .m4a, as raw bytes to encrypt and share.
+#[tauri::command]
+async fn share_read_file(app: AppHandle, meeting_id: String, kind: String, path: String) -> Result<tauri::ipc::Response, String> {
+    let file = if kind == "audio" {
+        std::path::PathBuf::from(playback_audio(app, meeting_id, path).await?)
+    } else {
+        let root = screens_dir(&app, &meeting_id)?;
+        let path = std::path::PathBuf::from(path);
+        if !path.starts_with(&root) || path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+            return Err(tr!("share_not_capture").into());
+        }
+        path
+    };
+    let bytes = tauri::async_runtime::spawn_blocking(move || std::fs::read(file)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
 #[tauri::command]
 async fn share_revoke(id: String) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || share::revoke(&id).map_err(|e| format!("{e:#}")))
@@ -1177,6 +1243,11 @@ pub fn run() {
             share_disconnect,
             share_publish,
             share_revoke,
+            share_token_url,
+            share_cf_accounts,
+            share_setup,
+            share_upload_file,
+            share_read_file,
             shell::current_toast,
             shell::dismiss_toast,
             shell::toast_start,

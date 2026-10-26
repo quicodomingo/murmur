@@ -1,17 +1,15 @@
-# Murmur's shared links (docs/COMPARTIR.md). `./setup.sh` fills in the KV namespace and the
-# API key the first time; after that, `npm run deploy` publishes changes.
+# Murmur's shared links (docs/COMPARTIR.md). Murmur publishes the Worker itself from
+# Settings › Compartir; this file is for `./setup.sh` and `npm run dev`.
 name = "murmur-share"
 main = "src/worker.js"
 compatibility_date = "2026-10-01"
 workers_dev = true
 
-[assets]
-directory = "./public"
-binding = "ASSETS"
-# /viewer.html stays /viewer.html (the Worker serves it for every link), and a missing file
-# falls through to the Worker.
-html_handling = "none"
-not_found_handling = "none"
+# The page goes inside the Worker as text modules, as when Murmur publishes it (share.rs).
+[[rules]]
+type = "Text"
+globs = ["**/*.html", "**/*.css", "**/viewer-script.js"]
+fallthrough = false
 
 [[kv_namespaces]]
 binding = "SHARES"

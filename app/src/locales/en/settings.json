@@ -222,12 +222,10 @@
   },
   "share": {
     "group": "Shared links",
-    "intro": "Meetings are shared through a Worker on your Cloudflare account, which is free. Murmur encrypts them before sending: not even Cloudflare can read them.",
-    "guide": "How to set it up",
+    "intro": "Meetings are shared through a Worker on your Cloudflare account, which is free. Murmur publishes it and encrypts them before sending: not even Cloudflare can read them.",
     "url": "Worker address",
     "urlPlaceholder": "https://murmur-share.your-account.workers.dev",
     "key": "API key",
-    "keyHint": "The setup script shows both when it finishes.",
     "connect": "Connect",
     "checking": "Checking…",
     "connected": "Connected to {{host}}",
@@ -235,6 +233,26 @@
     "disconnect": "Disconnect",
     "disconnectTitle": "Disconnect the Worker?",
     "disconnectMessage": "Links you've already shared will keep working, but you won't be able to create or withdraw any until you connect it again.",
-    "privacy": "Only what you choose when sharing is sent, encrypted on this Mac. Never the audio."
+    "privacy": "Only what you choose when sharing is sent, encrypted on this Mac. The audio only if you tick it.",
+    "published": "Published at {{host}}",
+    "publishedHint": "On your Cloudflare account. Murmur keeps it up to date.",
+    "notReadyYet": "It's published. The first time, the address can take a few minutes to start working.",
+    "step1": "Create a token on Cloudflare",
+    "step1Hint": "Cloudflare opens with the form filled in. If you don't have an account, it will ask you to create one, for free. At the end, press “Create Token” and copy it.",
+    "openCloudflare": "Open Cloudflare",
+    "step2": "Paste it here",
+    "setUp": "Set up",
+    "settingUp": "Setting up…",
+    "tokenHint": "It's only allowed to use Workers and KV. Murmur keeps it in the keychain to keep the Worker up to date.",
+    "account": "Account",
+    "steps": {
+      "token": "Checking the token",
+      "storage": "Creating where meetings are kept",
+      "worker": "Publishing the Worker",
+      "address": "Turning on the workers.dev address",
+      "check": "Checking that it answers"
+    },
+    "manual": "I already have a Worker published with setup.sh",
+    "back": "Back to the assistant"
   }
 }

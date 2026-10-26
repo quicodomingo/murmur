@@ -112,7 +112,8 @@ Entre reunions (bloc 5):
 - [x] Etiquetes per organitzar les reunions (per client, projecte…): sota el títol, filtre a la barra lateral (també per a la cerca) i reanomenar, ajuntar o esborrar amb el clic dret.
 - [ ] Etiquetes automàtiques pel domini dels convidats del calendari: proposar-la la primera vegada i recordar «@acme.com és Acme» (esbós a `docs/mockups/etiquetes.html`, pantalla 4).
 - [x] Compartir una reunió amb un enllaç (portada, notes i transcripció, amb contrasenya i caducitat opcionals), xifrada al Mac i publicada al Worker de Cloudflare de cada usuari (`share/`, docs/COMPARTIR.md).
-- [ ] Provar el Worker publicat de debò a Cloudflare (`share/setup.sh`) i obrir un enllaç des d'un mòbil.
+- [x] Compartir també les captures i l'àudio, marcar les reunions compartides i configurar Cloudflare amb un assistent dins l'app.
+- [ ] Provar l'assistent amb un compte real de Cloudflare i obrir un enllaç amb àudio des d'un mòbil (Safari i Chrome).
 - [ ] Exportar totes les reunions d'una etiqueta, i una portada del client amb les últimes reunions.
 
 ## 5. Qualitat i rendiment

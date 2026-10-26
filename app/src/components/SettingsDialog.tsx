@@ -11,12 +11,13 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Switch } from "@/components/ui/switch";
 import { THEMES, type Theme } from "@/lib/appearance";
 import * as backend from "@/lib/backend";
+import type { CfAccount, ShareSetupStep } from "@/lib/backend";
 import { locale, systemLanguage, UI_LANGUAGE_NAMES, UI_LANGUAGES, type UiLanguagePref } from "@/lib/i18n";
 import { cloudModel, connectCloud, coverEngine, disconnectCloud, KEYS_URL, loadCloudModels, PROVIDERS, useCloud } from "@/lib/cloud";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
-import { connectShare, disconnectShare, useShareStatus } from "@/lib/share";
+import { connectShare, disconnectShare, setupShare, useShareStatus } from "@/lib/share";
 import type { CloudProvider, Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MEETING_LANGUAGES } from "./StartOptions";
@@ -47,8 +48,6 @@ const TABS = [
   { id: "share", icon: Link2 },
 ] as const;
 
-/** Setting up shared links, step by step (share/setup.sh). */
-const SHARE_GUIDE_URL = "https://github.com/quicodomingo/murmur/blob/main/docs/COMPARTIR.md";
 
 /** A decimal in the interface language: 0,65 in Catalan and Spanish, 0.65 in English. */
 const decimal = (n: number, digits: number) => n.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -959,32 +958,15 @@ function CloudRow({ provider, settings, onChange }: { provider: CloudProvider; s
 
 // --- Compartir -----------------------------------------------------------------------------
 
-/** The user's Cloudflare Worker for shared links (lib/share.ts): its address and API key. */
+/**
+ * Where shared links are published: Murmur sets up a Worker on the user's Cloudflare account
+ * from an API token (share.rs `setup`), or connects to one published with share/setup.sh.
+ */
 function ShareTab() {
   const { t } = useTranslation("settings");
   const status = useShareStatus();
-  const [url, setUrl] = useState("");
-  const [key, setKey] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
-  const field =
-    "mt-1 h-6 w-full min-w-0 rounded-md border border-input bg-background px-2 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive";
-
-  const connect = async () => {
-    if (!url.trim() || !key.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await connectShare(url, key);
-      setUrl("");
-      setKey("");
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const [manual, setManual] = useState(false);
+  const [notReady, setNotReady] = useState(false);
 
   const disconnect = async () => {
     const message = t("share.disconnectMessage");
@@ -996,70 +978,24 @@ function ShareTab() {
 
   return (
     <>
-      <p className="mb-4 px-1 text-[12px] leading-snug text-muted-foreground">
-        {t("share.intro")}{" "}
-        <button type="button" onClick={() => openLink(SHARE_GUIDE_URL)} className="text-mm-link hover:underline">
-          {t("share.guide")}
-        </button>
-      </p>
+      <p className="mb-4 px-1 text-[12px] leading-snug text-muted-foreground">{t("share.intro")}</p>
       <Group title={t("share.group")}>
         {status ? (
           <div className="flex min-h-11 items-center gap-4 px-3 py-2">
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px]">{t("share.connected", { host: new URL(status.url).host })}</div>
-              <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">{t("share.keySaved", { hint: status.hint })}</div>
+              <div className="truncate text-[13px]">{status.managed ? t("share.published", { host: new URL(status.url).host }) : t("share.connected", { host: new URL(status.url).host })}</div>
+              <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                {notReady ? t("share.notReadyYet") : status.managed ? t("share.publishedHint") : t("share.keySaved", { hint: status.hint })}
+              </div>
             </div>
-            <button type="button" className={cn(button, "text-destructive")} onClick={disconnect}>
+            <button type="button" className={cn(SMALL_BUTTON, "text-destructive")} onClick={disconnect}>
               {t("share.disconnect")}
             </button>
           </div>
+        ) : manual ? (
+          <ManualWorker onBack={() => setManual(false)} />
         ) : (
-          <form
-            className="px-3 py-2.5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              connect();
-            }}
-          >
-            <label className="block text-[12px]">
-              {t("share.url")}
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder={t("share.urlPlaceholder")}
-                autoComplete="off"
-                spellCheck={false}
-                aria-invalid={!!error}
-                className={field}
-              />
-            </label>
-            <label className="mt-2 block text-[12px]">
-              {t("share.key")}
-              <input
-                type="password"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                placeholder="mm_…"
-                autoComplete="off"
-                spellCheck={false}
-                aria-invalid={!!error}
-                aria-describedby={error ? "share-error" : undefined}
-                className={cn(field, "font-mono")}
-              />
-            </label>
-            <div className="mt-2 flex items-center gap-3">
-              <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">{t("share.keyHint")}</p>
-              <button type="submit" className={button} disabled={busy || !url.trim() || !key.trim()}>
-                {busy ? t("share.checking") : t("share.connect")}
-              </button>
-            </div>
-            {error && (
-              <p id="share-error" role="alert" className="mt-1.5 text-[11px] text-destructive">
-                {error}
-              </p>
-            )}
-          </form>
+          <CloudflareSetup onDone={(ready) => setNotReady(!ready)} onManual={() => setManual(true)} />
         )}
       </Group>
       <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
@@ -1067,6 +1003,223 @@ function ShareTab() {
         <span>{t("share.privacy")}</span>
       </p>
     </>
+  );
+}
+
+const SMALL_BUTTON = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
+const FIELD =
+  "mt-1 h-6 w-full min-w-0 rounded-md border border-input bg-background px-2 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive";
+const SETUP_STEPS: ShareSetupStep[] = ["storage", "worker", "address", "check"];
+
+/** Two steps: create a token on Cloudflare (the form comes filled in), then paste it here. */
+function CloudflareSetup({ onDone, onManual }: { onDone: (ready: boolean) => void; onManual: () => void }) {
+  const { t } = useTranslation("settings");
+  const [token, setToken] = useState("");
+  const [accounts, setAccounts] = useState<CfAccount[] | null>(null);
+  const [account, setAccount] = useState("");
+  const [step, setStep] = useState<ShareSetupStep | "token" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!backend.isTauri()) return;
+    const off = backend.onShareSetup(setStep);
+    return () => {
+      off.then((f) => f());
+    };
+  }, []);
+
+  const openCloudflare = () => {
+    if (backend.isTauri()) backend.shareTokenUrl().then(openLink).catch(() => {});
+  };
+
+  const publish = async (on: CfAccount) => {
+    try {
+      const done = await setupShare(token, on);
+      setToken("");
+      onDone(done.ready);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setStep(null);
+    }
+  };
+
+  const start = async () => {
+    if (!token.trim()) return;
+    setError(null);
+    // Which account: asked only when the token can use more than one.
+    if (accounts && account) return publish(accounts.find((a) => a.id === account)!);
+    setStep("token");
+    try {
+      const list = await backend.shareCfAccounts(token);
+      if (list.length === 1) return await publish(list[0]);
+      setAccounts(list);
+      setAccount(list[0].id);
+      setStep(null);
+    } catch (e) {
+      setError(String(e));
+      setStep(null);
+    }
+  };
+
+  const busy = step !== null;
+  const index = step && step !== "token" ? SETUP_STEPS.indexOf(step) : -1;
+  return (
+    <div className="px-3 py-2.5">
+      <ol className="space-y-3">
+        <li className="flex gap-2.5">
+          <span className="mt-px grid size-[18px] shrink-0 place-items-center rounded-full bg-mm-fill-subtle text-[11px] font-semibold tabular-nums">1</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px]">{t("share.step1")}</div>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t("share.step1Hint")}</p>
+            <button type="button" onClick={openCloudflare} className={cn(SMALL_BUTTON, "mt-1.5")}>
+              {t("share.openCloudflare")}
+            </button>
+          </div>
+        </li>
+        <li className="flex gap-2.5">
+          <span className="mt-px grid size-[18px] shrink-0 place-items-center rounded-full bg-mm-fill-subtle text-[11px] font-semibold tabular-nums">2</span>
+          <form
+            className="min-w-0 flex-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              start();
+            }}
+          >
+            <label htmlFor="cf-token" className="text-[13px]">
+              {t("share.step2")}
+            </label>
+            <div className="mt-1 flex items-center gap-1.5">
+              <input
+                id="cf-token"
+                type="password"
+                value={token}
+                onChange={(e) => {
+                  setToken(e.target.value);
+                  setAccounts(null);
+                }}
+                autoComplete="off"
+                spellCheck={false}
+                disabled={busy}
+                aria-invalid={!!error}
+                aria-describedby={error ? "cf-error" : "cf-token-hint"}
+                className={cn(FIELD, "mt-0 flex-1 font-mono")}
+              />
+              <button type="submit" className={SMALL_BUTTON} disabled={busy || !token.trim()}>
+                {busy ? t("share.settingUp") : t("share.setUp")}
+              </button>
+            </div>
+            {accounts && !busy && (
+              <label className="mt-2 flex items-center gap-2 text-[12px]">
+                {t("share.account")}
+                <select value={account} onChange={(e) => setAccount(e.target.value)} className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-[13px]">
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name || a.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <p id="cf-token-hint" className="mt-1 text-[11px] leading-snug text-muted-foreground">
+              {t("share.tokenHint")}
+            </p>
+            {busy && (
+              <ul className="mt-2 space-y-1" aria-live="polite">
+                {(["token", ...SETUP_STEPS] as const).map((s, i) => {
+                  const done = s === "token" ? step !== "token" : i - 1 < index;
+                  const active = s === step;
+                  return (
+                    <li key={s} className={cn("flex items-center gap-2 text-[12px]", !done && !active && "text-muted-foreground")}>
+                      {done ? (
+                        <Check className="size-3 text-foreground" aria-hidden />
+                      ) : active ? (
+                        <span className="size-3 animate-spin rounded-full border-[1.5px] border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
+                      ) : (
+                        <span className="size-3 rounded-full border border-dashed border-mm-text-tertiary" aria-hidden />
+                      )}
+                      {t(`share.steps.${s}`)}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {error && (
+              <p id="cf-error" role="alert" className="mt-1.5 text-[11px] text-destructive">
+                {error}
+              </p>
+            )}
+          </form>
+        </li>
+      </ol>
+      <button type="button" onClick={onManual} className="mt-3 text-[11px] text-mm-link hover:underline">
+        {t("share.manual")}
+      </button>
+    </div>
+  );
+}
+
+/** A Worker published with share/setup.sh: its address and API key. */
+function ManualWorker({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation("settings");
+  const [url, setUrl] = useState("");
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const connect = async () => {
+    if (!url.trim() || !key.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await connectShare(url, key);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form
+      className="px-3 py-2.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        connect();
+      }}
+    >
+      <label className="block text-[12px]">
+        {t("share.url")}
+        <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={t("share.urlPlaceholder")} autoComplete="off" spellCheck={false} aria-invalid={!!error} className={FIELD} />
+      </label>
+      <label className="mt-2 block text-[12px]">
+        {t("share.key")}
+        <input
+          type="password"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder="mm_…"
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={!!error}
+          aria-describedby={error ? "share-error" : undefined}
+          className={cn(FIELD, "font-mono")}
+        />
+      </label>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="button" onClick={onBack} className="min-w-0 flex-1 text-left text-[11px] text-mm-link hover:underline">
+          {t("share.back")}
+        </button>
+        <button type="submit" className={SMALL_BUTTON} disabled={busy || !url.trim() || !key.trim()}>
+          {busy ? t("share.checking") : t("share.connect")}
+        </button>
+      </div>
+      {error && (
+        <p id="share-error" role="alert" className="mt-1.5 text-[11px] text-destructive">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
 

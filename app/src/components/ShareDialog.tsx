@@ -10,11 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import * as backend from "@/lib/backend";
 import { dateOnly } from "@/lib/format";
 import type { Settings } from "@/lib/settings";
-import { expired, revokeShare, SHARE_EXPIRIES, shareableParts, shareMeeting, useShareStatus, type ShareExpiry } from "@/lib/share";
+import { defaultParts, expired, revokeShare, SHARE_EXPIRIES, shareableParts, shareMeeting, useShareStatus, type ShareExpiry, type ShareProgress } from "@/lib/share";
 import type { Meeting, ShareLink, SharePart } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ALL_PARTS: SharePart[] = ["cover", "notes", "transcript"];
+const ALL_PARTS: SharePart[] = ["cover", "notes", "transcript", "screens", "audio"];
 
 /**
  * "Comparteix un enllaç…": what goes in, how long it lasts and an optional password; then the
@@ -42,17 +42,18 @@ export function ShareDialog({
   const { t } = useTranslation("share");
   const status = useShareStatus();
   const available = shareableParts(meeting);
-  const [parts, setParts] = useState<SharePart[]>(available);
+  const [parts, setParts] = useState<SharePart[]>(() => defaultParts(meeting));
   const [usePassword, setUsePassword] = useState(false);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<ShareProgress | null>(null);
   const [created, setCreated] = useState<ShareLink | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   // Fresh each time it opens, for the meeting open then.
   useEffect(() => {
     if (!open) return;
-    setParts(shareableParts(meeting));
+    setParts(defaultParts(meeting));
     setUsePassword(false);
     setPassword("");
     setCreated(null);
@@ -72,7 +73,7 @@ export function ShareDialog({
   const create = async () => {
     setBusy(true);
     try {
-      const link = await shareMeeting(meeting, parts, settings.shareExpiry, usePassword ? password : null);
+      const link = await shareMeeting(meeting, parts, settings.shareExpiry, usePassword ? password : null, setProgress);
       onShares([link, ...shares]);
       setCreated(link);
       setPassword("");
@@ -81,8 +82,17 @@ export function ShareDialog({
       toast.error(t("failed", { error: String(e) }));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
+
+  const busyLabel = !progress
+    ? t("creating")
+    : progress.step === "reading"
+      ? t("reading")
+      : progress.step === "files"
+        ? t("uploadingFiles", { done: progress.done + 1, total: progress.total })
+        : t("creating");
 
   const revoke = async (link: ShareLink) => {
     if (!expired(link)) {
@@ -170,10 +180,11 @@ export function ShareDialog({
                         onChange={(e) => setParts((list) => (e.target.checked ? ALL_PARTS.filter((p) => p === part || list.includes(p)) : list.filter((p) => p !== part)))}
                         className="size-3.5 accent-[var(--mm-toggle-on)]"
                       />
-                      {t(`parts.${part}`)}
+                      {part === "screens" ? t("parts.screensCount", { count: meeting.screens?.length ?? 0 }) : t(`parts.${part}`)}
                     </label>
                   ))}
                 </div>
+                {parts.includes("audio") && <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{t("audioNote")}</p>}
               </fieldset>
               <div className="flex min-h-11 items-center gap-4 px-3 py-2">
                 <span id="share-expiry" className="min-w-0 flex-1 text-[13px]">
@@ -216,7 +227,7 @@ export function ShareDialog({
             <p className="mt-2.5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
               <Lock className="mt-px size-3 shrink-0" aria-hidden />
               <span>
-                {usePassword ? t("privacyPassword") : t("privacy")} {t("consent")}
+                {usePassword ? t("privacyPassword") : t("privacy")} {parts.includes("audio") ? t("consentAudio") : t("consent")}
               </span>
             </p>
             <div className="mt-3 flex justify-end">
@@ -225,7 +236,7 @@ export function ShareDialog({
                 disabled={!ready || status === undefined}
                 className="h-7 rounded-[7px] bg-mm-accent px-3 text-[13px] font-semibold text-mm-on-accent hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
               >
-                {busy ? t("creating") : t("create")}
+                {busy ? busyLabel : t("create")}
               </button>
             </div>
           </form>

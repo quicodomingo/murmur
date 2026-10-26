@@ -95,10 +95,22 @@ async function keyFromPassword(password, kdf) {
   );
 }
 
+/** The meeting's key, kept to decrypt its files (screenshots, audio) when they're asked for. */
+let meetingKey = null;
+
 async function open(envelope, key) {
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromBase64(envelope.iv) }, key, fromBase64(envelope.data));
   const text = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  meetingKey = key;
   return JSON.parse(text);
+}
+
+/** One of the meeting's files: 12 bytes of IV, then the encrypted bytes. */
+async function file(name) {
+  const response = await fetch(`/${location.pathname.slice(1)}/${name}`);
+  if (!response.ok) throw new Error(String(response.status));
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  return crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes.slice(0, 12) }, meetingKey, bytes.slice(12));
 }
 
 async function start() {
@@ -159,7 +171,72 @@ const toneClass = (meeting, speaker) => {
 
 const flag = (meeting, speaker, name) => el("span", { class: `flag ${toneClass(meeting, speaker)}` }, name ?? meeting.speakers?.[speaker]?.name ?? "");
 
-const at = (time) => time && el("span", { class: "at" }, time);
+/** "1:04:22" → 3862. */
+const seconds = (time) => time.split(":").reduce((total, n) => total * 60 + Number(n), 0);
+
+// --- Audio: downloaded and decrypted only when someone wants to listen ---------------------
+
+let audio = null;
+let audioLoading = null;
+
+function loadAudio(meeting, bar) {
+  audioLoading ??= (async () => {
+    const { parts, type } = meeting.files.audio;
+    const button = bar.querySelector("button");
+    const chunks = [];
+    for (let i = 0; i < parts; i++) {
+      button.textContent = `${meeting.labels.loadingAudio} ${Math.round((i / parts) * 100)}%`;
+      chunks.push(await file(`audio.${i}`));
+    }
+    audio = el("audio", { controls: true, preload: "auto" });
+    audio.src = URL.createObjectURL(new Blob(chunks, { type }));
+    bar.replaceChildren(audio);
+    return audio;
+  })().catch((e) => {
+    audioLoading = null;
+    bar.querySelector("button").textContent = meeting.labels.audioFailed;
+    throw e;
+  });
+  return audioLoading;
+}
+
+/** A minute of the meeting: with the recording shared, it plays from there. */
+const at = (time) => {
+  if (!time) return null;
+  if (!audioBar) return el("span", { class: "at" }, time);
+  const button = el("button", { type: "button", class: "at", title: shared.labels.playFrom.replace("{{time}}", time) }, time);
+  button.addEventListener("click", async () => {
+    const player = audio ?? (await loadAudio(shared, audioBar));
+    player.currentTime = seconds(time);
+    player.play().catch(() => {});
+    audioBar.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
+  return button;
+};
+
+let shared = null;
+let audioBar = null;
+
+function screensView(meeting) {
+  return [
+    el(
+      "div",
+      { class: "screens" },
+      meeting.files.screens.map((shot) => {
+        const img = el("img", { alt: shot.alt });
+        const link = el("a", { target: "_blank", rel: "noopener" }, img);
+        file(shot.file)
+          .then((bytes) => {
+            const src = URL.createObjectURL(new Blob([bytes], { type: shot.type }));
+            img.src = src;
+            link.href = src;
+          })
+          .catch(() => img.replaceWith(el("span", { class: "screen-missing" }, meeting.labels.screenFailed)));
+        return el("figure", {}, link, el("figcaption", {}, at(shot.at)));
+      }),
+    ),
+  ];
+}
 
 /** Inline text with its marks; links only to the web or mail. */
 function runs(list = []) {
@@ -270,13 +347,19 @@ function transcriptView(meeting) {
 }
 
 function render(meeting) {
+  shared = meeting;
   document.documentElement.lang = meeting.lang ?? lang;
+  if (meeting.files?.audio) {
+    audioBar = el("div", { class: "audio" }, el("button", { type: "button", class: "listen" }, meeting.labels.listen));
+    audioBar.querySelector("button").addEventListener("click", () => loadAudio(meeting, audioBar).then((a) => a.play().catch(() => {})));
+  }
   document.title = `${meeting.title} · Murmur`;
   const L = meeting.labels;
   const views = [
     meeting.cover && { id: "cover", label: L.cover, draw: () => coverView(meeting) },
     meeting.notes?.length > 0 && { id: "notes", label: L.notes, draw: () => [el("div", { class: "notes" }, blocks(meeting.notes))] },
     meeting.transcript?.length > 0 && { id: "transcript", label: L.transcript, draw: () => transcriptView(meeting) },
+    meeting.files?.screens?.length > 0 && { id: "screens", label: L.screens, draw: () => screensView(meeting) },
   ].filter(Boolean);
 
   const body = el("div", { id: "view", role: views.length > 1 ? "tabpanel" : undefined });
@@ -300,6 +383,7 @@ function render(meeting) {
     el("h1", {}, meeting.title),
     el("div", { class: "meta" }, meeting.meta.join(" · ")),
     meeting.tags?.length > 0 && el("ul", { class: "tags" }, meeting.tags.map((t) => el("li", {}, t))),
+    audioBar,
     tabs,
     body,
     el("footer", {}, meeting.footer),

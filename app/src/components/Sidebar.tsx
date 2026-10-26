@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Plus, Search, Settings, Tag, Trash2, X } from "lucide-react";
+import { ChevronDown, Link2, Plus, Search, Settings, Tag, Trash2, X } from "lucide-react";
 import { Menu, MenuItem, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { ContextMenu } from "radix-ui";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import type { MeetingSummary, SearchHit } from "@/lib/types";
 import { LogoIcon } from "@/components/Logo";
 import { isTauri } from "@/lib/backend";
 import { t as translate } from "@/lib/i18n";
+import { activeShares } from "@/lib/share";
 import { cn } from "@/lib/utils";
 import { StartOptionsCompact, type StartChoice } from "./StartOptions";
 import { hasTag, tagCounts, type TagCount } from "./Tags";
@@ -153,6 +154,7 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
                         {/* The selected row's bar echoes the logo. */}
                         {m.id === selectedId && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-[2px] bg-mm-sidebar-selection-bar" aria-hidden />}
                         <span className="flex-1 truncate">{m.title}</span>
+                        {activeShares(m).length > 0 && <Link2 className="size-3 shrink-0 text-text-secondary" aria-label={translate("share:shared")} />}
                         {m.status === "recording" ? (
                           <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label={t("recording")}>
                             <span className="mm-rec size-2 rounded-full bg-mm-recording-dot" aria-hidden />

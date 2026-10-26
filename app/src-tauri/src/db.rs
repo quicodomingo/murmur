@@ -113,6 +113,8 @@ pub struct Summary {
     pub duration: f64,
     pub status: String,
     pub tags: Vec<String>,
+    /// Its shared links: the sidebar marks the meetings with one that still works.
+    pub shares: Value,
 }
 
 /// Metadata fields the UI can change; absent fields are left alone.
@@ -217,7 +219,7 @@ impl Db {
 
     pub fn list(&self) -> Result<Vec<Summary>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, title, created_at, duration, status FROM meetings ORDER BY created_at DESC",
+            "SELECT id, title, created_at, duration, status, shares FROM meetings ORDER BY created_at DESC",
         )?;
         let rows = stmt.query_map([], |r| {
             Ok(Summary {
@@ -227,6 +229,10 @@ impl Db {
                 duration: r.get(3)?,
                 status: r.get(4)?,
                 tags: vec![],
+                shares: r
+                    .get::<_, Option<String>>(5)?
+                    .and_then(|s| serde_json::from_str(&s).ok())
+                    .unwrap_or(json!([])),
             })
         })?;
         let mut list: Vec<Summary> = rows.collect::<rusqlite::Result<_>>()?;

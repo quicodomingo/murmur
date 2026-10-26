@@ -182,7 +182,7 @@ export const cloudConnect = (provider: CloudProvider, key: string) => invoke<Clo
 export const cloudDisconnect = (provider: CloudProvider) => invoke<void>("cloud_disconnect", { provider });
 export const cloudModels = (provider: CloudProvider) => invoke<CloudModel[]>("cloud_models", { provider });
 /** The Worker for shared links (share.rs): its address and the API key's last characters. */
-export type ShareStatus = { url: string; hint: string };
+export type ShareStatus = { url: string; hint: string; managed: boolean };
 export const shareStatus = () => invoke<ShareStatus | null>("share_status");
 /** Checks the Worker's address and API key, and saves them to the keychain. */
 export const shareConnect = (url: string, key: string) => invoke<ShareStatus>("share_connect", { url, key });
@@ -191,6 +191,20 @@ export const shareDisconnect = () => invoke<void>("share_disconnect");
 export const sharePublish = (envelope: string, ttl: number | null) =>
   invoke<{ id: string; url: string; expiresAt: number | null }>("share_publish", { envelope, ttl });
 export const shareRevoke = (id: string) => invoke<void>("share_revoke", { id });
+/** A screenshot, or the audio as .m4a, as bytes to encrypt (share.rs keeps it to the meeting's files). */
+export const shareReadFile = (meetingId: string, kind: "audio" | "screen", path: string) =>
+  invoke<ArrayBuffer>("share_read_file", { meetingId, kind, path });
+/** One encrypted file of a shared meeting, sent as raw bytes. */
+export const shareUploadFile = (id: string, name: string, ttl: number | null, bytes: Uint8Array) =>
+  invoke<void>("share_upload_file", bytes, { headers: { "x-share-id": id, "x-share-file": name, "x-share-ttl": ttl ? String(ttl) : "" } });
+/** Cloudflare's token form, filled in with the permissions Murmur needs. */
+export const shareTokenUrl = () => invoke<string>("share_token_url");
+export type CfAccount = { id: string; name: string };
+export const shareCfAccounts = (token: string) => invoke<CfAccount[]>("share_cf_accounts", { token });
+/** Publishes the Worker on the user's account; `ready`: its address answers already. */
+export const shareSetup = (token: string, account: CfAccount) => invoke<{ status: ShareStatus; ready: boolean }>("share_setup", { token, account });
+export type ShareSetupStep = "storage" | "worker" | "address" | "check";
+export const onShareSetup = (fn: (step: ShareSetupStep) => void) => listen<ShareSetupStep>("share-setup", (e) => fn(e.payload));
 export const onLlmProgress = (fn: (e: LlmProgress) => void) => listen<LlmProgress>("llm-progress", (e) => fn(e.payload));
 
 export async function subscribe(handlers: {

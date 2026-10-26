@@ -37,7 +37,7 @@ import { usePostProcess } from "@/lib/postprocess";
 import { RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
 import { hasAudio, playAt, stopUnless } from "@/lib/player";
 import { useSettings } from "@/lib/settings";
-import { expired, revokeShare } from "@/lib/share";
+import { activeShares, expired, revokeShare } from "@/lib/share";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
 import type { Language, Meeting, ModelId, SearchHit } from "@/lib/types";
@@ -802,6 +802,20 @@ export default function App() {
               meeting && (
                 <>
                   <span className="text-[13px] text-text-secondary">{t("durationValue", { duration: duration(meeting.duration) })}</span>
+                  {activeShares(meeting).length > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setShowShare(true)}
+                          className="inline-flex h-7 items-center gap-1.5 rounded-[7px] border border-border px-2.5 text-[13px] hover:bg-mm-fill-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
+                          <Link2 className="size-[13px]" /> {t("share:shared")}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t("share:sharedHint", { count: activeShares(meeting).length })}</TooltipContent>
+                    </Tooltip>
+                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button

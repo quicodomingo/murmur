@@ -222,12 +222,10 @@
   },
   "share": {
     "group": "Enlaces para compartir",
-    "intro": "Las reuniones se comparten a través de un Worker de tu cuenta de Cloudflare, que es gratuito. Murmur las cifra antes de enviarlas: ni Cloudflare puede leerlas.",
-    "guide": "Cómo se pone en marcha",
+    "intro": "Las reuniones se comparten a través de un Worker en tu cuenta de Cloudflare, que es gratuito. Murmur lo publica y las cifra antes de enviarlas: ni Cloudflare puede leerlas.",
     "url": "Dirección del Worker",
     "urlPlaceholder": "https://murmur-share.tu-cuenta.workers.dev",
     "key": "Clave de API",
-    "keyHint": "Las dos cosas las muestra el script de instalación al terminar.",
     "connect": "Conectar",
     "checking": "Comprobando…",
     "connected": "Conectado a {{host}}",
@@ -235,6 +233,26 @@
     "disconnect": "Desconectar",
     "disconnectTitle": "¿Quieres desconectar el Worker?",
     "disconnectMessage": "Los enlaces que ya has compartido seguirán funcionando, pero no podrás crear ni retirar ninguno hasta que lo vuelvas a conectar.",
-    "privacy": "Solo se envía lo que eliges al compartir, cifrado en este Mac. Nunca el audio."
+    "privacy": "Solo se envía lo que eliges al compartir, cifrado en este Mac. El audio, solo si lo marcas.",
+    "published": "Publicado en {{host}}",
+    "publishedHint": "En tu cuenta de Cloudflare. Murmur lo mantiene al día.",
+    "notReadyYet": "Ya está publicado. La primera vez, la dirección puede tardar unos minutos en funcionar.",
+    "step1": "Crea un token en Cloudflare",
+    "step1Hint": "Se abrirá Cloudflare con el formulario rellenado. Si no tienes cuenta, te pedirá crear una, gratuita. Al final, pulsa «Create Token» y cópialo.",
+    "openCloudflare": "Abrir Cloudflare",
+    "step2": "Pégalo aquí",
+    "setUp": "Configurar",
+    "settingUp": "Configurando…",
+    "tokenHint": "Solo tiene permiso para Workers y KV. Murmur lo guarda en el llavero para mantener el Worker al día.",
+    "account": "Cuenta",
+    "steps": {
+      "token": "Comprobando el token",
+      "storage": "Creando dónde se guardan las reuniones",
+      "worker": "Publicando el Worker",
+      "address": "Activando la dirección workers.dev",
+      "check": "Comprobando que responde"
+    },
+    "manual": "Ya tengo un Worker publicado con setup.sh",
+    "back": "Volver al asistente"
   }
 }

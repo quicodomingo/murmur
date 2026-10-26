@@ -6,7 +6,10 @@
   "parts": {
     "cover": "Portada",
     "notes": "Notas",
-    "transcript": "Transcripción"
+    "transcript": "Transcripción",
+    "screens": "Capturas",
+    "audio": "Audio",
+    "screensCount": "Capturas ({{count}})"
   },
   "password": "Contraseña",
   "passwordHint": "Quien abra el enlace tendrá que escribirla. Envíala por otro camino.",
@@ -45,6 +48,19 @@
     "taskDone": "Hecha",
     "taskOpen": "Pendiente",
     "footer": "Compartido desde Murmur el {{date}}.",
-    "footerExpires": "Compartido desde Murmur el {{date}}. El enlace caduca el {{expires}}."
-  }
+    "footerExpires": "Compartido desde Murmur el {{date}}. El enlace caduca el {{expires}}.",
+    "listen": "Escucha la grabación ({{size}})",
+    "loadingAudio": "Cargando el audio…",
+    "audioFailed": "No se ha podido cargar el audio",
+    "screenFailed": "No se ha podido cargar",
+    "playFrom": "Escúchalo desde el minuto {{time}}",
+    "screenAt": "Captura del minuto {{time}}"
+  },
+  "audioNote": "La grabación es lo más personal y lo que más pesa: inclúyela solo si hace falta.",
+  "consentAudio": "Aparecen los nombres, lo que dijo cada persona y su voz: compártela solo con quien pueda oírlo.",
+  "reading": "Preparando los archivos…",
+  "uploadingFiles": "Subiendo {{done}} de {{total}}…",
+  "shared": "Compartida",
+  "sharedHint_one": "Tiene un enlace que funciona",
+  "sharedHint_other": "Tiene {{count}} enlaces que funcionan"
 }

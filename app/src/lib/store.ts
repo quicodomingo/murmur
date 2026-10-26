@@ -98,6 +98,7 @@ const summaryOf = (m: Meeting): MeetingSummary => ({
   duration: m.duration,
   status: m.status,
   tags: m.tags,
+  shares: m.shares,
 });
 
 /** Tag names ignore capitals: the first spelling of each one stays. */

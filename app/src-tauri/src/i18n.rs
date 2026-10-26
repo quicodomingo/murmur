@@ -306,6 +306,26 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "En esta dirección no está el Worker de Murmur",
             "Murmur's Worker isn't at this address",
         ],
+        "share_cf_bad_token" => [
+            "Cloudflare no accepta aquest token, o li falten permisos. Crea'l amb l'enllaç de Murmur, que ja els posa",
+            "Cloudflare no acepta este token, o le faltan permisos. Créalo con el enlace de Murmur, que ya los pone",
+            "Cloudflare doesn't accept this token, or it's missing permissions. Create it with Murmur's link, which sets them",
+        ],
+        "share_cf_failed" => [
+            "Cloudflare ha respost: {error}",
+            "Cloudflare ha respondido: {error}",
+            "Cloudflare answered: {error}",
+        ],
+        "share_cf_subdomain" => [
+            "No s'ha pogut triar l'adreça workers.dev del compte. Obre Workers al tauler de Cloudflare un cop i torna-ho a provar",
+            "No se ha podido elegir la dirección workers.dev de la cuenta. Abre Workers en el panel de Cloudflare una vez y vuelve a intentarlo",
+            "Couldn't choose the account's workers.dev address. Open Workers in the Cloudflare dashboard once and try again",
+        ],
+        "share_not_capture" => [
+            "Aquest fitxer no és de la reunió",
+            "Este archivo no es de la reunión",
+            "That file isn't from this meeting",
+        ],
         "share_too_large" => [
             "La reunió és massa gran per compartir-la",
             "La reunión es demasiado grande para compartirla",

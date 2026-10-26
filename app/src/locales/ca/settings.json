@@ -222,12 +222,10 @@
   },
   "share": {
     "group": "Enllaços per compartir",
-    "intro": "Les reunions es comparteixen a través d'un Worker del teu compte de Cloudflare, que és gratuït. Murmur les xifra abans d'enviar-les: ni Cloudflare no les pot llegir.",
-    "guide": "Com es posa en marxa",
+    "intro": "Les reunions es comparteixen a través d'un Worker al teu compte de Cloudflare, que és gratuït. Murmur el publica i les xifra abans d'enviar-les: ni Cloudflare no les pot llegir.",
     "url": "Adreça del Worker",
     "urlPlaceholder": "https://murmur-share.el-teu-compte.workers.dev",
     "key": "Clau d'API",
-    "keyHint": "Les dues coses les mostra l'script d'instal·lació en acabar.",
     "connect": "Connecta",
     "checking": "Comprovant…",
     "connected": "Connectat a {{host}}",
@@ -235,6 +233,26 @@
     "disconnect": "Desconnecta",
     "disconnectTitle": "Vols desconnectar el Worker?",
     "disconnectMessage": "Els enllaços que ja has compartit continuaran funcionant, però no en podràs crear ni retirar fins que el tornis a connectar.",
-    "privacy": "Només s'envia el que tries en compartir, xifrat en aquest Mac. Mai l'àudio."
+    "privacy": "Només s'envia el que tries en compartir, xifrat en aquest Mac. L'àudio, només si el marques.",
+    "published": "Publicat a {{host}}",
+    "publishedHint": "Al teu compte de Cloudflare. Murmur el manté al dia.",
+    "notReadyYet": "Ja està publicat. La primera vegada, l'adreça pot trigar uns minuts a funcionar.",
+    "step1": "Crea un token a Cloudflare",
+    "step1Hint": "S'obrirà Cloudflare amb el formulari omplert. Si no tens compte, te'n farà crear un, gratuït. Al final, prem «Create Token» i copia'l.",
+    "openCloudflare": "Obre Cloudflare",
+    "step2": "Enganxa'l aquí",
+    "setUp": "Configura",
+    "settingUp": "Configurant…",
+    "tokenHint": "Només té permís per a Workers i KV. Murmur el desa al clauer per mantenir el Worker al dia.",
+    "account": "Compte",
+    "steps": {
+      "token": "Comprovant el token",
+      "storage": "Creant on es guarden les reunions",
+      "worker": "Publicant el Worker",
+      "address": "Activant l'adreça workers.dev",
+      "check": "Comprovant que respon"
+    },
+    "manual": "Ja tinc un Worker publicat amb setup.sh",
+    "back": "Torna a l'assistent"
   }
 }

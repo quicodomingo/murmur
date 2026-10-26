@@ -57,7 +57,7 @@ export type Meeting = {
 };
 
 /** What was shared (lib/share.ts). */
-export type SharePart = "cover" | "notes" | "transcript";
+export type SharePart = "cover" | "notes" | "transcript" | "screens" | "audio";
 
 /** A shared link: `url` carries the key after the # (none with a password). */
 export type ShareLink = {
@@ -94,7 +94,7 @@ export type Cover = {
 };
 
 /** What the sidebar shows; the full meeting is loaded when opened. */
-export type MeetingSummary = Pick<Meeting, "id" | "title" | "createdAt" | "duration" | "status" | "tags">;
+export type MeetingSummary = Pick<Meeting, "id" | "title" | "createdAt" | "duration" | "status" | "tags" | "shares">;
 
 /** A full-text search result (db.rs `Hit`). Matches are wrapped in \u0002 … \u0003. */
 export type SearchHit = {

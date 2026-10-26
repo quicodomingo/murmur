@@ -158,11 +158,14 @@ Editor Tiptap 3 (títols, negreta, cursiva, subratllat, ratllat, llistes i tasqu
 
 ### Compartir (`lib/share.ts`, `share.rs`, `share/`)
 
-- «Comparteix un enllaç…» (menú Exporta) publica la portada, les notes i la transcripció, o el que se'n triï, en una pàgina web al Worker de Cloudflare **de l'usuari**. Murmur no té cap servidor propi. La posada en marxa és a [COMPARTIR.md](COMPARTIR.md).
+- «Comparteix un enllaç…» (menú Exporta) publica la portada, les notes, la transcripció, les captures o l'àudio, el que se'n triï, en una pàgina web al Worker de Cloudflare **de l'usuari**. Murmur no té cap servidor propi. La posada en marxa és a [COMPARTIR.md](COMPARTIR.md).
 - La interfície munta la reunió ja traduïda i amb els colors dels parlants, la comprimeix i la xifra amb AES-GCM. La clau va a l'enllaç després del `#`, o surt d'una contrasenya amb PBKDF2. El Worker només rep el resultat xifrat: ni ell ni Cloudflare no el poden llegir.
 - `share.rs` desa l'adreça i la clau d'API del Worker al clauer (servei `com.quicodomingo.murmur.share`) i fa les crides. La clau no torna mai a la interfície.
+- **Assistent** (Configuració › Compartir): amb un token de l'usuari, `share.rs` crea el KV, puja el Worker per l'API de Cloudflare (multipart amb `worker.js` i la pàgina com a mòduls de text, que s'inclouen a l'app amb `include_str!`), activa l'adreça workers.dev i comprova que respon. El token es queda al clauer: si el Worker publicat és d'una versió anterior (`/api/ping` › `version`), es torna a publicar abans de compartir.
+- **Fitxers:** les captures i l'àudio (el .m4a de reproducció, en trossos de 8 MB) es xifren amb la mateixa clau (12 bytes d'IV i després les dades) i es pugen a part, en binari (`share_upload_file` rep el cos tal qual). La pàgina només baixa l'àudio quan l'escolten. Retirar un enllaç esborra també els seus fitxers.
+- Les reunions amb enllaços vigents porten una icona a la barra lateral i el botó «Compartida» a la capçalera.
 - El Worker (`share/src/worker.js`) desa cada reunió a Workers KV amb `expirationTtl`, i KV l'esborra quan caduca. La pàgina (`share/public/viewer.js`) la desxifra al navegador i la dibuixa sempre amb `textContent`, amb una CSP que només permet els seus fitxers.
-- Els enllaços de cada reunió es desen a la columna `shares` (amb la clau, per poder-los copiar) i es poden retirar. En esborrar una reunió, es retiren els que encara no han caducat.
+- Els enllaços de cada reunió es desen a la columna `shares`, que també arriba als resums de la barra lateral, (amb la clau, per poder-los copiar) i es poden retirar. En esborrar una reunió, es retiren els que encara no han caducat.
 
 ### Actualitzacions, novetats i publicació
 

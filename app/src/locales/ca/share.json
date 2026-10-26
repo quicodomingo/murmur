@@ -6,7 +6,10 @@
   "parts": {
     "cover": "Portada",
     "notes": "Notes",
-    "transcript": "Transcripció"
+    "transcript": "Transcripció",
+    "screens": "Captures",
+    "audio": "Àudio",
+    "screensCount": "Captures ({{count}})"
   },
   "password": "Contrasenya",
   "passwordHint": "Qui obri l'enllaç l'haurà d'escriure. Envia-la per un altre camí.",
@@ -45,6 +48,19 @@
     "taskDone": "Feta",
     "taskOpen": "Pendent",
     "footer": "Compartit des de Murmur el {{date}}.",
-    "footerExpires": "Compartit des de Murmur el {{date}}. L'enllaç caduca el {{expires}}."
-  }
+    "footerExpires": "Compartit des de Murmur el {{date}}. L'enllaç caduca el {{expires}}.",
+    "listen": "Escolta la gravació ({{size}})",
+    "loadingAudio": "Carregant l'àudio…",
+    "audioFailed": "No s'ha pogut carregar l'àudio",
+    "screenFailed": "No s'ha pogut carregar",
+    "playFrom": "Escolta-ho des del minut {{time}}",
+    "screenAt": "Captura del minut {{time}}"
+  },
+  "audioNote": "La gravació és el més personal i el que pesa més: inclou-la només si cal.",
+  "consentAudio": "Hi surten els noms, el que va dir cada persona i la seva veu: comparteix-la només amb qui ho pugui sentir.",
+  "reading": "Preparant els fitxers…",
+  "uploadingFiles": "Pujant {{done}} de {{total}}…",
+  "shared": "Compartida",
+  "sharedHint_one": "Té un enllaç que funciona",
+  "sharedHint_other": "Té {{count}} enllaços que funcionen"
 }

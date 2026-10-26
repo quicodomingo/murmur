@@ -6,7 +6,10 @@
   "parts": {
     "cover": "Cover",
     "notes": "Notes",
-    "transcript": "Transcript"
+    "transcript": "Transcript",
+    "screens": "Screenshots",
+    "audio": "Audio",
+    "screensCount": "Screenshots ({{count}})"
   },
   "password": "Password",
   "passwordHint": "Whoever opens the link will have to type it. Send it some other way.",
@@ -45,6 +48,19 @@
     "taskDone": "Done",
     "taskOpen": "To do",
     "footer": "Shared from Murmur on {{date}}.",
-    "footerExpires": "Shared from Murmur on {{date}}. The link expires on {{expires}}."
-  }
+    "footerExpires": "Shared from Murmur on {{date}}. The link expires on {{expires}}.",
+    "listen": "Listen to the recording ({{size}})",
+    "loadingAudio": "Loading the audio…",
+    "audioFailed": "The audio couldn't be loaded",
+    "screenFailed": "Couldn't be loaded",
+    "playFrom": "Listen from {{time}}",
+    "screenAt": "Screenshot at {{time}}"
+  },
+  "audioNote": "The recording is the most personal part and the heaviest: only include it if needed.",
+  "consentAudio": "It includes names, what each person said and their voice: only share it with people who may hear it.",
+  "reading": "Preparing the files…",
+  "uploadingFiles": "Uploading {{done}} of {{total}}…",
+  "shared": "Shared",
+  "sharedHint_one": "It has one working link",
+  "sharedHint_other": "It has {{count}} working links"
 }
