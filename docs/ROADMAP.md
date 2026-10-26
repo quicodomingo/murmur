@@ -106,6 +106,8 @@ Entre reunions (bloc 5):
 - [ ] Provar la portada amb Claude i OpenAI amb claus reals i comparar-la amb Gemma (qualitat, temps i cost per reunió).
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
 - [x] Triar l'idioma i si sou més gent a la sala just abans de gravar (pantalla inicial, barra lateral i avisos), i canviar «Som més a la sala» durant la gravació.
+- [x] Tornar a transcriure una reunió desada en un altre idioma (català, castellà o anglès) amb Whisper, des del menú del títol.
+- [ ] Tornar a transcriure en «Català + castellà» (caldria passar l'àudio desat pel model en directe).
 - [ ] Canviar l'idioma durant la gravació (canvi de model en directe, l'àudio d'aquells segons espera a la cua).
 - [ ] Endevinar l'idioma amb els primers 20–30 s (Whisper) i suggerir-ne el canvi; suggerir «Som més a la sala» si el micròfon sent veus diferents.
 - [x] Exportar totes les captures d'una reunió a una carpeta.
@@ -113,6 +115,7 @@ Entre reunions (bloc 5):
 - [ ] Etiquetes automàtiques pel domini dels convidats del calendari: proposar-la la primera vegada i recordar «@acme.com és Acme» (esbós a `docs/mockups/etiquetes.html`, pantalla 4).
 - [x] Compartir una reunió amb un enllaç (portada, notes i transcripció, amb contrasenya i caducitat opcionals), xifrada al Mac i publicada al Worker de Cloudflare de cada usuari (`share/`, docs/COMPARTIR.md).
 - [x] Compartir també les captures i l'àudio, marcar les reunions compartides i configurar Cloudflare amb un assistent dins l'app.
+- [x] «Baixa en Markdown» a la pàgina compartida.
 - [ ] Provar l'assistent amb un compte real de Cloudflare i obrir un enllaç amb àudio des d'un mòbil (Safari i Chrome).
 - [ ] Exportar totes les reunions d'una etiqueta, i una portada del client amb les últimes reunions.
 

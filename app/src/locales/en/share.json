@@ -54,7 +54,8 @@
     "audioFailed": "The audio couldn't be loaded",
     "screenFailed": "Couldn't be loaded",
     "playFrom": "Listen from {{time}}",
-    "screenAt": "Screenshot at {{time}}"
+    "screenAt": "Screenshot at {{time}}",
+    "markdown": "Download as Markdown"
   },
   "audioNote": "The recording is the most personal part and the heaviest: only include it if needed.",
   "consentAudio": "It includes names, what each person said and their voice: only share it with people who may hear it.",

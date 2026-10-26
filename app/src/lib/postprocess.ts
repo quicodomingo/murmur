@@ -58,6 +58,12 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
     plans.current.set(id, [...rust, ...optionalStages(rust, opts.language)]);
   }, []);
 
+  /** "Torna a transcriure en…": Whisper's text, then what follows a recording (the cover). */
+  const planRetranscribe = useCallback((id: string, language: Language) => {
+    languages.current.set(id, language);
+    plans.current.set(id, ["text", ...optionalStages(["text"], language)]);
+  }, []);
+
   /** Rust started one of its stages. */
   const rustStageStarted = useCallback(
     (id: string, stage: "speakers" | "text", estimateSeconds: number) => {
@@ -157,5 +163,5 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
   /** "Genera la portada" on an existing meeting. */
   const generateCover = useCallback((id: string) => run(id, ["cover"], ["cover"]), [run]);
 
-  return { planRecording, rustStageStarted, rustDone, generateCover };
+  return { planRecording, planRetranscribe, rustStageStarted, rustDone, generateCover };
 }

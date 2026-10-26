@@ -56,5 +56,12 @@
   "screenFile": "Captura {{n}} ({{time}})",
   "screensExported_one": "S'ha desat la captura",
   "screensExported_other": "S'han desat les {{count}} captures",
-  "showInFinder": "Mostra a Finder"
+  "showInFinder": "Mostra a Finder",
+  "retranscribe": "Torna a transcriure en",
+  "retranscribeLabel": "Whisper torna a escoltar l'àudio en:",
+  "currentLanguage": "Ara",
+  "retranscribeTitle": "Vols tornar a transcriure la reunió en {{language}}?",
+  "retranscribeMessage": "Whisper tornarà a escoltar la gravació i escriurà cada frase en {{language}}. Qui parla i quan es manté, i les frases que has corregit a mà també. Trigarà uns {{minutes}} min, i després es tornarà a fer la portada si la tens activada.",
+  "retranscribeOk": "Torna a transcriure",
+  "retranscribeNeedsWhisper": "Per tornar a transcriure cal el model Whisper."
 }

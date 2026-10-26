@@ -18,6 +18,16 @@ const BITRATE: u32 = 48_000;
 
 /// The recording as mono samples at 16 kHz.
 pub fn decode(path: &Path) -> Result<Vec<f32>> {
+    let channels = decode_channels(path)?;
+    if channels.len() == 1 {
+        return Ok(channels.into_iter().next().unwrap_or_default());
+    }
+    // Both sources at a little under full level, so two voices at once don't clip.
+    Ok((0..channels[0].len()).map(|i| (channels.iter().map(|c| c[i]).sum::<f32>() * 0.7).clamp(-1.0, 1.0)).collect())
+}
+
+/// Each channel of the recording at 16 kHz: the mic and, in a call, the system on the right.
+pub fn decode_channels(path: &Path) -> Result<Vec<Vec<f32>>> {
     let mut reader = PacketReader::new(BufReader::new(File::open(path).context(tr!("meeting_audio_missing"))?));
     let head = reader.read_packet()?.ok_or_else(|| anyhow!(tr!("audio_empty")))?;
     if !head.data.starts_with(b"OpusHead") || head.data.len() < 19 {
@@ -34,17 +44,18 @@ pub fn decode(path: &Path) -> Result<Vec<f32>> {
     let mut decoder = Decoder::new(RATE, layout).map_err(|e| anyhow!("Opus: {e}"))?;
     // The comment header comes next.
     reader.read_packet()?;
-    let mut mono = vec![];
+    let mut out: Vec<Vec<f32>> = vec![vec![]; channels];
     // Up to 120 ms per packet.
     let mut frame = vec![0f32; RATE as usize / 1000 * 120 * channels];
     while let Some(packet) = reader.read_packet()? {
         let n = decoder.decode_float(&packet.data, &mut frame, false).map_err(|e| anyhow!("Opus: {e}"))?;
         for s in frame[..n * channels].chunks(channels) {
-            // Both sources at a little under full level, so two voices at once don't clip.
-            mono.push((s.iter().sum::<f32>() * if channels == 2 { 0.7 } else { 1.0 }).clamp(-1.0, 1.0));
+            for (c, v) in out.iter_mut().zip(s) {
+                c.push(*v);
+            }
         }
     }
-    Ok(mono.split_off(pre_skip.min(mono.len())))
+    Ok(out.into_iter().map(|mut c| c.split_off(pre_skip.min(c.len()))).collect())
 }
 
 /// Writes `samples` as an .m4a at `out` (through a temporary WAV and macOS's `afconvert`).

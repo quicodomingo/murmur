@@ -321,6 +321,11 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "No se ha podido elegir la dirección workers.dev de la cuenta. Abre Workers en el panel de Cloudflare una vez y vuelve a intentarlo",
             "Couldn't choose the account's workers.dev address. Open Workers in the Cloudflare dashboard once and try again",
         ],
+        "whisper_one_language" => [
+            "Whisper només pot transcriure en una llengua: català, castellà o anglès",
+            "Whisper solo puede transcribir en una lengua: catalán, castellano o inglés",
+            "Whisper can only transcribe in one language: Catalan, Spanish or English",
+        ],
         "share_not_capture" => [
             "Aquest fitxer no és de la reunió",
             "Este archivo no es de la reunión",

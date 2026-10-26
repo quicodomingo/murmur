@@ -479,6 +479,54 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
     );
 }
 
+#[derive(Deserialize)]
+struct RetranscribeChannel {
+    /// 0 for the mic's speakers, SYSTEM_SPEAKER_BASE for the call's.
+    base: usize,
+    /// The meeting's utterances on this channel, [start, end] in seconds: Whisper writes each again.
+    spans: Vec<(f32, f32)>,
+}
+
+/// "Torna a transcriure en…": Whisper listens to the saved recording again in another language,
+/// utterance by utterance, as the final pass does after recording. Same events ("final-pass"…).
+#[tauri::command]
+async fn retranscribe_meeting(app: AppHandle, meeting_id: String, audio_path: String, language: String, channels: Vec<RetranscribeChannel>) -> Result<(), String> {
+    if !["ca", "es", "en"].contains(&language.as_str()) {
+        return Err(tr!("whisper_one_language").into());
+    }
+    let ogg = recording_path(&audio_path)?;
+    let tmp = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("retranscribe");
+    std::thread::spawn(move || {
+        let tapped = (|| -> anyhow::Result<Vec<pipeline::Tapped>> {
+            let decoded = playback::decode_channels(&ogg)?;
+            std::fs::create_dir_all(&tmp)?;
+            let mut tapped = vec![];
+            for c in channels.into_iter().filter(|c| !c.spans.is_empty()) {
+                let system = c.base >= engine::SYSTEM_SPEAKER_BASE;
+                // In a call the system is on the right; a recording of one source has one channel.
+                let samples = decoded.get(if system && decoded.len() > 1 { 1 } else { 0 }).ok_or_else(|| anyhow::anyhow!(tr!("audio_empty")))?;
+                let path = tmp.join(format!("{}-{}.pcm", safe_id(&meeting_id), c.base));
+                let pcm: Vec<u8> = samples.iter().flat_map(|s| ((s.clamp(-1.0, 1.0) * 32767.0) as i16).to_le_bytes()).collect();
+                std::fs::write(&path, pcm)?;
+                tapped.push(pipeline::Tapped {
+                    channel: if system { engine::Channel::System } else { engine::Channel::Mic },
+                    path,
+                    spans: c.spans.into_iter().map(|(start, end)| diarize::Span { start, end }).collect(),
+                    base: c.base,
+                });
+            }
+            Ok(tapped)
+        })();
+        match tapped {
+            Ok(tapped) => final_pass(app, meeting_id, tapped, FinalPlan { speakers: None, language: Some(language) }),
+            Err(e) => {
+                let _ = app.emit("final-pass-done", FinalPassDone { meeting_id, error: Some(tr!("final_pass_error", error = format!("{e:#}"))) });
+            }
+        }
+    });
+    Ok(())
+}
+
 // --- Optional models ---------------------------------------------------------------------
 
 #[derive(Clone, Serialize)]
@@ -1243,6 +1291,7 @@ pub fn run() {
             share_disconnect,
             share_publish,
             share_revoke,
+            retranscribe_meeting,
             share_token_url,
             share_cf_accounts,
             share_setup,

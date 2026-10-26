@@ -54,7 +54,8 @@
     "audioFailed": "No s'ha pogut carregar l'àudio",
     "screenFailed": "No s'ha pogut carregar",
     "playFrom": "Escolta-ho des del minut {{time}}",
-    "screenAt": "Captura del minut {{time}}"
+    "screenAt": "Captura del minut {{time}}",
+    "markdown": "Baixa en Markdown"
   },
   "audioNote": "La gravació és el més personal i el que pesa més: inclou-la només si cal.",
   "consentAudio": "Hi surten els noms, el que va dir cada persona i la seva veu: comparteix-la només amb qui ho pugui sentir.",

@@ -56,5 +56,12 @@
   "screenFile": "Screenshot {{n}} ({{time}})",
   "screensExported_one": "Screenshot saved",
   "screensExported_other": "{{count}} screenshots saved",
-  "showInFinder": "Show in Finder"
+  "showInFinder": "Show in Finder",
+  "retranscribe": "Transcribe again in",
+  "retranscribeLabel": "Whisper listens to the audio again in:",
+  "currentLanguage": "Now",
+  "retranscribeTitle": "Transcribe the meeting again in {{language}}?",
+  "retranscribeMessage": "Whisper will listen to the recording again and write every line in {{language}}. Who spoke and when stays the same, and so do lines you corrected by hand. It will take about {{minutes}} min, and then the cover is made again if you have it on.",
+  "retranscribeOk": "Transcribe again",
+  "retranscribeNeedsWhisper": "Transcribing again needs the Whisper model."
 }

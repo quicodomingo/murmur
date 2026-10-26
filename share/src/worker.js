@@ -18,7 +18,7 @@ import VIEWER_CSS from "./viewer.css";
 import VIEWER_JS from "./viewer-script.js";
 
 /** Bumped when the Worker changes: Murmur republishes it when it finds an older one. */
-const VERSION = 2;
+const VERSION = 3;
 
 /** KV takes values up to 25 MiB. */
 const MAX_BYTES = 20 * 1024 * 1024;

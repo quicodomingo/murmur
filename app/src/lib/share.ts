@@ -179,6 +179,7 @@ function page(m: Meeting, parts: SharePart[], expiresAt: number | null, files: F
       audioFailed: t("share:page.audioFailed"),
       screenFailed: t("share:page.screenFailed"),
       playFrom: t("share:page.playFrom", { time: "{{time}}" }),
+      markdown: t("share:page.markdown"),
     },
     files,
     speakers,

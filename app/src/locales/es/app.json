@@ -56,5 +56,12 @@
   "screenFile": "Captura {{n}} ({{time}})",
   "screensExported_one": "Se ha guardado la captura",
   "screensExported_other": "Se han guardado las {{count}} capturas",
-  "showInFinder": "Mostrar en Finder"
+  "showInFinder": "Mostrar en Finder",
+  "retranscribe": "Volver a transcribir en",
+  "retranscribeLabel": "Whisper vuelve a escuchar el audio en:",
+  "currentLanguage": "Ahora",
+  "retranscribeTitle": "¿Quieres volver a transcribir la reunión en {{language}}?",
+  "retranscribeMessage": "Whisper volverá a escuchar la grabación y escribirá cada frase en {{language}}. Quién habla y cuándo se mantiene, y las frases que has corregido a mano también. Tardará unos {{minutes}} min, y después se volverá a hacer la portada si la tienes activada.",
+  "retranscribeOk": "Volver a transcribir",
+  "retranscribeNeedsWhisper": "Para volver a transcribir hace falta el modelo Whisper."
 }

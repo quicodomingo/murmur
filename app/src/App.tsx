@@ -3,7 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { join } from "@tauri-apps/api/path";
 import { ask, open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Images, Link2, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Images, Languages, Link2, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -18,7 +18,17 @@ import { SettingsDialog, type Tab as SettingsTab } from "@/components/SettingsDi
 import { ShareDialog } from "@/components/ShareDialog";
 import { UpdatesDialog } from "@/components/UpdatesDialog";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sidebar } from "@/components/Sidebar";
 import { MeetingTags, tagCounts } from "@/components/Tags";
 import { Transcript } from "@/components/Transcript";
@@ -31,7 +41,7 @@ import { exportMeeting, type ExportFormat } from "@/lib/export";
 import { defaultTitle } from "@/lib/cover";
 import { locale, t as translate } from "@/lib/i18n";
 import { cloudModelName, coverEngine, loadCloudModels, useCloud } from "@/lib/cloud";
-import { modelInstalled, useModels } from "@/lib/models";
+import { downloadModel, modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
 import { RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
@@ -40,7 +50,7 @@ import { useSettings } from "@/lib/settings";
 import { activeShares, expired, revokeShare } from "@/lib/share";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
-import type { Language, Meeting, ModelId, SearchHit } from "@/lib/types";
+import { SYSTEM_SPEAKER_BASE, type Language, type Meeting, type ModelId, type SearchHit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { markSeen, pendingReleases, releasesBetween, type WhatsNewRelease } from "@/lib/whatsnew";
 
@@ -528,6 +538,38 @@ export default function App() {
       toast.error(String(e));
     }
   };
+  /**
+   * "Torna a transcriure en…": recorded in the wrong language, Whisper listens to the saved audio
+   * again in the right one, line by line (speakers and times stay). Then the cover, if it's on.
+   */
+  const retranscribe = async (m: Meeting, language: Language) => {
+    if (!m.audioPath) return;
+    if (!modelInstalled("whisper")) {
+      toast(t("retranscribeNeedsWhisper"), { action: { label: t("settings:model.download"), onClick: () => downloadModel("whisper") } });
+      return;
+    }
+    const name = t(`settings:transcription.languages.${language}`);
+    const speech = m.utterances.reduce((n, u) => n + Math.max(0, u.end - u.start), 0);
+    const message = t("retranscribeMessage", { language: name, minutes: Math.max(1, Math.round((speech * 0.15) / 60)) });
+    const confirmed = backend.isTauri()
+      ? await ask(message, { title: t("retranscribeTitle", { language: name }), okLabel: t("retranscribeOk"), cancelLabel: t("common:cancel") })
+      : window.confirm(message);
+    if (!confirmed) return;
+    const channels = [0, SYSTEM_SPEAKER_BASE]
+      .map((base) => ({
+        base,
+        spans: m.utterances.filter((u) => (u.speaker >= SYSTEM_SPEAKER_BASE) === (base >= SYSTEM_SPEAKER_BASE)).map((u) => [u.start, u.end] as [number, number]),
+      }))
+      .filter((c) => c.spans.length);
+    post.planRetranscribe(m.id, language);
+    dispatch({ type: "language", id: m.id, language });
+    try {
+      await backend.retranscribeMeeting(m.id, m.audioPath, language, channels);
+    } catch (e) {
+      toast.error(String(e));
+      dispatch({ type: "postDone", id: m.id });
+    }
+  };
   /** "Exporta les captures…": every screenshot, in a new folder named after the meeting, in time order. */
   const exportScreens = async (m: Meeting) => {
     const screens = [...(m.screens ?? [])].sort((a, b) => a.t - b.t);
@@ -724,6 +766,22 @@ export default function App() {
                     <DropdownMenuItem onSelect={() => exportAudio(meeting)}>
                       <FileAudio className="size-3.5" /> {t("exportAudio")}
                     </DropdownMenuItem>
+                  )}
+                  {meeting.audioPath && meeting.utterances.length > 0 && (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger disabled={meeting.status !== "done" || !!state.finalPass[meeting.id]}>
+                        <Languages className="size-3.5" /> {t("retranscribe")}
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="min-w-48">
+                        <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">{t("retranscribeLabel")}</DropdownMenuLabel>
+                        {(["ca", "es", "en"] as const).map((l) => (
+                          <DropdownMenuItem key={l} disabled={meeting.language === l} onSelect={() => retranscribe(meeting, l)}>
+                            {t(`settings:transcription.languages.${l}`)}
+                            {meeting.language === l && <span className="ml-auto pl-4 text-[11px] opacity-60">{t("currentLanguage")}</span>}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" disabled={meeting.status === "recording"} onSelect={() => remove(meeting)}>

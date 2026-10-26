@@ -18,6 +18,7 @@ const STRINGS = {
     open: "Obre",
     opening: "Obrint…",
     wrong: "La contrasenya no és correcta.",
+    markdown: "Baixa en Markdown",
   },
   es: {
     loading: "Abriendo la reunión…",
@@ -33,6 +34,7 @@ const STRINGS = {
     open: "Abrir",
     opening: "Abriendo…",
     wrong: "La contraseña no es correcta.",
+    markdown: "Descargar en Markdown",
   },
   en: {
     loading: "Opening the meeting…",
@@ -48,6 +50,7 @@ const STRINGS = {
     open: "Open",
     opening: "Opening…",
     wrong: "That password isn't right.",
+    markdown: "Download as Markdown",
   },
 };
 
@@ -346,6 +349,87 @@ function transcriptView(meeting) {
   return meeting.transcript.map((u) => el("div", { class: "utterance" }, flag(meeting, u.s), at(u.at), el("p", {}, u.text)));
 }
 
+// --- Markdown: what was shared, as a file to keep or paste somewhere -----------------------
+
+function mdRuns(list = []) {
+  return list
+    .map((r) => {
+      if (r.br) return "  \n";
+      let s = r.t ?? "";
+      if (r.code) s = `\`${s}\``;
+      if (r.b) s = `**${s}**`;
+      if (r.i) s = `*${s}*`;
+      if (r.s) s = `~~${s}~~`;
+      if (r.href && /^(https?:|mailto:)/i.test(r.href)) s = `[${s}](${r.href})`;
+      return s;
+    })
+    .join("");
+}
+
+function mdBlocks(list = [], depth = 0) {
+  const pad = "  ".repeat(depth);
+  return list.flatMap((b) => {
+    const stamp = (at) => (at ? `[${at}] ` : "");
+    switch (b.type) {
+      case "h":
+        return [`${"#".repeat(Math.min(6, (b.level ?? 1) + 2))} ${mdRuns(b.runs)}`, ""];
+      case "p":
+        return [`${stamp(b.at)}${mdRuns(b.runs)}`, ""];
+      case "quote":
+        return mdBlocks(b.blocks).map((l) => (l ? `> ${l}` : l));
+      case "ul":
+      case "ol":
+      case "todo": {
+        const lines = (b.items ?? []).flatMap((item, i) => [
+          `${pad}${b.type === "ol" ? `${i + 1}.` : b.type === "todo" ? `- [${item.checked ? "x" : " "}]` : "-"} ${stamp(item.at)}${mdRuns(item.runs)}`,
+          ...mdBlocks(item.children, depth + 1).filter(Boolean),
+        ]);
+        return depth === 0 ? [...lines, ""] : lines;
+      }
+      default:
+        return [];
+    }
+  });
+}
+
+function toMarkdown(meeting) {
+  const L = meeting.labels;
+  const c = meeting.cover;
+  const lines = [`# ${meeting.title}`, "", meeting.meta.join(" · "), ""];
+  if (meeting.tags?.length) lines.push(meeting.tags.map((t) => `#${t.replace(/\s+/g, "-")}`).join(" "), "");
+  if (c) {
+    lines.push(`## ${L.cover}`, "");
+    if (c.excerpt) lines.push(c.excerpt, "");
+    if (c.tone) lines.push(`**${L.tone}:** ${c.tone.label}. ${c.tone.reason ?? ""}`.trim(), "");
+    if (c.talk?.length) lines.push(`**${L.talk}:** ${c.talk.map((s) => `${s.name} ${s.share}`).join(", ")}`, "");
+    if (c.summary?.length) lines.push(`### ${L.summary}`, "", ...c.summary.map((s) => `- ${s}`), "");
+    if (c.decisions?.length) lines.push(`### ${L.decisions}`, "", ...c.decisions.map((d) => `- ${d.at ? `[${d.at}] ` : ""}${d.text}`), "");
+    if (c.tasks?.length) {
+      lines.push(`### ${L.tasks}`, "", ...c.tasks.map((t) => `- [${t.done ? "x" : " "}] ${t.text}${[t.owner, t.when].filter(Boolean).length ? ` (${[t.owner, t.when].filter(Boolean).join(", ")})` : ""}`), "");
+    }
+    if (c.parts?.length) {
+      lines.push(`### ${L.parts}`, "");
+      for (const p of c.parts) lines.push(`**[${p.at}] ${p.title}**`, ...(p.points ?? []).map((x) => `- ${x}`), "");
+    }
+  }
+  if (meeting.notes?.length) lines.push(`## ${L.notes}`, "", ...mdBlocks(meeting.notes));
+  if (meeting.transcript?.length) {
+    lines.push(`## ${L.transcript}`, "");
+    for (const u of meeting.transcript) lines.push(`**[${u.at}] ${meeting.speakers?.[u.s]?.name ?? ""}:** ${u.text}`, "");
+  }
+  lines.push("---", "", meeting.footer, "");
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+function download(meeting) {
+  const blob = new Blob([toMarkdown(meeting)], { type: "text/markdown;charset=utf-8" });
+  const a = el("a", { href: URL.createObjectURL(blob), download: `${meeting.title.replace(/[\/\\?%*:|"<>]/g, "-").trim() || "Murmur"}.md` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 function render(meeting) {
   shared = meeting;
   document.documentElement.lang = meeting.lang ?? lang;
@@ -381,7 +465,16 @@ function render(meeting) {
 
   show(
     el("h1", {}, meeting.title),
-    el("div", { class: "meta" }, meeting.meta.join(" · ")),
+    el(
+      "div",
+      { class: "meta" },
+      meeting.meta.join(" · "),
+      (() => {
+        const button = el("button", { type: "button", class: "download" }, meeting.labels.markdown ?? S.markdown);
+        button.addEventListener("click", () => download(meeting));
+        return button;
+      })(),
+    ),
     meeting.tags?.length > 0 && el("ul", { class: "tags" }, meeting.tags.map((t) => el("li", {}, t))),
     audioBar,
     tabs,

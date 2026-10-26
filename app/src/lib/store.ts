@@ -10,6 +10,7 @@ import {
   type Assignment,
   type Channel,
   type Cover,
+  type Language,
   type Meeting,
   type MeetingSummary,
   type PostStage,
@@ -88,6 +89,7 @@ export type Action =
   | { type: "deleteTag"; name: string }
   | { type: "screen"; id: string; screen: Screen }
   | { type: "shares"; id: string; shares: ShareLink[] }
+  | { type: "language"; id: string; language: Language }
   | { type: "removeScreen"; id: string; path: string }
   | { type: "postDone"; id: string };
 
@@ -257,6 +259,8 @@ export function reducer(state: State, action: Action): State {
       return retag(state, (tags) => tags.filter((t) => !sameTag(t, action.name)));
     case "screen":
       return updateMeeting(state, action.id, (m) => ({ ...m, screens: [...(m.screens ?? []), action.screen] }));
+    case "language":
+      return updateMeeting(state, action.id, (m) => ({ ...m, language: action.language }));
     case "shares":
       return updateMeeting(state, action.id, (m) => ({ ...m, shares: action.shares }));
     case "removeScreen":

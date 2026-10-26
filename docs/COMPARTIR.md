@@ -10,7 +10,7 @@ Murmur pot publicar una reunió en una pàgina web perquè qualsevol persona amb
    - Amb contrasenya: la clau surt de la contrasenya (PBKDF2, 600.000 voltes). L'enllaç no porta cap clau i la contrasenya no surt mai del Mac.
 3. Envia el resultat xifrat al Worker, amb la clau d'API que hi ha al clauer de macOS. Les captures i l'àudio van a part, xifrats amb la mateixa clau. L'àudio (en .m4a) va en trossos de 8 MB.
 4. El Worker ho desa a Workers KV. Si has triat una caducitat, KV ho esborra sol quan arriba el moment.
-5. Qui obre l'enllaç rep una pàgina fixa, que baixa les dades, les desxifra **al seu navegador** i les mostra. L'àudio només es baixa si el vol escoltar, i cada minut de la pàgina hi salta.
+5. Qui obre l'enllaç rep una pàgina fixa, que baixa les dades, les desxifra **al seu navegador** i les mostra. L'àudio només es baixa si el vol escoltar, i cada minut de la pàgina hi salta. «Baixa en Markdown» en desa una còpia en text.
 
 Així, ni Cloudflare ni el Worker no poden llegir el que guarden. A més, el Worker només accepta reunions xifrades per Murmur: no serveix per allotjar cap altra cosa.
 

@@ -197,6 +197,12 @@ export const shareReadFile = (meetingId: string, kind: "audio" | "screen", path:
 /** One encrypted file of a shared meeting, sent as raw bytes. */
 export const shareUploadFile = (id: string, name: string, ttl: number | null, bytes: Uint8Array) =>
   invoke<void>("share_upload_file", bytes, { headers: { "x-share-id": id, "x-share-file": name, "x-share-ttl": ttl ? String(ttl) : "" } });
+/**
+ * "Torna a transcriure en…": Whisper writes each utterance again from the saved audio (lib.rs
+ * retranscribe_meeting); the result comes as a final pass ("final-pass", "final-pass-text"…).
+ */
+export const retranscribeMeeting = (meetingId: string, audioPath: string, language: Language, channels: { base: number; spans: [number, number][] }[]) =>
+  invoke<void>("retranscribe_meeting", { meetingId, audioPath, language, channels });
 /** Cloudflare's token form, filled in with the permissions Murmur needs. */
 export const shareTokenUrl = () => invoke<string>("share_token_url");
 export type CfAccount = { id: string; name: string };
