@@ -14,6 +14,7 @@ import {
   type MeetingSummary,
   type PostStage,
   type Screen,
+  type ShareLink,
   type Utterance,
 } from "./types";
 
@@ -86,6 +87,7 @@ export type Action =
   | { type: "renameTag"; from: string; to: string }
   | { type: "deleteTag"; name: string }
   | { type: "screen"; id: string; screen: Screen }
+  | { type: "shares"; id: string; shares: ShareLink[] }
   | { type: "removeScreen"; id: string; path: string }
   | { type: "postDone"; id: string };
 
@@ -254,6 +256,8 @@ export function reducer(state: State, action: Action): State {
       return retag(state, (tags) => tags.filter((t) => !sameTag(t, action.name)));
     case "screen":
       return updateMeeting(state, action.id, (m) => ({ ...m, screens: [...(m.screens ?? []), action.screen] }));
+    case "shares":
+      return updateMeeting(state, action.id, (m) => ({ ...m, shares: action.shares }));
     case "removeScreen":
       return updateMeeting(state, action.id, (m) => ({ ...m, screens: (m.screens ?? []).filter((s) => s.path !== action.path) }));
     case "coverTasks":
@@ -379,6 +383,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.guests !== next.guests && next.guests) meta.guests = next.guests;
   if (saved.screens !== next.screens && next.screens) meta.screens = next.screens;
   if (saved.tags !== next.tags && next.tags) meta.tags = next.tags;
+  if (saved.shares !== next.shares && next.shares) meta.shares = next.shares;
   if (Object.keys(meta).length) changes.meta = meta;
   if (saved.utterances !== next.utterances) {
     const before = new Map(saved.utterances.map((u) => [u.id, u]));

@@ -3,7 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { AudioLines, CalendarDays, Check, ChevronRight, CloudUpload, Contrast, Lock, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
+import { AudioLines, CalendarDays, Check, ChevronRight, CloudUpload, Contrast, Link2, Lock, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -16,6 +16,7 @@ import { cloudModel, connectCloud, coverEngine, disconnectCloud, KEYS_URL, loadC
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
+import { connectShare, disconnectShare, useShareStatus } from "@/lib/share";
 import type { CloudProvider, Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MEETING_LANGUAGES } from "./StartOptions";
@@ -43,7 +44,11 @@ const TABS = [
   { id: "audio", icon: Mic },
   { id: "transcription", icon: AudioLines },
   { id: "intelligence", icon: Sparkles },
+  { id: "share", icon: Link2 },
 ] as const;
+
+/** Setting up shared links, step by step (share/setup.sh). */
+const SHARE_GUIDE_URL = "https://github.com/quicodomingo/murmur/blob/main/docs/COMPARTIR.md";
 
 /** A decimal in the interface language: 0,65 in Catalan and Spanish, 0.65 in English. */
 const decimal = (n: number, digits: number) => n.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -78,7 +83,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
                 role="tab"
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
-                className={cn("flex w-[88px] flex-col items-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground", tab === id && "bg-mm-tab-selected text-foreground")}
+                className={cn("flex w-[80px] flex-col items-center gap-1 rounded-md py-1.5 text-[11px] text-muted-foreground", tab === id && "bg-mm-tab-selected text-foreground")}
               >
                 <Icon className="size-5" strokeWidth={1.5} />
                 {t(`tabs.${id}`)}
@@ -95,6 +100,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
           {tab === "audio" && <AudioTab open={open} settings={settings} onChange={onChange} recording={recording} />}
           {tab === "transcription" && <TranscriptionTab settings={settings} onChange={onChange} />}
           {tab === "intelligence" && <IntelligenceTab settings={settings} onChange={onChange} meeting={meeting} onLlmLoaded={() => (llmLoaded.current = true)} />}
+          {tab === "share" && <ShareTab />}
         </div>
       </DialogContent>
     </Dialog>
@@ -951,6 +957,119 @@ function CloudRow({ provider, settings, onChange }: { provider: CloudProvider; s
   );
 }
 
+// --- Compartir -----------------------------------------------------------------------------
+
+/** The user's Cloudflare Worker for shared links (lib/share.ts): its address and API key. */
+function ShareTab() {
+  const { t } = useTranslation("settings");
+  const status = useShareStatus();
+  const [url, setUrl] = useState("");
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
+  const field =
+    "mt-1 h-6 w-full min-w-0 rounded-md border border-input bg-background px-2 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive";
+
+  const connect = async () => {
+    if (!url.trim() || !key.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await connectShare(url, key);
+      setUrl("");
+      setKey("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disconnect = async () => {
+    const message = t("share.disconnectMessage");
+    const confirmed = backend.isTauri()
+      ? await ask(message, { title: t("share.disconnectTitle"), kind: "warning", okLabel: t("share.disconnect"), cancelLabel: t("common:cancel") })
+      : window.confirm(message);
+    if (confirmed) await disconnectShare().catch((e) => toast.error(String(e)));
+  };
+
+  return (
+    <>
+      <p className="mb-4 px-1 text-[12px] leading-snug text-muted-foreground">
+        {t("share.intro")}{" "}
+        <button type="button" onClick={() => openLink(SHARE_GUIDE_URL)} className="text-mm-link hover:underline">
+          {t("share.guide")}
+        </button>
+      </p>
+      <Group title={t("share.group")}>
+        {status ? (
+          <div className="flex min-h-11 items-center gap-4 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px]">{t("share.connected", { host: new URL(status.url).host })}</div>
+              <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">{t("share.keySaved", { hint: status.hint })}</div>
+            </div>
+            <button type="button" className={cn(button, "text-destructive")} onClick={disconnect}>
+              {t("share.disconnect")}
+            </button>
+          </div>
+        ) : (
+          <form
+            className="px-3 py-2.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              connect();
+            }}
+          >
+            <label className="block text-[12px]">
+              {t("share.url")}
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={t("share.urlPlaceholder")}
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={!!error}
+                className={field}
+              />
+            </label>
+            <label className="mt-2 block text-[12px]">
+              {t("share.key")}
+              <input
+                type="password"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="mm_…"
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={!!error}
+                aria-describedby={error ? "share-error" : undefined}
+                className={cn(field, "font-mono")}
+              />
+            </label>
+            <div className="mt-2 flex items-center gap-3">
+              <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">{t("share.keyHint")}</p>
+              <button type="submit" className={button} disabled={busy || !url.trim() || !key.trim()}>
+                {busy ? t("share.checking") : t("share.connect")}
+              </button>
+            </div>
+            {error && (
+              <p id="share-error" role="alert" className="mt-1.5 text-[11px] text-destructive">
+                {error}
+              </p>
+            )}
+          </form>
+        )}
+      </Group>
+      <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
+        <Lock className="mt-px size-3 shrink-0" aria-hidden />
+        <span>{t("share.privacy")}</span>
+      </p>
+    </>
+  );
+}
+
 const openLink = (url: string) => (backend.isTauri() ? openUrl(url) : Promise.resolve(window.open(url, "_blank"))).catch(() => {});
 
 /** Turning a feature on fetches its model if it isn't there yet. */
@@ -1207,7 +1326,7 @@ function PromptEditor({
 
 // --- Building blocks -----------------------------------------------------------------------
 
-function Segmented<T extends string>({
+export function Segmented<T extends string>({
   value,
   options,
   onChange,

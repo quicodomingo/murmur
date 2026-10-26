@@ -7,7 +7,8 @@
     "calendar": "Calendar",
     "audio": "Audio",
     "transcription": "Transcription",
-    "intelligence": "Intelligence"
+    "intelligence": "Intelligence",
+    "share": "Sharing"
   },
   "nextRecording": "Changes will apply to the next recording.",
   "general": {
@@ -218,5 +219,22 @@
     "disconnectMessage": "The {{company}} key will be removed from the keychain. Your existing covers don't change.",
     "model": "Model",
     "modelHint": "Larger ones write better and cost more per cover."
+  },
+  "share": {
+    "group": "Shared links",
+    "intro": "Meetings are shared through a Worker on your Cloudflare account, which is free. Murmur encrypts them before sending: not even Cloudflare can read them.",
+    "guide": "How to set it up",
+    "url": "Worker address",
+    "urlPlaceholder": "https://murmur-share.your-account.workers.dev",
+    "key": "API key",
+    "keyHint": "The setup script shows both when it finishes.",
+    "connect": "Connect",
+    "checking": "Checking…",
+    "connected": "Connected to {{host}}",
+    "keySaved": "Key saved in the keychain, ends in …{{hint}}",
+    "disconnect": "Disconnect",
+    "disconnectTitle": "Disconnect the Worker?",
+    "disconnectMessage": "Links you've already shared will keep working, but you won't be able to create or withdraw any until you connect it again.",
+    "privacy": "Only what you choose when sharing is sent, encrypted on this Mac. Never the audio."
   }
 }

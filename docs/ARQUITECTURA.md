@@ -156,6 +156,14 @@ Editor Tiptap 3 (títols, negreta, cursiva, subratllat, ratllat, llistes i tasqu
 - **Desactualitzada:** la portada desa una empremta del que ha llegit (`basis`). Si després canvien noms, parlants, text o notes, avisa i ofereix tornar-la a generar.
 - «PDF o envia…» obre el tauler d'impressió de macOS sobre una còpia de la portada (`.mm-print`), en mode clar.
 
+### Compartir (`lib/share.ts`, `share.rs`, `share/`)
+
+- «Comparteix un enllaç…» (menú Exporta) publica la portada, les notes i la transcripció, o el que se'n triï, en una pàgina web al Worker de Cloudflare **de l'usuari**. Murmur no té cap servidor propi. La posada en marxa és a [COMPARTIR.md](COMPARTIR.md).
+- La interfície munta la reunió ja traduïda i amb els colors dels parlants, la comprimeix i la xifra amb AES-GCM. La clau va a l'enllaç després del `#`, o surt d'una contrasenya amb PBKDF2. El Worker només rep el resultat xifrat: ni ell ni Cloudflare no el poden llegir.
+- `share.rs` desa l'adreça i la clau d'API del Worker al clauer (servei `com.quicodomingo.murmur.share`) i fa les crides. La clau no torna mai a la interfície.
+- El Worker (`share/src/worker.js`) desa cada reunió a Workers KV amb `expirationTtl`, i KV l'esborra quan caduca. La pàgina (`share/public/viewer.js`) la desxifra al navegador i la dibuixa sempre amb `textContent`, amb una CSP que només permet els seus fitxers.
+- Els enllaços de cada reunió es desen a la columna `shares` (amb la clau, per poder-los copiar) i es poden retirar. En esborrar una reunió, es retiren els que encara no han caducat.
+
 ### Actualitzacions, novetats i publicació
 
 - **Actualitzacions** (`UpdatesDialog.tsx`): en obrir Murmur (si està activat) i amb «Comprova ara». Instal·la tot el que hi hagi pendent: primer els models, després l'app (plugin updater de Tauri), que es reinicia.

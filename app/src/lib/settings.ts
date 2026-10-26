@@ -4,6 +4,7 @@ import { applyAppearance, type Mode, type Theme } from "./appearance";
 import { isTauri, setUiLanguage } from "./backend";
 import type { CoverLanguagePref } from "./cover";
 import { applyLanguage, resolveLanguage, type UiLanguagePref } from "./i18n";
+import type { ShareExpiry } from "./share";
 import type { CloudProvider, Language } from "./types";
 
 export type Settings = {
@@ -37,6 +38,8 @@ export type Settings = {
   coverEngine: "local" | CloudProvider;
   /** The model chosen for each provider; missing = its default (lib/cloud.ts). */
   cloudModels: Partial<Record<CloudProvider, string>>;
+  /** How long a shared link lasts, the last one chosen (lib/share.ts). */
+  shareExpiry: ShareExpiry;
   /** The cover's language: the interface's, or the one the meeting was recorded in (lib/cover.ts). */
   coverLanguage: CoverLanguagePref;
   /** Edited prompts, by id (lib/cover.ts PROMPTS); missing ones use the default text. */
@@ -83,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
   summarize: false,
   coverEngine: "local",
   cloudModels: {},
+  shareExpiry: "7d",
   coverLanguage: "interface",
   prompts: {},
   detectMeetings: true,

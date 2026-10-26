@@ -7,7 +7,8 @@
     "calendar": "Calendari",
     "audio": "Àudio",
     "transcription": "Transcripció",
-    "intelligence": "Intel·ligència"
+    "intelligence": "Intel·ligència",
+    "share": "Compartir"
   },
   "nextRecording": "Els canvis s'aplicaran a la propera gravació.",
   "general": {
@@ -218,5 +219,22 @@
     "disconnectMessage": "S'esborrarà la clau d'{{company}} del clauer. Les portades que ja tens no canvien.",
     "model": "Model",
     "modelHint": "Els més grans escriuen millor i costen més per portada."
+  },
+  "share": {
+    "group": "Enllaços per compartir",
+    "intro": "Les reunions es comparteixen a través d'un Worker del teu compte de Cloudflare, que és gratuït. Murmur les xifra abans d'enviar-les: ni Cloudflare no les pot llegir.",
+    "guide": "Com es posa en marxa",
+    "url": "Adreça del Worker",
+    "urlPlaceholder": "https://murmur-share.el-teu-compte.workers.dev",
+    "key": "Clau d'API",
+    "keyHint": "Les dues coses les mostra l'script d'instal·lació en acabar.",
+    "connect": "Connecta",
+    "checking": "Comprovant…",
+    "connected": "Connectat a {{host}}",
+    "keySaved": "Clau desada al clauer, acaba en …{{hint}}",
+    "disconnect": "Desconnecta",
+    "disconnectTitle": "Vols desconnectar el Worker?",
+    "disconnectMessage": "Els enllaços que ja has compartit continuaran funcionant, però no en podràs crear ni retirar fins que el tornis a connectar.",
+    "privacy": "Només s'envia el que tries en compartir, xifrat en aquest Mac. Mai l'àudio."
   }
 }

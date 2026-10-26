@@ -1,0 +1,50 @@
+{
+  "menu": "Comparteix un enllaç…",
+  "title": "Comparteix la reunió",
+  "description": "Crea un enllaç perquè qui el tingui pugui llegir la reunió al navegador.",
+  "what": "Què hi surt",
+  "parts": {
+    "cover": "Portada",
+    "notes": "Notes",
+    "transcript": "Transcripció"
+  },
+  "password": "Contrasenya",
+  "passwordHint": "Qui obri l'enllaç l'haurà d'escriure. Envia-la per un altre camí.",
+  "passwordPlaceholder": "Escriu una contrasenya",
+  "expiry": "Caduca",
+  "expiries": {
+    "1d": "1 dia",
+    "7d": "7 dies",
+    "30d": "30 dies",
+    "never": "Mai"
+  },
+  "privacy": "Murmur la xifra en aquest Mac abans d'enviar-la al teu Worker de Cloudflare. Sense l'enllaç ningú no la pot llegir, ni tan sols Cloudflare.",
+  "privacyPassword": "Murmur la xifra en aquest Mac abans d'enviar-la al teu Worker de Cloudflare. Sense l'enllaç i la contrasenya ningú no la pot llegir, ni tan sols Cloudflare.",
+  "consent": "Hi surten els noms i el que va dir cada persona: comparteix-la només amb qui ho pugui veure.",
+  "create": "Crea l'enllaç",
+  "creating": "Xifrant i pujant…",
+  "link": "Enllaç",
+  "copy": "Copia",
+  "copied": "Copiat",
+  "expiresOn": "Caduca el {{date}}",
+  "neverExpires": "No caduca",
+  "expiredOn": "Ha caducat el {{date}}",
+  "withPassword": "Amb contrasenya",
+  "sharedOn": "Compartit el {{date}}",
+  "links": "Enllaços d'aquesta reunió",
+  "revoke": "Retira",
+  "revokeLabel": "Retira l'enllaç del {{date}}",
+  "revokeTitle": "Vols retirar l'enllaç?",
+  "revokeMessage": "Deixarà de funcionar per a tothom que el tingui.",
+  "notConnected": "Per compartir cal connectar Murmur a un Worker del teu compte de Cloudflare. És gratuït i es configura un sol cop.",
+  "setUp": "Configura-ho",
+  "failed": "No s'ha pogut compartir: {{error}}",
+  "revokeFailed": "No s'ha pogut retirar l'enllaç: {{error}}",
+  "page": {
+    "cover": "Portada",
+    "taskDone": "Feta",
+    "taskOpen": "Pendent",
+    "footer": "Compartit des de Murmur el {{date}}.",
+    "footerExpires": "Compartit des de Murmur el {{date}}. L'enllaç caduca el {{expires}}."
+  }
+}

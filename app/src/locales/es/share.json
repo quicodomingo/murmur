@@ -1,0 +1,50 @@
+{
+  "menu": "Compartir un enlace…",
+  "title": "Compartir la reunión",
+  "description": "Crea un enlace para que quien lo tenga pueda leer la reunión en el navegador.",
+  "what": "Qué aparece",
+  "parts": {
+    "cover": "Portada",
+    "notes": "Notas",
+    "transcript": "Transcripción"
+  },
+  "password": "Contraseña",
+  "passwordHint": "Quien abra el enlace tendrá que escribirla. Envíala por otro camino.",
+  "passwordPlaceholder": "Escribe una contraseña",
+  "expiry": "Caduca",
+  "expiries": {
+    "1d": "1 día",
+    "7d": "7 días",
+    "30d": "30 días",
+    "never": "Nunca"
+  },
+  "privacy": "Murmur la cifra en este Mac antes de enviarla a tu Worker de Cloudflare. Sin el enlace nadie puede leerla, ni siquiera Cloudflare.",
+  "privacyPassword": "Murmur la cifra en este Mac antes de enviarla a tu Worker de Cloudflare. Sin el enlace y la contraseña nadie puede leerla, ni siquiera Cloudflare.",
+  "consent": "Aparecen los nombres y lo que dijo cada persona: compártela solo con quien pueda verlo.",
+  "create": "Crear el enlace",
+  "creating": "Cifrando y subiendo…",
+  "link": "Enlace",
+  "copy": "Copiar",
+  "copied": "Copiado",
+  "expiresOn": "Caduca el {{date}}",
+  "neverExpires": "No caduca",
+  "expiredOn": "Caducó el {{date}}",
+  "withPassword": "Con contraseña",
+  "sharedOn": "Compartido el {{date}}",
+  "links": "Enlaces de esta reunión",
+  "revoke": "Retirar",
+  "revokeLabel": "Retirar el enlace del {{date}}",
+  "revokeTitle": "¿Quieres retirar el enlace?",
+  "revokeMessage": "Dejará de funcionar para todos los que lo tengan.",
+  "notConnected": "Para compartir hay que conectar Murmur a un Worker de tu cuenta de Cloudflare. Es gratuito y se configura una sola vez.",
+  "setUp": "Configurarlo",
+  "failed": "No se ha podido compartir: {{error}}",
+  "revokeFailed": "No se ha podido retirar el enlace: {{error}}",
+  "page": {
+    "cover": "Portada",
+    "taskDone": "Hecha",
+    "taskOpen": "Pendiente",
+    "footer": "Compartido desde Murmur el {{date}}.",
+    "footerExpires": "Compartido desde Murmur el {{date}}. El enlace caduca el {{expires}}."
+  }
+}

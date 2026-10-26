@@ -286,6 +286,31 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "The answer was cut off",
         ],
         "cloud_empty" => ["Resposta buida", "Respuesta vacía", "Empty answer"],
+        "share_not_connected" => [
+            "Murmur no està connectat a cap Worker per compartir",
+            "Murmur no está conectado a ningún Worker para compartir",
+            "Murmur isn't connected to a Worker for sharing",
+        ],
+        "share_bad_url" => [
+            "L'adreça no és vàlida. Ha de ser com https://murmur-share.el-teu-compte.workers.dev",
+            "La dirección no es válida. Debe ser como https://murmur-share.tu-cuenta.workers.dev",
+            "That address isn't valid. It should look like https://murmur-share.your-account.workers.dev",
+        ],
+        "share_bad_key" => [
+            "El Worker no accepta aquesta clau d'API",
+            "El Worker no acepta esta clave de API",
+            "The Worker doesn't accept this API key",
+        ],
+        "share_not_worker" => [
+            "En aquesta adreça no hi ha el Worker de Murmur",
+            "En esta dirección no está el Worker de Murmur",
+            "Murmur's Worker isn't at this address",
+        ],
+        "share_too_large" => [
+            "La reunió és massa gran per compartir-la",
+            "La reunión es demasiado grande para compartirla",
+            "The meeting is too large to share",
+        ],
         "punct_model_missing" => [
             "Falta el model de puntuació {path}",
             "Falta el modelo de puntuación {path}",

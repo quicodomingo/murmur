@@ -23,6 +23,7 @@ import type {
   ModelStatus,
   SearchHit,
   Screen,
+  ShareLink,
   Utterance,
 } from "./types";
 
@@ -53,7 +54,7 @@ export const stopRecording = () => invoke<void>("stop_recording");
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language" | "tags">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[] };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language" | "tags">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[]; shares?: ShareLink[] };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };
@@ -180,6 +181,16 @@ export const cloudStatus = () => invoke<Record<CloudProvider, string | null>>("c
 export const cloudConnect = (provider: CloudProvider, key: string) => invoke<CloudModel[]>("cloud_connect", { provider, key });
 export const cloudDisconnect = (provider: CloudProvider) => invoke<void>("cloud_disconnect", { provider });
 export const cloudModels = (provider: CloudProvider) => invoke<CloudModel[]>("cloud_models", { provider });
+/** The Worker for shared links (share.rs): its address and the API key's last characters. */
+export type ShareStatus = { url: string; hint: string };
+export const shareStatus = () => invoke<ShareStatus | null>("share_status");
+/** Checks the Worker's address and API key, and saves them to the keychain. */
+export const shareConnect = (url: string, key: string) => invoke<ShareStatus>("share_connect", { url, key });
+export const shareDisconnect = () => invoke<void>("share_disconnect");
+/** Uploads an encrypted meeting; `ttl` in seconds, null = it never expires. */
+export const sharePublish = (envelope: string, ttl: number | null) =>
+  invoke<{ id: string; url: string; expiresAt: number | null }>("share_publish", { envelope, ttl });
+export const shareRevoke = (id: string) => invoke<void>("share_revoke", { id });
 export const onLlmProgress = (fn: (e: LlmProgress) => void) => listen<LlmProgress>("llm-progress", (e) => fn(e.payload));
 
 export async function subscribe(handlers: {

@@ -7,7 +7,8 @@
     "calendar": "Calendario",
     "audio": "Audio",
     "transcription": "Transcripción",
-    "intelligence": "Inteligencia"
+    "intelligence": "Inteligencia",
+    "share": "Compartir"
   },
   "nextRecording": "Los cambios se aplicarán en la próxima grabación.",
   "general": {
@@ -218,5 +219,22 @@
     "disconnectMessage": "Se borrará la clave de {{company}} del llavero. Las portadas que ya tienes no cambian.",
     "model": "Modelo",
     "modelHint": "Los más grandes escriben mejor y cuestan más por portada."
+  },
+  "share": {
+    "group": "Enlaces para compartir",
+    "intro": "Las reuniones se comparten a través de un Worker de tu cuenta de Cloudflare, que es gratuito. Murmur las cifra antes de enviarlas: ni Cloudflare puede leerlas.",
+    "guide": "Cómo se pone en marcha",
+    "url": "Dirección del Worker",
+    "urlPlaceholder": "https://murmur-share.tu-cuenta.workers.dev",
+    "key": "Clave de API",
+    "keyHint": "Las dos cosas las muestra el script de instalación al terminar.",
+    "connect": "Conectar",
+    "checking": "Comprobando…",
+    "connected": "Conectado a {{host}}",
+    "keySaved": "Clave guardada en el llavero, acaba en …{{hint}}",
+    "disconnect": "Desconectar",
+    "disconnectTitle": "¿Quieres desconectar el Worker?",
+    "disconnectMessage": "Los enlaces que ya has compartido seguirán funcionando, pero no podrás crear ni retirar ninguno hasta que lo vuelvas a conectar.",
+    "privacy": "Solo se envía lo que eliges al compartir, cifrado en este Mac. Nunca el audio."
   }
 }

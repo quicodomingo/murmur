@@ -1,0 +1,14 @@
+{
+  "name": "murmur-share",
+  "private": true,
+  "description": "Murmur's shared links: a Cloudflare Worker that keeps encrypted meetings and shows them.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "setup": "./setup.sh"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.3"
+  }
+}

@@ -8,6 +8,7 @@ pub mod engine;
 pub mod gate;
 pub mod i18n;
 pub mod cloud;
+pub mod share;
 pub mod llm;
 pub mod micwatch;
 pub mod models;
@@ -796,6 +797,42 @@ async fn cloud_models(provider: cloud::Provider) -> Result<Vec<cloud::CloudModel
     .map_err(|e| format!("{e:#}"))
 }
 
+/// The Worker for shared links, if connected: its address and the key's last characters.
+#[tauri::command]
+async fn share_status() -> Result<Option<share::Status>, String> {
+    tauri::async_runtime::spawn_blocking(share::status).await.map_err(|e| e.to_string())
+}
+
+/// Checks the Worker's address and API key, and saves them to the keychain.
+#[tauri::command]
+async fn share_connect(url: String, key: String) -> Result<share::Status, String> {
+    tauri::async_runtime::spawn_blocking(move || share::connect(&url, &key).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn share_disconnect() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| share::disconnect().map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Uploads a meeting the interface has already encrypted; `ttl` in seconds, none = never expires.
+#[tauri::command]
+async fn share_publish(envelope: String, ttl: Option<u64>) -> Result<share::Published, String> {
+    tauri::async_runtime::spawn_blocking(move || share::publish(&envelope, ttl).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn share_revoke(id: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || share::revoke(&id).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 /// Frees the language model (closing the prompt editor).
 #[tauri::command]
 async fn release_llm(app: AppHandle) -> Result<(), String> {
@@ -1135,6 +1172,11 @@ pub fn run() {
             cloud_connect,
             cloud_disconnect,
             cloud_models,
+            share_status,
+            share_connect,
+            share_disconnect,
+            share_publish,
+            share_revoke,
             shell::current_toast,
             shell::dismiss_toast,
             shell::toast_start,

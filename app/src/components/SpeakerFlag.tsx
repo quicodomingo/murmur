@@ -26,11 +26,16 @@ export const isYou = (m: Pick<Meeting, "sources">, speaker: number) => !!(m.sour
  */
 export const toneOrder = (m: Pick<Meeting, "sources">, ids: number[]) => ids.filter((id) => !isYou(m, id));
 
+/** Which of the theme's speaker colours (1 to 4) a speaker gets, by its place in `order`. */
+export function speakerHue(speaker: number, order?: number[]): number {
+  const slot = order?.indexOf(speaker) ?? -1;
+  return ((slot >= 0 ? slot : speaker >= SYSTEM_SPEAKER_BASE ? speaker - SYSTEM_SPEAKER_BASE : speaker) % HUES) + 1;
+}
+
 /** Solid colour (charts), tint (tag background) and text colour of a speaker, by its place in `order`. */
 export function speakerTone(speaker: number, you = false, order?: number[]) {
   if (you) return { solid: "var(--mm-you)", tint: "var(--mm-you)", text: "var(--mm-on-you)" };
-  const slot = order?.indexOf(speaker) ?? -1;
-  const n = ((slot >= 0 ? slot : speaker >= SYSTEM_SPEAKER_BASE ? speaker - SYSTEM_SPEAKER_BASE : speaker) % HUES) + 1;
+  const n = speakerHue(speaker, order);
   return { solid: `var(--mm-speaker-${n})`, tint: `var(--mm-speaker-${n}-tint)`, text: `var(--mm-speaker-${n}-text)` };
 }
 

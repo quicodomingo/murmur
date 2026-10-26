@@ -3,7 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { join } from "@tauri-apps/api/path";
 import { ask, open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Images, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { Camera, ChevronDown, FileAudio, Copy, FileDown, FileText, FolderOpen, Images, Link2, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -15,6 +15,7 @@ import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
 import { PlayerBar } from "@/components/PlayerBar";
 import { SettingsDialog, type Tab as SettingsTab } from "@/components/SettingsDialog";
+import { ShareDialog } from "@/components/ShareDialog";
 import { UpdatesDialog } from "@/components/UpdatesDialog";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -36,6 +37,7 @@ import { usePostProcess } from "@/lib/postprocess";
 import { RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
 import { hasAudio, playAt, stopUnless } from "@/lib/player";
 import { useSettings } from "@/lib/settings";
+import { expired, revokeShare } from "@/lib/share";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
 import type { Language, Meeting, ModelId, SearchHit } from "@/lib/types";
@@ -125,6 +127,7 @@ export default function App() {
   const [state, dispatch, forget] = useMeetings();
   const [settings, updateSettings] = useSettings();
   const [showSettings, setShowSettings] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>();
   const [whatsNew, setWhatsNew] = useState<{ releases: WhatsNewRelease[]; manual: boolean; version: string } | null>(null);
   const [showAbout, setShowAbout] = useState(false);
@@ -445,6 +448,8 @@ export default function App() {
       ? await ask(message, { title: t("deleteTitle"), kind: "warning", okLabel: t("common:delete"), cancelLabel: t("common:cancel") })
       : window.confirm(message);
     if (!confirmed) return;
+    // Its shared links stop working too (best effort: offline, they expire on their own).
+    for (const link of m.shares ?? []) if (!expired(link)) revokeShare(link.id).catch(() => {});
     try {
       if (backend.isTauri()) await backend.deleteMeeting(m.id, m.audioPath ?? null);
       forget(m.id);
@@ -807,6 +812,10 @@ export default function App() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="min-w-52">
+                      <DropdownMenuItem onSelect={() => setShowShare(true)}>
+                        <Link2 className="size-3.5" /> {t("share:menu")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={() => doExport(meeting, "docx")}>
                         <FileDown className="size-3.5" /> {t("exportDocx")}
                       </DropdownMenuItem>
@@ -907,6 +916,21 @@ export default function App() {
         initialTab={settingsTab}
         meeting={meeting && meeting.status === "done" && meeting.utterances.length ? meeting : null}
       />
+      {meeting && (
+        <ShareDialog
+          meeting={meeting}
+          open={showShare}
+          onOpenChange={setShowShare}
+          settings={settings}
+          onChange={updateSettings}
+          onShares={(shares) => dispatch({ type: "shares", id: meeting.id, shares })}
+          onSetUp={() => {
+            setShowShare(false);
+            setSettingsTab("share");
+            setShowSettings(true);
+          }}
+        />
+      )}
       <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
       {whatsNew && !onboarding.open && (
         <WhatsNewDialog

@@ -17,6 +17,7 @@ Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur 
 | `app/src/` | Interfície (React, shadcn/ui, i18next) |
 | `app/src-tauri/src/` | Motor en Rust: àudio, transcripció, parlants, base de dades, model de llenguatge |
 | `app/whisper/` | `murmur-whisper`, el procés a part que fa la passada final amb Whisper |
+| `share/` | El Worker de Cloudflare dels enllaços compartits ([`docs/COMPARTIR.md`](docs/COMPARTIR.md)) |
 | `bench/`, `mvp/`, `tools/` | Banc de proves, primer prototip i scripts d'exportació de models (Python, amb `uv`) |
 
 ## Ordres
@@ -44,6 +45,7 @@ cd app && npx tsc --noEmit && npm run check-locales    # tipus i traduccions
 **Privadesa**
 - Tot es processa en local per defecte. Qualsevol connexió al núvol ha de ser opcional i explícita.
 - Si algun dia hi ha un model al núvol, serà amb la clau pròpia de l'usuari, desada al clauer del sistema, mai en text pla. Només s'hi enviaria text, mai àudio.
+- Compartir una reunió publica només el que tria l'usuari, xifrat al Mac abans de sortir-ne, al seu propi Worker de Cloudflare.
 - Gravar una reunió requereix el consentiment de qui hi participa, i l'app ho recorda en començar.
 
 **Models i dades**

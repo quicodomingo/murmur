@@ -1,0 +1,50 @@
+{
+  "menu": "Share a link…",
+  "title": "Share the meeting",
+  "description": "Creates a link so whoever has it can read the meeting in a browser.",
+  "what": "What's included",
+  "parts": {
+    "cover": "Cover",
+    "notes": "Notes",
+    "transcript": "Transcript"
+  },
+  "password": "Password",
+  "passwordHint": "Whoever opens the link will have to type it. Send it some other way.",
+  "passwordPlaceholder": "Type a password",
+  "expiry": "Expires",
+  "expiries": {
+    "1d": "1 day",
+    "7d": "7 days",
+    "30d": "30 days",
+    "never": "Never"
+  },
+  "privacy": "Murmur encrypts it on this Mac before sending it to your Cloudflare Worker. Without the link nobody can read it, not even Cloudflare.",
+  "privacyPassword": "Murmur encrypts it on this Mac before sending it to your Cloudflare Worker. Without the link and the password nobody can read it, not even Cloudflare.",
+  "consent": "It includes names and what each person said: only share it with people who may see it.",
+  "create": "Create link",
+  "creating": "Encrypting and uploading…",
+  "link": "Link",
+  "copy": "Copy",
+  "copied": "Copied",
+  "expiresOn": "Expires on {{date}}",
+  "neverExpires": "Doesn't expire",
+  "expiredOn": "Expired on {{date}}",
+  "withPassword": "With a password",
+  "sharedOn": "Shared on {{date}}",
+  "links": "Links to this meeting",
+  "revoke": "Withdraw",
+  "revokeLabel": "Withdraw the link from {{date}}",
+  "revokeTitle": "Withdraw the link?",
+  "revokeMessage": "It will stop working for everyone who has it.",
+  "notConnected": "To share, connect Murmur to a Worker on your Cloudflare account. It's free and you only set it up once.",
+  "setUp": "Set it up",
+  "failed": "Couldn't share: {{error}}",
+  "revokeFailed": "Couldn't withdraw the link: {{error}}",
+  "page": {
+    "cover": "Cover",
+    "taskDone": "Done",
+    "taskOpen": "To do",
+    "footer": "Shared from Murmur on {{date}}.",
+    "footerExpires": "Shared from Murmur on {{date}}. The link expires on {{expires}}."
+  }
+}

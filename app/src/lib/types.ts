@@ -52,6 +52,22 @@ export type Meeting = {
   language?: Language;
   /** To organise meetings (by client, project…); the sidebar filters by them. */
   tags?: string[];
+  /** Links it was shared with (lib/share.ts), newest first; expired ones are kept until withdrawn. */
+  shares?: ShareLink[];
+};
+
+/** What was shared (lib/share.ts). */
+export type SharePart = "cover" | "notes" | "transcript";
+
+/** A shared link: `url` carries the key after the # (none with a password). */
+export type ShareLink = {
+  id: string;
+  url: string;
+  createdAt: number;
+  /** null: it never expires. */
+  expiresAt: number | null;
+  password: boolean;
+  parts: SharePart[];
 };
 
 export type Screen = { t: number; path: string };
