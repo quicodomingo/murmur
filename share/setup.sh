@@ -9,18 +9,39 @@ WRANGLER="npx wrangler"
 
 $WRANGLER whoami >/dev/null 2>&1 || $WRANGLER login
 
+# Never stop without saying where.
+trap 'echo "S'"'"'ha aturat a la línia $LINENO. Torna-ho a provar; si es repeteix, envia el que surt a dalt." >&2' ERR
+
+KV_NAME="murmur-shares"
+# The id of the KV store, if it exists (also left over from an earlier run).
+kv_id() {
+  $WRANGLER kv namespace list 2>/dev/null </dev/null | node -e '
+    let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+      try { const n = JSON.parse(s.slice(s.indexOf("["))).find((n) => n.title === process.argv[1]); process.stdout.write(n ? n.id : ""); } catch {}
+    });' "$KV_NAME"
+}
+
 if grep -q 'id = "KV_NAMESPACE_ID"' wrangler.toml; then
   echo "› Creant on es guarden les reunions compartides (Workers KV)"
-  ID=$($WRANGLER kv namespace create SHARES 2>&1 | grep -oE '[0-9a-f]{32}' | head -1)
+  ID=$(kv_id)
   if [ -z "$ID" ]; then
-    echo "No s'ha pogut crear el KV. Si ja existeix, posa'n l'id a wrangler.toml (npx wrangler kv namespace list)." >&2
+    if ! OUT=$($WRANGLER kv namespace create "$KV_NAME" </dev/null 2>&1); then
+      echo "$OUT" >&2
+      echo "No s'ha pogut crear el KV." >&2
+      exit 1
+    fi
+    ID=$(kv_id)
+  fi
+  if [ -z "$ID" ]; then
+    echo "${OUT:-}" >&2
+    echo "S'ha creat el KV però no en trobo l'id. Busca'l amb «npx wrangler kv namespace list» (es diu $KV_NAME) i posa'l a wrangler.toml." >&2
     exit 1
   fi
   sed -i.bak "s/KV_NAMESPACE_ID/$ID/" wrangler.toml && rm wrangler.toml.bak
 fi
 
 echo "› Publicant el Worker"
-OUT=$($WRANGLER deploy 2>&1) || { echo "$OUT" >&2; exit 1; }
+OUT=$($WRANGLER deploy </dev/null 2>&1) || { echo "$OUT" >&2; exit 1; }
 URL=$(echo "$OUT" | grep -oE 'https://[^ ]+\.workers\.dev' | head -1)
 
 echo "› Clau d'API nova"
