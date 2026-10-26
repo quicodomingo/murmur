@@ -6,6 +6,18 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.5.0": [
+      {
+        "title": "Share a meeting with a link",
+        "text": "Choose whether to share the cover, the notes or the transcript, when the link expires and whether it has a password. Murmur encrypts it on this Mac and publishes it on your Cloudflare account, which is free.",
+        "link": "share",
+        "linkLabel": "Set it up"
+      },
+      {
+        "title": "More reliable updates",
+        "text": "The update package unpacks properly, and if something goes wrong, the window explains it without getting distorted."
+      }
+    ],
     "0.4.0": [
       {
         "title": "Tags to organise your meetings",

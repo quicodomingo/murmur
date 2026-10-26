@@ -6,6 +6,18 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.5.0": [
+      {
+        "title": "Comparte una reunión con un enlace",
+        "text": "Elige si quieres compartir la portada, las notas o la transcripción, cuándo caduca el enlace y si lleva contraseña. Murmur lo cifra en este Mac y lo publica en tu cuenta de Cloudflare, que es gratuita.",
+        "link": "share",
+        "linkLabel": "Configurarlo"
+      },
+      {
+        "title": "Actualizaciones más fiables",
+        "text": "El paquete de actualización se descomprime bien, y si algo falla, la ventana lo explica sin deformarse."
+      }
+    ],
     "0.4.0": [
       {
         "title": "Etiquetas para ordenar las reuniones",

@@ -6,6 +6,18 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.5.0": [
+      {
+        "title": "Comparteix una reunió amb un enllaç",
+        "text": "Tria si vols compartir la portada, les notes o la transcripció, quan caduca l'enllaç i si porta contrasenya. Murmur ho xifra en aquest Mac i ho publica al teu compte de Cloudflare, que és gratuït.",
+        "link": "share",
+        "linkLabel": "Configura-ho"
+      },
+      {
+        "title": "Actualitzacions més fiables",
+        "text": "El paquet d'actualització es descomprimeix bé, i si alguna cosa falla, la finestra ho explica sense deformar-se."
+      }
+    ],
     "0.4.0": [
       {
         "title": "Etiquetes per ordenar les reunions",
