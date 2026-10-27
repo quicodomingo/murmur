@@ -72,6 +72,9 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
         // App menu and menu bar icon.
         "menu_about" => ["Quant a Murmur", "Acerca de Murmur", "About Murmur"],
         "menu_settings" => ["Configuració…", "Ajustes…", "Settings…"],
+        "menu_zoom_in" => ["Amplia el text", "Ampliar el texto", "Make Text Bigger"],
+        "menu_zoom_out" => ["Redueix el text", "Reducir el texto", "Make Text Smaller"],
+        "menu_zoom_reset" => ["Mida real del text", "Tamaño real del texto", "Actual Text Size"],
         "tray_start" => ["Comença a gravar", "Empezar a grabar", "Start Recording"],
         "tray_stop" => ["Atura la gravació", "Detener la grabación", "Stop Recording"],
         "tray_open" => ["Obre Murmur", "Abrir Murmur", "Open Murmur"],

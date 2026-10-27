@@ -28,6 +28,8 @@ export type Settings = {
   roomSpeakers: boolean;
   /** Final pass: re-check speakers over the whole meeting after stopping (experimental). */
   verifySpeakers: boolean;
+  /** ⌘+ / ⌘−: size of the reading text (notes, transcript, summary), one of TEXT_ZOOMS. */
+  textZoom: number;
   /** What takes the main area; the other one goes in the side panel. */
   primaryPanel: "transcript" | "notes";
   /** After a recording: punctuation and capitals (optional model, models.rs PUNCTUATION). */
@@ -68,6 +70,17 @@ export type Settings = {
   calendarNoGuests: boolean;
 };
 
+/** The steps of ⌘+ / ⌘−, around the normal size (1). */
+export const TEXT_ZOOMS = [0.85, 0.92, 1, 1.1, 1.2, 1.35, 1.5];
+
+/** The next step up (1) or down (-1); 0 goes back to the normal size. */
+export function stepTextZoom(current: number, direction: -1 | 0 | 1): number {
+  if (direction === 0) return 1;
+  const i = TEXT_ZOOMS.findIndex((z) => z >= current - 0.001);
+  const at = i < 0 ? TEXT_ZOOMS.length - 1 : i;
+  return TEXT_ZOOMS[Math.min(TEXT_ZOOMS.length - 1, Math.max(0, at + direction))];
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   uiLanguage: "system",
   language: "ca-es",
@@ -89,6 +102,7 @@ export const DEFAULT_SETTINGS: Settings = {
   punctuate: false,
   summarize: false,
   saveMarkdown: false,
+  textZoom: 1,
   markdownDir: null,
   coverEngine: "local",
   cloudModels: {},

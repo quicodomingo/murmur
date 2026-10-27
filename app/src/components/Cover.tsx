@@ -45,7 +45,7 @@ export function Cover(props: Props) {
   const generating = !!run && run.steps.includes("cover");
   return (
     <div className="h-full overflow-y-auto">
-      <article className="mx-auto max-w-[760px] px-10 pb-20 pt-11">
+      <article className="mm-reading mx-auto max-w-[760px] px-10 pb-20 pt-11">
         <p className="text-[13px] text-muted-foreground">{meta(meeting)}</p>
         <TitleInput title={meeting.title} onChange={props.onTitle} />
         {props.tags && <div className="print:hidden">{props.tags}</div>}

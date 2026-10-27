@@ -77,6 +77,8 @@ export const onMicLevel = (fn: (rms: number) => void) => listen<{ rms: number }>
 export const onOpenSettings = (fn: () => void) => listen("open-settings", () => fn());
 /** "Quant a Murmur" in the app menu. */
 export const onOpenAbout = (fn: () => void) => listen("open-about", () => fn());
+/** View › Amplia el text / Redueix el text / Mida real: 1, -1, 0. */
+export const onTextZoom = (fn: (direction: -1 | 0 | 1) => void) => listen<-1 | 0 | 1>("text-zoom", (e) => fn(e.payload));
 /** The menu bar icon or the floating alert asks to start or stop recording. */
 export const onRecordRequest = (fn: (start: boolean, choice?: { language: Language; roomSpeakers: boolean }) => void) =>
   Promise.all([

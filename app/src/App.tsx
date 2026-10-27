@@ -46,7 +46,7 @@ import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
 import { MarkdownSwitch, RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
 import { hasAudio, playAt, stopUnless } from "@/lib/player";
-import { useSettings } from "@/lib/settings";
+import { stepTextZoom, useSettings } from "@/lib/settings";
 import { activeShares, expired, revokeShare } from "@/lib/share";
 import { notesDoc } from "@/lib/notes";
 import { useMeetings } from "@/lib/store";
@@ -352,6 +352,35 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // ⌘+ / ⌘− / ⌘0: the reading text's size. The View menu has them too; with a keyboard where
+  // "+" isn't on the "=" key, the menu doesn't catch it and it arrives here.
+  // The size it's going to, ahead of the render: a held key repeats faster than the settings update.
+  const textZoom = useRef(settings.textZoom);
+  const textZoomRef = useRef((_direction: -1 | 0 | 1) => {});
+  textZoomRef.current = (direction) => {
+    textZoom.current = stepTextZoom(textZoom.current, direction);
+    updateSettings({ textZoom: textZoom.current });
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.metaKey || e.altKey || e.ctrlKey) return;
+      const direction = e.key === "+" || e.key === "=" ? 1 : e.key === "-" ? -1 : e.key === "0" ? 0 : null;
+      if (direction === null) return;
+      e.preventDefault();
+      textZoomRef.current(direction);
+    };
+    window.addEventListener("keydown", onKey);
+    const off = backend.isTauri() ? backend.onTextZoom((direction) => textZoomRef.current(direction)) : null;
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      off?.then((f) => f());
+    };
+  }, []);
+  useEffect(() => {
+    textZoom.current = settings.textZoom;
+    document.documentElement.style.setProperty("--mm-reading-zoom", String(settings.textZoom));
+  }, [settings.textZoom]);
 
   useEffect(() => {
     if (!recording) return;

@@ -134,7 +134,7 @@ export function Transcript(props: Props) {
         }}
         onWheel={() => (programmatic.current = false)}
       >
-        <article className={cn("mx-auto max-w-[680px]", props.compact ? "pb-16 pl-8 pr-4 pt-4" : "px-10 pb-24 pt-14")}>
+        <article className={cn("mm-reading mx-auto max-w-[680px]", props.compact ? "pb-16 pl-8 pr-4 pt-4" : "px-10 pb-24 pt-14")}>
           <TitleInput title={meeting.title} onChange={props.onTitle} compact={props.compact} />
           <p className="mt-1.5 text-[13px] text-muted-foreground">
             {longDate(meeting.createdAt)}

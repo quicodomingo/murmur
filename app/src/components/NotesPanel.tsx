@@ -108,7 +108,7 @@ export function NotesPanel(props: Props) {
         onClick={() => editor?.commands.focus()}
       >
         <div className={cn("py-3 pl-14 pr-4", full && "mx-auto max-w-[760px] pb-24 pt-6")}>
-          <EditorContent editor={editor} />
+          <EditorContent editor={editor} className="mm-reading" />
         </div>
       </div>
     </aside>

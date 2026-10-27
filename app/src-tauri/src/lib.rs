@@ -1227,6 +1227,21 @@ pub fn run() {
                 app_menu.insert(&about, 0)?;
                 app_menu.insert(&settings, 1)?;
             }
+            // View: the reading text's size (⌘+ / ⌘− / ⌘0), above Full Screen.
+            for item in menu.items()? {
+                if let tauri::menu::MenuItemKind::Submenu(view) = item {
+                    if view.text()? != "View" {
+                        continue;
+                    }
+                    let zoom = [("text-zoom-in", "menu_zoom_in", "CmdOrCtrl+="), ("text-zoom-out", "menu_zoom_out", "CmdOrCtrl+-"), ("text-zoom-reset", "menu_zoom_reset", "CmdOrCtrl+0")];
+                    for (i, (id, key, accelerator)) in zoom.into_iter().enumerate() {
+                        let entry = tauri::menu::MenuItem::with_id(app, id, i18n::t(key), true, Some(accelerator))?;
+                        shell::keep_label(app.handle(), &entry, key);
+                        view.insert(&entry, i)?;
+                    }
+                    view.insert(&tauri::menu::PredefinedMenuItem::separator(app)?, 3)?;
+                }
+            }
             app.set_menu(menu)?;
             app.on_menu_event(|app, event| match event.id().as_ref() {
                 "settings" => {
@@ -1235,6 +1250,15 @@ pub fn run() {
                 "about" => {
                     shell::show_main(app);
                     let _ = app.emit_to("main", "open-about", ());
+                }
+                "text-zoom-in" => {
+                    let _ = app.emit_to("main", "text-zoom", 1);
+                }
+                "text-zoom-out" => {
+                    let _ = app.emit_to("main", "text-zoom", -1);
+                }
+                "text-zoom-reset" => {
+                    let _ = app.emit_to("main", "text-zoom", 0);
                 }
                 _ => {}
             });
