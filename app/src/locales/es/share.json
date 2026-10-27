@@ -4,7 +4,7 @@
   "description": "Crea un enlace para que quien lo tenga pueda leer la reunión en el navegador.",
   "what": "Qué aparece",
   "parts": {
-    "cover": "Portada",
+    "cover": "Resumen",
     "notes": "Notas",
     "transcript": "Transcripción",
     "screens": "Capturas",
@@ -44,7 +44,7 @@
   "failed": "No se ha podido compartir: {{error}}",
   "revokeFailed": "No se ha podido retirar el enlace: {{error}}",
   "page": {
-    "cover": "Portada",
+    "cover": "Resumen",
     "taskDone": "Hecha",
     "taskOpen": "Pendiente",
     "footer": "Compartido desde Murmur el {{date}}.",

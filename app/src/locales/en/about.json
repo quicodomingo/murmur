@@ -18,7 +18,7 @@
     "turns": "Speaker turns",
     "verification": "Speaker verification",
     "punctuation": "Punctuation and capitals",
-    "cover": "Summary and cover"
+    "cover": "Summary"
   },
   "conformerName": "Catalan and Spanish Conformer",
   "conformerAuthor": "Projecte AINA (BSC), based on an NVIDIA model",

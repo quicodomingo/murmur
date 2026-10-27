@@ -11,6 +11,7 @@ Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 - [ ] Provar en reunions reals amb altaveus (cal el permís «Gravació de pantalla i àudio del sistema»). Validar l'eco residual.
 - [x] Desar les reunions des de Rust: **SQLite** amb cerca de text completa (FTS5) a totes les reunions.
 - [x] Exportar a fitxer: Markdown i .docx.
+- [x] Desar cada reunió en Markdown (resum, notes i transcripció) a una carpeta triada, amb un interruptor a la barra de dalt mentre es grava.
 - [x] Selector de micròfon a la configuració.
 - [x] Primer commit al repositori.
 

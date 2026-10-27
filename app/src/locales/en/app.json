@@ -8,8 +8,8 @@
   "deleteMessageWithAudio": "The transcript, notes and saved audio of “{{title}}” will be deleted. This can't be undone.",
   "deleteMessage": "The transcript and notes of “{{title}}” will be deleted. This can't be undone.",
   "deleteTitle": "Delete this meeting?",
-  "coverNeedsModel": "Turn on the cover in Settings › Intelligence and download the model.",
-  "coverNeedsKey": "Connect the account in Settings › Intelligence to generate the cover.",
+  "coverNeedsModel": "Turn on the summary in Settings › Intelligence and download the model.",
+  "coverNeedsKey": "Connect the account in Settings › Intelligence to generate the summary.",
   "coverAfterRecording": "It can be generated once the recording ends.",
   "coverAfterProcessing": "Wait for processing to finish.",
   "exportAudioTitle": "Export Audio",
@@ -27,7 +27,7 @@
   "exportAudio": "Export Audio (.m4a)…",
   "deleteMeeting": "Delete Meeting…",
   "view": "View",
-  "viewCover": "Cover",
+  "viewCover": "Summary",
   "viewNotes": "Notes",
   "viewTranscript": "Transcript",
   "recording": "Recording",
@@ -61,7 +61,9 @@
   "retranscribeLabel": "Whisper listens to the audio again in:",
   "currentLanguage": "Now",
   "retranscribeTitle": "Transcribe the meeting again in {{language}}?",
-  "retranscribeMessage": "Whisper will listen to the recording again and write every line in {{language}}. Who spoke and when stays the same, and so do lines you corrected by hand. It will take about {{minutes}} min, and then the cover is made again if you have it on.",
+  "retranscribeMessage": "Whisper will listen to the recording again and write every line in {{language}}. Who spoke and when stays the same, and so do lines you corrected by hand. It will take about {{minutes}} min, and then the summary is made again if you have it on.",
   "retranscribeOk": "Transcribe again",
-  "retranscribeNeedsWhisper": "Transcribing again needs the Whisper model."
+  "retranscribeNeedsWhisper": "Transcribing again needs the Whisper model.",
+  "markdownSaved": "Saved as Markdown",
+  "markdownFailed": "Couldn’t save as Markdown: {{error}}"
 }

@@ -1,4 +1,4 @@
-import { ChevronDown, User, Users } from "lucide-react";
+import { ChevronDown, FileText, User, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -10,6 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Language } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -171,5 +173,22 @@ export function RoomMenu({ value, onChange, className }: { value: boolean; onCha
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** While recording: save this meeting as Markdown once it's done (Settings › Transcripció). */
+export function MarkdownSwitch({ value, onChange, className }: { value: boolean; onChange: (on: boolean) => void; className?: string }) {
+  const { t } = useTranslation("start");
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <label className={cn(chip, "cursor-pointer gap-1.5", className)}>
+          <FileText className="size-3 shrink-0" aria-hidden />
+          <span className="truncate">{t("markdown")}</span>
+          <Switch size="sm" checked={value} onCheckedChange={onChange} aria-label={t("markdownLabel")} />
+        </label>
+      </TooltipTrigger>
+      <TooltipContent>{t("markdownHint")}</TooltipContent>
+    </Tooltip>
   );
 }

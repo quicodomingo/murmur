@@ -11,5 +11,8 @@
   "roomHint": "Several people at the same computer: Murmur tells their voices apart.",
   "englishMissingShort": "needs downloading",
   "languageGroup": "Meeting language",
-  "roomGroup": "On the microphone"
+  "roomGroup": "On the microphone",
+  "markdown": "Markdown",
+  "markdownLabel": "Save this meeting as Markdown",
+  "markdownHint": "When it ends, saves the summary and transcript to a .md file in your folder"
 }

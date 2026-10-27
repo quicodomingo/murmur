@@ -30,7 +30,7 @@
       "hint": "Puntos, comas y mayúsculas. Las frases que hayas corregido no se tocan."
     },
     "cover": {
-      "title": "Preparando la portada…",
+      "title": "Preparando el resumen…",
       "hint": "El modelo de lenguaje local lee la transcripción. Puedes seguir leyendo y editando."
     }
   }

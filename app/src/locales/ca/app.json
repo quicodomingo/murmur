@@ -8,8 +8,8 @@
   "deleteMessageWithAudio": "S'eliminaran la transcripció, les notes i l'àudio desat de «{{title}}». No es pot desfer.",
   "deleteMessage": "S'eliminaran la transcripció i les notes de «{{title}}». No es pot desfer.",
   "deleteTitle": "Vols eliminar la reunió?",
-  "coverNeedsModel": "Activa la portada a Configuració › Intel·ligència i descarrega el model.",
-  "coverNeedsKey": "Connecta el compte a Configuració › Intel·ligència per generar la portada.",
+  "coverNeedsModel": "Activa el resum a Configuració › Intel·ligència i descarrega el model.",
+  "coverNeedsKey": "Connecta el compte a Configuració › Intel·ligència per generar el resum.",
   "coverAfterRecording": "Es podrà generar quan acabi la gravació.",
   "coverAfterProcessing": "Espera que acabi el processament.",
   "exportAudioTitle": "Exporta l'àudio",
@@ -27,7 +27,7 @@
   "exportAudio": "Exporta l'àudio (.m4a)…",
   "deleteMeeting": "Elimina la reunió…",
   "view": "Vista",
-  "viewCover": "Portada",
+  "viewCover": "Resum",
   "viewNotes": "Notes",
   "viewTranscript": "Transcripció",
   "recording": "Gravant",
@@ -61,7 +61,9 @@
   "retranscribeLabel": "Whisper torna a escoltar l'àudio en:",
   "currentLanguage": "Ara",
   "retranscribeTitle": "Vols tornar a transcriure la reunió en {{language}}?",
-  "retranscribeMessage": "Whisper tornarà a escoltar la gravació i escriurà cada frase en {{language}}. Qui parla i quan es manté, i les frases que has corregit a mà també. Trigarà uns {{minutes}} min, i després es tornarà a fer la portada si la tens activada.",
+  "retranscribeMessage": "Whisper tornarà a escoltar la gravació i escriurà cada frase en {{language}}. Qui parla i quan es manté, i les frases que has corregit a mà també. Trigarà uns {{minutes}} min, i després es tornarà a fer el resum si el tens activat.",
   "retranscribeOk": "Torna a transcriure",
-  "retranscribeNeedsWhisper": "Per tornar a transcriure cal el model Whisper."
+  "retranscribeNeedsWhisper": "Per tornar a transcriure cal el model Whisper.",
+  "markdownSaved": "Desada en Markdown",
+  "markdownFailed": "No s'ha pogut desar en Markdown: {{error}}"
 }

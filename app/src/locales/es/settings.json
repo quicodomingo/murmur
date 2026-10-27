@@ -14,7 +14,7 @@
   "general": {
     "languageGroup": "Idioma",
     "uiLanguage": "Idioma de Murmur",
-    "uiLanguageHint": "Menús, botones y textos de la app, y el idioma en que se escribe la portada. No cambia el idioma de las reuniones (está en Transcripción).",
+    "uiLanguageHint": "Menús, botones y textos de la app, y el idioma en que se escribe el resumen. No cambia el idioma de las reuniones (está en Transcripción).",
     "systemLanguage": "El del sistema ({{name}})",
     "startup": "Inicio",
     "autostart": "Abrir Murmur al iniciar sesión",
@@ -146,19 +146,25 @@
     "verifySpeakersHint": "Vuelve a analizar toda la reunión para separar mejor las voces. Puede tardar unos minutos (unos 7 por hora de reunión), pero puedes seguir trabajando mientras tanto.",
     "punctuate": "Puntuación y mayúsculas",
     "punctuateHint": "Pone puntos, comas y mayúsculas en las reuniones en catalán y castellano (con Whisper o en inglés ya están). Tarda unos segundos.",
-    "punctuationModel": "Modelo de puntuación de Softcatalà"
+    "punctuationModel": "Modelo de puntuación de Softcatalà",
+    "markdownGroup": "Markdown",
+    "saveMarkdown": "Guardar cada reunión en Markdown",
+    "saveMarkdownHint": "Al terminar, Murmur escribe el resumen, las notas y la transcripción en un archivo .md. Mientras grabas, puedes cambiarlo para esa reunión desde la barra de arriba.",
+    "markdownFolder": "Carpeta de los Markdown",
+    "markdownNoFolder": "Aún no has elegido ninguna",
+    "markdownFolderDialog": "Carpeta para los Markdown de las reuniones"
   },
   "intelligence": {
-    "cover": "Portada",
-    "summarize": "Generar la portada al terminar la grabación",
+    "cover": "Resumen",
+    "summarize": "Generar el resumen al terminar la grabación",
     "summarizeHint": "Un modelo de lenguaje lee la transcripción y hace el título, el resumen, las decisiones, las tareas y las partes. Puedes seguir trabajando mientras tanto.",
     "gemmaModel": "Gemma 4 E4B, de Google",
     "privacy": "Todo se hace en este ordenador: la transcripción no sale de aquí. Los modelos solo se descargan si activas la función, y puedes borrarlos cuando quieras.",
-    "coverLanguage": "Idioma de la portada",
+    "coverLanguage": "Idioma del resumen",
     "coverLanguageHint": "En el idioma de la reunión, «Catalán + castellano» se escribe en catalán. Las reuniones grabadas antes de esta versión usan el de la interfaz.",
     "coverLanguageInterface": "El de Murmur",
     "coverLanguageMeeting": "El de la reunión",
-    "engine": "Quién la escribe",
+    "engine": "LLM",
     "engineLocal": "Este Mac",
     "engineLocalHint": "Gemma, en el ordenador. La transcripción no sale de aquí, pero tarda unos 2–3 minutos para una reunión de 20 minutos.",
     "engineCloudHint": "Más rápido y con más calidad, pero la transcripción se envía a {{provider}}. Hace falta una clave de API propia, que se paga aparte según el uso.",
@@ -170,7 +176,7 @@
       "anthropic": "Anthropic",
       "openai": "OpenAI"
     },
-    "privacyCloud": "Cada vez que se genera una portada, el texto de la transcripción y las notas se envían a {{provider}}. El audio nunca sale de este ordenador, y la clave se guarda en el llavero de macOS."
+    "privacyCloud": "Cada vez que se genera un resumen, el texto de la transcripción y las notas se envían a {{provider}}. El audio nunca sale de este ordenador, y la clave se guarda en el llavero de macOS."
   },
   "model": {
     "deleteMessage": "Se borrará {{name}} ({{size}}). Puedes volver a descargarlo cuando quieras.",
@@ -189,9 +195,9 @@
     "progress": "Descarga de {{name}}"
   },
   "prompts": {
-    "title": "Prompts de la portada",
+    "title": "Prompts del resumen",
     "edited": "Modificado",
-    "footnote": "Las respuestas siempre siguen el mismo formato (JSON), así que puedes cambiar el texto sin romper la portada. Los cambios se aplican a las próximas portadas.",
+    "footnote": "Las respuestas siempre siguen el mismo formato (JSON), así que puedes cambiar el texto sin romper el resumen. Los cambios se aplican a los próximos resúmenes.",
     "preparing": "Preparando…",
     "loading": "Cargando el modelo…",
     "reading": "Leyendo la transcripción…",
@@ -216,9 +222,9 @@
     "keySaved": "Clave guardada en el llavero, termina en …{{hint}}",
     "disconnect": "Desconectar",
     "disconnectTitle": "¿Quieres desconectar la cuenta?",
-    "disconnectMessage": "Se borrará la clave de {{company}} del llavero. Las portadas que ya tienes no cambian.",
+    "disconnectMessage": "Se borrará la clave de {{company}} del llavero. Los resúmenes que ya tienes no cambian.",
     "model": "Modelo",
-    "modelHint": "Los más grandes escriben mejor y cuestan más por portada."
+    "modelHint": "Los más grandes escriben mejor y cuestan más por resumen."
   },
   "share": {
     "group": "Enlaces para compartir",

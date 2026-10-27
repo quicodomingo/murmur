@@ -4,7 +4,7 @@
   "description": "Creates a link so whoever has it can read the meeting in a browser.",
   "what": "What's included",
   "parts": {
-    "cover": "Cover",
+    "cover": "Summary",
     "notes": "Notes",
     "transcript": "Transcript",
     "screens": "Screenshots",
@@ -44,7 +44,7 @@
   "failed": "Couldn't share: {{error}}",
   "revokeFailed": "Couldn't withdraw the link: {{error}}",
   "page": {
-    "cover": "Cover",
+    "cover": "Summary",
     "taskDone": "Done",
     "taskOpen": "To do",
     "footer": "Shared from Murmur on {{date}}.",

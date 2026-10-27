@@ -11,5 +11,8 @@
   "roomHint": "Varias personas delante del mismo ordenador: Murmur separa sus voces.",
   "englishMissingShort": "hay que descargarlo",
   "languageGroup": "Idioma de la reunión",
-  "roomGroup": "En el micrófono"
+  "roomGroup": "En el micrófono",
+  "markdown": "Markdown",
+  "markdownLabel": "Guardar esta reunión en Markdown",
+  "markdownHint": "Al terminar, guarda el resumen y la transcripción en un archivo .md en tu carpeta"
 }

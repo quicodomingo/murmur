@@ -19,9 +19,9 @@
       "text": "It tells voices apart and shows you who spoke and for how long. The notes you write are tied to the exact minute of the meeting."
     },
     "cover": {
-      "kicker": "Cover",
+      "kicker": "Summary",
       "title": "The meeting, summed up",
-      "text": "When it ends, Murmur prepares a cover with the title, summary, decisions and tasks. Each point links to the moment it was said."
+      "text": "When it ends, Murmur prepares a summary with the title, main points, decisions and tasks. Each point links to the moment it was said."
     },
     "alerts": {
       "kicker": "Alerts",
@@ -65,7 +65,7 @@
     "required": "Required",
     "transcriptionText": "Turns speech into text, in Catalan and other languages, right on this Mac.",
     "alwaysIncluded": "Always included",
-    "toolsName": "Summary and cover tools",
+    "toolsName": "Summary tools",
     "optional": "Optional",
     "toolsText": "Punctuation, title, summary, decisions and tasks for each meeting. You can add them later in Settings.",
     "offline": "Once downloaded, they work offline. Meeting audio and text never leave this computer: no cloud, no accounts.",

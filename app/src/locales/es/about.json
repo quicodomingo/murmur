@@ -18,7 +18,7 @@
     "turns": "Turnos de palabra",
     "verification": "Verificación de hablantes",
     "punctuation": "Puntuación y mayúsculas",
-    "cover": "Resumen y portada"
+    "cover": "Resumen"
   },
   "conformerName": "Conformer catalán y castellano",
   "conformerAuthor": "Projecte AINA (BSC), a partir de un modelo de NVIDIA",

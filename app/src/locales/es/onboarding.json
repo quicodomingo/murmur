@@ -19,9 +19,9 @@
       "text": "Distingue las voces y te muestra quién ha hablado y cuánto. Las notas que escribes quedan ligadas al minuto exacto de la reunión."
     },
     "cover": {
-      "kicker": "Portada",
+      "kicker": "Resumen",
       "title": "La reunión, resumida",
-      "text": "Al terminar, Murmur prepara una portada con el título, el resumen, las decisiones y las tareas. Cada punto enlaza con el momento en que se dijo."
+      "text": "Al terminar, Murmur prepara un resumen con el título, las ideas principales, las decisiones y las tareas. Cada punto enlaza con el momento en que se dijo."
     },
     "alerts": {
       "kicker": "Avisos",
@@ -65,7 +65,7 @@
     "required": "Necesario",
     "transcriptionText": "Convierte la voz en texto, en catalán y otras lenguas, dentro de este Mac.",
     "alwaysIncluded": "Siempre incluido",
-    "toolsName": "Herramientas de resumen y portada",
+    "toolsName": "Herramientas de resumen",
     "optional": "Opcional",
     "toolsText": "Puntuación, título, resumen, decisiones y tareas de cada reunión. Se puede añadir más adelante desde Ajustes.",
     "offline": "Una vez descargados, funcionan sin conexión. El audio y el texto de las reuniones nunca salen de este ordenador: no hay nube ni cuentas.",

@@ -674,6 +674,12 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
     const needed: ModelId[] = [...(value === "en" ? (["english"] as const) : []), ...(value !== "ca-es" ? (["whisper"] as const) : [])];
     for (const id of needed) enableWithModel(models, id, true, () => {});
   };
+  const chooseMarkdownFolder = async () => {
+    const dir = await openDialog({ directory: true, defaultPath: settings.markdownDir ?? undefined, title: t("transcription.markdownFolderDialog") });
+    if (typeof dir !== "string") return false;
+    onChange({ markdownDir: dir });
+    return true;
+  };
   return (
     <>
       <Group title={t("transcription.languageGroup")}>
@@ -750,6 +756,27 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
           <Switch checked={settings.punctuate} onCheckedChange={(on) => enableWithModel(models, "punctuation", on, () => onChange({ punctuate: on }))} />
         </Row>
         <ModelRow id="punctuation" name={t("transcription.punctuationModel")} enabled={settings.punctuate} onDisable={() => onChange({ punctuate: false })} />
+      </Group>
+      <Group title={t("transcription.markdownGroup")}>
+        <Row label={t("transcription.saveMarkdown")} hint={t("transcription.saveMarkdownHint")}>
+          <Switch
+            checked={settings.saveMarkdown && !!settings.markdownDir}
+            onCheckedChange={async (on) => {
+              if (on && !settings.markdownDir && !(await chooseMarkdownFolder())) return;
+              onChange({ saveMarkdown: on });
+            }}
+          />
+        </Row>
+        <Row label={t("transcription.markdownFolder")} hint={settings.markdownDir ?? t("transcription.markdownNoFolder")}>
+          <button
+            type="button"
+            onClick={chooseMarkdownFolder}
+            disabled={!backend.isTauri()}
+            className="h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50"
+          >
+            {t("audio.choose")}
+          </button>
+        </Row>
       </Group>
     </>
   );

@@ -11,5 +11,8 @@
   "roomHint": "Diverses persones davant del mateix ordinador: Murmur en separa les veus.",
   "englishMissingShort": "cal descarregar-lo",
   "languageGroup": "Idioma de la reunió",
-  "roomGroup": "Al micròfon"
+  "roomGroup": "Al micròfon",
+  "markdown": "Markdown",
+  "markdownLabel": "Desa aquesta reunió en Markdown",
+  "markdownHint": "En acabar, desa el resum i la transcripció en un fitxer .md a la teva carpeta"
 }

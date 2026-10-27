@@ -34,6 +34,10 @@ export type Settings = {
   punctuate: boolean;
   /** After a recording: the cover, written by the local language model (models.rs LLM). */
   summarize: boolean;
+  /** Each new meeting is saved as Markdown in `markdownDir` when it's done (switchable while recording). */
+  saveMarkdown: boolean;
+  /** Folder for those Markdown files; null = not chosen yet. */
+  markdownDir: string | null;
   /** Who writes the cover: the local model, or Claude or OpenAI with the user's key (lib/cloud.ts). */
   coverEngine: "local" | CloudProvider;
   /** The model chosen for each provider; missing = its default (lib/cloud.ts). */
@@ -84,6 +88,8 @@ export const DEFAULT_SETTINGS: Settings = {
   // Both need a download, so they're off until the user turns them on.
   punctuate: false,
   summarize: false,
+  saveMarkdown: false,
+  markdownDir: null,
   coverEngine: "local",
   cloudModels: {},
   shareExpiry: "7d",

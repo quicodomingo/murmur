@@ -19,9 +19,9 @@
       "text": "Distingeix les veus i et mostra qui ha parlat i quant. Les notes que escrius queden lligades al minut exacte de la reunió."
     },
     "cover": {
-      "kicker": "Portada",
+      "kicker": "Resum",
       "title": "La reunió, resumida",
-      "text": "En acabar, Murmur prepara una portada amb el títol, el resum, les decisions i les tasques. Cada punt enllaça al moment on es va dir."
+      "text": "En acabar, Murmur prepara un resum amb el títol, les idees principals, les decisions i les tasques. Cada punt enllaça al moment on es va dir."
     },
     "alerts": {
       "kicker": "Avisos",
@@ -65,7 +65,7 @@
     "required": "Necessari",
     "transcriptionText": "Converteix la veu en text, en català i altres llengües, dins d'aquest Mac.",
     "alwaysIncluded": "Sempre inclòs",
-    "toolsName": "Eines de resum i portada",
+    "toolsName": "Eines de resum",
     "optional": "Opcional",
     "toolsText": "Puntuació, títol, resum, decisions i tasques de cada reunió. Es pot afegir més endavant des de Configuració.",
     "offline": "Un cop descarregats, funcionen sense connexió. L'àudio i el text de les reunions no surten mai d'aquest ordinador: no hi ha núvol ni comptes.",

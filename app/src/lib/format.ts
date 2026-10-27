@@ -1,5 +1,4 @@
 import { locale, t, UI_LANGUAGES, uiLanguage, type UiLanguage } from "./i18n";
-import { docToMarkdown, notesDoc } from "./notes";
 import { SYSTEM_SPEAKER_BASE, type Meeting } from "./types";
 
 /** 0:42, 4:37, 1:04:22 — the transcript's timestamp style. */
@@ -83,16 +82,4 @@ export function speakerIds(meeting: Meeting): number[] {
   const ids = new Set<number>(meeting.utterances.map((u) => u.speaker));
   Object.keys(meeting.speakerNames).forEach((k) => ids.add(Number(k)));
   return [...ids].sort((a, b) => a - b);
-}
-
-export function toMarkdown(meeting: Meeting): string {
-  const lines = [`# ${meeting.title}`, "", longDate(meeting.createdAt), ""];
-  // Same order as the Word export: notes first, then the transcript.
-  const notes = docToMarkdown(notesDoc(meeting), 2);
-  if (notes) lines.push(`## ${t("export:notes")}`, "", notes, "");
-  lines.push(`## ${t("export:transcript")}`, "");
-  for (const u of meeting.utterances) {
-    lines.push(`**[${clock(u.start)}] ${speakerName(meeting, u.speaker)}:** ${u.text}`, "");
-  }
-  return lines.join("\n");
 }

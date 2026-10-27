@@ -4,7 +4,7 @@
   "description": "Crea un enllaç perquè qui el tingui pugui llegir la reunió al navegador.",
   "what": "Què hi surt",
   "parts": {
-    "cover": "Portada",
+    "cover": "Resum",
     "notes": "Notes",
     "transcript": "Transcripció",
     "screens": "Captures",
@@ -44,7 +44,7 @@
   "failed": "No s'ha pogut compartir: {{error}}",
   "revokeFailed": "No s'ha pogut retirar l'enllaç: {{error}}",
   "page": {
-    "cover": "Portada",
+    "cover": "Resum",
     "taskDone": "Feta",
     "taskOpen": "Pendent",
     "footer": "Compartit des de Murmur el {{date}}.",

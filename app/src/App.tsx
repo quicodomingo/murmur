@@ -36,15 +36,15 @@ import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as backend from "@/lib/backend";
 import { currentEvent, guestNames } from "@/lib/calendar";
-import { clock, duration, toMarkdown } from "@/lib/format";
-import { exportMeeting, type ExportFormat } from "@/lib/export";
+import { clock, duration } from "@/lib/format";
+import { exportMeeting, saveMarkdown, toMarkdown, type ExportFormat } from "@/lib/export";
 import { defaultTitle } from "@/lib/cover";
 import { locale, t as translate } from "@/lib/i18n";
 import { cloudModelName, coverEngine, loadCloudModels, useCloud } from "@/lib/cloud";
 import { downloadModel, modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
-import { RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
+import { MarkdownSwitch, RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
 import { hasAudio, playAt, stopUnless } from "@/lib/player";
 import { useSettings } from "@/lib/settings";
 import { activeShares, expired, revokeShare } from "@/lib/share";
@@ -195,6 +195,8 @@ export default function App() {
   const post = usePostProcess(state, dispatch, settings);
   const [level, setLevel] = useState(0);
   const [busy, setBusy] = useState(false);
+  /** "Desa en Markdown", chosen for each meeting while it records; written once it's done. */
+  const [markdown, setMarkdown] = useState<Record<string, boolean>>({});
   const startedAt = useRef(0);
 
   const meeting = (state.selectedId && state.open[state.selectedId]) || null;
@@ -385,6 +387,7 @@ export default function App() {
     const event = await currentEvent(settings).catch(() => null);
     const m = newMeeting(sources, language, event?.title.trim(), event ? guestNames(event) : undefined);
     dispatch({ type: "new", meeting: m });
+    setMarkdown((list) => ({ ...list, [m.id]: settings.saveMarkdown && !!settings.markdownDir }));
     // Whisper only for a single language (told "Catalan", it would turn Spanish into Catalan).
     const finalText = language !== "ca-es" && modelInstalled("whisper");
     post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language });
@@ -415,6 +418,32 @@ export default function App() {
   startRef.current = (choice) => {
     if (!recording && !busy) start(choice);
   };
+
+  /** The switch beside the recording pill. The first time, it asks for the folder; the choice is
+   * also the default for the next meetings. */
+  const toggleMarkdown = async (id: string, on: boolean) => {
+    if (on && !settings.markdownDir) {
+      const dir = await openDialog({ directory: true, title: t("settings:transcription.markdownFolderDialog") });
+      if (typeof dir !== "string") return;
+      updateSettings({ markdownDir: dir });
+    }
+    updateSettings({ saveMarkdown: on });
+    setMarkdown((list) => ({ ...list, [id]: on }));
+  };
+
+  // A meeting with the switch on is written once it's done: after the final pass and the summary.
+  useEffect(() => {
+    const dir = settings.markdownDir;
+    for (const [id, on] of Object.entries(markdown)) {
+      const m = state.open[id];
+      if (!on || !m || m.status !== "done" || state.finalPass[id]) continue;
+      setMarkdown(({ [id]: _done, ...rest }) => rest);
+      if (!dir || !m.utterances.length) continue;
+      saveMarkdown(m, dir)
+        .then((path) => toast(t("markdownSaved"), { action: { label: t("showInFinder"), onClick: () => revealItemInDir(path).catch(() => {}) } }))
+        .catch((e) => toast.error(t("markdownFailed", { error: String(e) })));
+    }
+  }, [markdown, state.open, state.finalPass, settings.markdownDir, t]);
 
   const stop = useCallback(async () => {
     setBusy(true);
@@ -815,6 +844,7 @@ export default function App() {
             )}
             <div data-tauri-drag-region className="flex-1" />
 
+            {recording && <MarkdownSwitch value={!!markdown[recording.id]} onChange={(on) => toggleMarkdown(recording.id, on)} className="mr-1" />}
             {recording?.sources?.mic && recording.sources.system && (
               <RoomMenu
                 value={settings.roomSpeakers}
@@ -826,7 +856,7 @@ export default function App() {
               />
             )}
             {recording ? (
-              <div className="flex h-[30px] items-center gap-2.5 rounded-[15px] bg-mm-recording-pill pl-3 pr-1.5 text-mm-on-recording-pill shadow-[0_0_0_1px_var(--mm-recording-pill-border)]">
+              <div className="flex h-[30px] items-center gap-2.5 rounded-[15px] bg-mm-recording-pill pl-3 pr-[3px] text-mm-on-recording-pill shadow-[0_0_0_1px_var(--mm-recording-pill-border)]">
                 {/* Two level bars, half a cycle apart; they only move while there's sound. */}
                 <span className="flex h-3.5 items-center gap-[3px]" aria-hidden>
                   {[0, 1].map((i) => (
@@ -848,9 +878,9 @@ export default function App() {
                       onClick={stop}
                       disabled={busy}
                       aria-label={t("stopRecording")}
-                      className="grid size-[22px] place-items-center rounded-full bg-white/[0.14] hover:bg-white/25 disabled:opacity-40"
+                      className="grid size-6 place-items-center rounded-full bg-white/20 hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current disabled:opacity-40"
                     >
-                      <span className="size-2 rounded-[2px] bg-current" />
+                      <span className="size-2.5 rounded-[2px] bg-current" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>{t("stop")}</TooltipContent>

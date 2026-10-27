@@ -8,8 +8,8 @@
   "deleteMessageWithAudio": "Se eliminarán la transcripción, las notas y el audio guardado de «{{title}}». No se puede deshacer.",
   "deleteMessage": "Se eliminarán la transcripción y las notas de «{{title}}». No se puede deshacer.",
   "deleteTitle": "¿Quieres eliminar la reunión?",
-  "coverNeedsModel": "Activa la portada en Ajustes › Inteligencia y descarga el modelo.",
-  "coverNeedsKey": "Conecta la cuenta en Ajustes › Inteligencia para generar la portada.",
+  "coverNeedsModel": "Activa el resumen en Ajustes › Inteligencia y descarga el modelo.",
+  "coverNeedsKey": "Conecta la cuenta en Ajustes › Inteligencia para generar el resumen.",
   "coverAfterRecording": "Se podrá generar cuando termine la grabación.",
   "coverAfterProcessing": "Espera a que termine el procesamiento.",
   "exportAudioTitle": "Exportar el audio",
@@ -27,7 +27,7 @@
   "exportAudio": "Exportar el audio (.m4a)…",
   "deleteMeeting": "Eliminar la reunión…",
   "view": "Vista",
-  "viewCover": "Portada",
+  "viewCover": "Resumen",
   "viewNotes": "Notas",
   "viewTranscript": "Transcripción",
   "recording": "Grabando",
@@ -61,7 +61,9 @@
   "retranscribeLabel": "Whisper vuelve a escuchar el audio en:",
   "currentLanguage": "Ahora",
   "retranscribeTitle": "¿Quieres volver a transcribir la reunión en {{language}}?",
-  "retranscribeMessage": "Whisper volverá a escuchar la grabación y escribirá cada frase en {{language}}. Quién habla y cuándo se mantiene, y las frases que has corregido a mano también. Tardará unos {{minutes}} min, y después se volverá a hacer la portada si la tienes activada.",
+  "retranscribeMessage": "Whisper volverá a escuchar la grabación y escribirá cada frase en {{language}}. Quién habla y cuándo se mantiene, y las frases que has corregido a mano también. Tardará unos {{minutes}} min, y después se volverá a hacer el resumen si lo tienes activado.",
   "retranscribeOk": "Volver a transcribir",
-  "retranscribeNeedsWhisper": "Para volver a transcribir hace falta el modelo Whisper."
+  "retranscribeNeedsWhisper": "Para volver a transcribir hace falta el modelo Whisper.",
+  "markdownSaved": "Guardada en Markdown",
+  "markdownFailed": "No se ha podido guardar en Markdown: {{error}}"
 }
