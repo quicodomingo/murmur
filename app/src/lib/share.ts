@@ -160,7 +160,6 @@ function page(m: Meeting, parts: SharePart[], expiresAt: number | null, files: F
     lang: uiLanguage(),
     title: m.title,
     meta: [longDate(m.createdAt), duration(m.duration)],
-    tags: m.tags ?? [],
     labels: {
       cover: t("share:page.cover"),
       notes: t("export:notes"),

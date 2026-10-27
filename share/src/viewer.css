@@ -83,8 +83,6 @@ h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--mm-text-se
 .download::before { content: "↓ "; }
 .download:hover { text-decoration: underline; }
 .download:focus-visible { outline: 2px solid var(--mm-text-primary); outline-offset: 2px; border-radius: 3px; }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
-.tags li { height: 22px; padding: 0 7px; border-radius: 5px; background: var(--mm-fill-subtle); font-size: 12px; font-weight: 500; line-height: 22px; }
 
 .excerpt { margin: 16px 0 0; max-width: 64ch; font-size: 18px; line-height: 1.55; }
 .note { margin: 10px 0 0; font-size: 12px; color: var(--mm-text-secondary); }

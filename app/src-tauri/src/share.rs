@@ -20,7 +20,7 @@ const WORKER_NAME: &str = "murmur-share";
 const KV_TITLE: &str = "murmur-shares";
 const COMPATIBILITY_DATE: &str = "2026-10-01";
 /// share/src/worker.js `VERSION`: an older Worker is republished before sharing.
-const WORKER_VERSION: u64 = 3;
+const WORKER_VERSION: u64 = 4;
 const MODULES: [(&str, &str, &str); 4] = [
     ("worker.js", "application/javascript+module", include_str!("../../../share/src/worker.js")),
     ("viewer.html", "text/plain", include_str!("../../../share/src/viewer.html")),

@@ -396,7 +396,6 @@ function toMarkdown(meeting) {
   const L = meeting.labels;
   const c = meeting.cover;
   const lines = [`# ${meeting.title}`, "", meeting.meta.join(" · "), ""];
-  if (meeting.tags?.length) lines.push(meeting.tags.map((t) => `#${t.replace(/\s+/g, "-")}`).join(" "), "");
   if (c) {
     lines.push(`## ${L.cover}`, "");
     if (c.excerpt) lines.push(c.excerpt, "");
@@ -475,7 +474,6 @@ function render(meeting) {
         return button;
       })(),
     ),
-    meeting.tags?.length > 0 && el("ul", { class: "tags" }, meeting.tags.map((t) => el("li", {}, t))),
     audioBar,
     tabs,
     body,
