@@ -6,6 +6,12 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.7.1": [
+      {
+        "title": "Bigger or smaller text",
+        "text": "Use ⌘+ and ⌘− to change the size of the text in notes, the transcript and the summary, and ⌘0 to go back to normal. It's also in the View menu."
+      }
+    ],
     "0.7.0": [
       {
         "title": "Every meeting as Markdown in your folder",
