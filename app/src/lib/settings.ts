@@ -28,7 +28,7 @@ export type Settings = {
   roomSpeakers: boolean;
   /** Final pass: re-check speakers over the whole meeting after stopping (experimental). */
   verifySpeakers: boolean;
-  /** ⌘+ / ⌘−: size of the reading text (notes, transcript, summary), one of TEXT_ZOOMS. */
+  /** ⌘+ / ⌘−: size of the notes text, one of TEXT_ZOOMS. */
   textZoom: number;
   /** What takes the main area; the other one goes in the side panel. */
   primaryPanel: "transcript" | "notes";

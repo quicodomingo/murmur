@@ -227,7 +227,7 @@
 /* The floating alert's window is transparent: only its card shows. */
 .toast-window, .toast-window body { background: transparent !important; overflow: hidden; }
 
-/* ⌘+ / ⌘−: the reading text (notes, transcript, summary) grows or shrinks; the rest of the app
+/* ⌘+ / ⌘−: the notes text grows or shrinks; the rest of the app (transcript and summary too)
    keeps its size. `zoom` reflows the text, so lines wrap to the panel's width. */
 .mm-reading {
   zoom: var(--mm-reading-zoom, 1);

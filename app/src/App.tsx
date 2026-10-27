@@ -353,7 +353,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ⌘+ / ⌘− / ⌘0: the reading text's size. The View menu has them too; with a keyboard where
+  // ⌘+ / ⌘− / ⌘0: the notes text's size. The View menu has them too; with a keyboard where
   // "+" isn't on the "=" key, the menu doesn't catch it and it arrives here.
   // The size it's going to, ahead of the render: a held key repeats faster than the settings update.
   const textZoom = useRef(settings.textZoom);

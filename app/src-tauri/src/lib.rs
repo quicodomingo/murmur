@@ -1227,7 +1227,7 @@ pub fn run() {
                 app_menu.insert(&about, 0)?;
                 app_menu.insert(&settings, 1)?;
             }
-            // View: the reading text's size (⌘+ / ⌘− / ⌘0), above Full Screen.
+            // View: the notes text's size (⌘+ / ⌘− / ⌘0), above Full Screen.
             for item in menu.items()? {
                 if let tauri::menu::MenuItemKind::Submenu(view) = item {
                     if view.text()? != "View" {

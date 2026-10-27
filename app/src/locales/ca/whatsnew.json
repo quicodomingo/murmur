@@ -8,8 +8,8 @@
   "releases": {
     "0.7.1": [
       {
-        "title": "Text més gran o més petit",
-        "text": "Amb ⌘+ i ⌘− canvies la mida del text de les notes, la transcripció i el resum, i ⌘0 el torna a la mida normal. També és al menú Visualització."
+        "title": "Text de les notes més gran o més petit",
+        "text": "Amb ⌘+ i ⌘− canvies la mida del text de les notes, i ⌘0 el torna a la mida normal. També és al menú Visualització."
       }
     ],
     "0.7.0": [

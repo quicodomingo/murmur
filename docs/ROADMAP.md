@@ -12,7 +12,7 @@ Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 - [x] Desar les reunions des de Rust: **SQLite** amb cerca de text completa (FTS5) a totes les reunions.
 - [x] Exportar a fitxer: Markdown i .docx.
 - [x] Desar cada reunió en Markdown (resum, notes i transcripció) a una carpeta triada, amb un interruptor a la barra de dalt mentre es grava.
-- [x] ⌘+ / ⌘− / ⌘0 per ampliar o reduir el text de les notes, la transcripció i el resum (també al menú Visualització).
+- [x] ⌘+ / ⌘− / ⌘0 per ampliar o reduir el text de les notes (també al menú Visualització).
 - [x] Selector de micròfon a la configuració.
 - [x] Primer commit al repositori.
 

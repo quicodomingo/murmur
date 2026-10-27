@@ -8,8 +8,8 @@
   "releases": {
     "0.7.1": [
       {
-        "title": "Bigger or smaller text",
-        "text": "Use ⌘+ and ⌘− to change the size of the text in notes, the transcript and the summary, and ⌘0 to go back to normal. It's also in the View menu."
+        "title": "Bigger or smaller notes text",
+        "text": "Use ⌘+ and ⌘− to change the size of the notes text, and ⌘0 to go back to normal. It's also in the View menu."
       }
     ],
     "0.7.0": [
