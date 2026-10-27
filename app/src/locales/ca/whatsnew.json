@@ -6,6 +6,22 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.7.0": [
+      {
+        "title": "Cada reunió, en Markdown a la teva carpeta",
+        "text": "Tria una carpeta i Murmur hi desa el resum, les notes i la transcripció quan acaba cada reunió. Mentre graves, ho pots activar o desactivar des de la barra de dalt.",
+        "link": "transcription",
+        "linkLabel": "Tria la carpeta"
+      },
+      {
+        "title": "La portada ara es diu Resum",
+        "text": "Ho trobaràs així a tota l'app i a les pàgines compartides. Exportar o copiar en Markdown també inclou el resum."
+      },
+      {
+        "title": "Un botó d'aturar més visible",
+        "text": "El botó per aturar la gravació, a la barra de dalt, és més gran i es veu millor."
+      }
+    ],
     "0.6.0": [
       {
         "title": "Cloudflare es configura des de Murmur",

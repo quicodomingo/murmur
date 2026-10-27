@@ -6,6 +6,22 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.7.0": [
+      {
+        "title": "Cada reunión, en Markdown en tu carpeta",
+        "text": "Elige una carpeta y Murmur guarda en ella el resumen, las notas y la transcripción cuando termina cada reunión. Mientras grabas, puedes activarlo o desactivarlo desde la barra de arriba.",
+        "link": "transcription",
+        "linkLabel": "Elige la carpeta"
+      },
+      {
+        "title": "La portada ahora se llama Resumen",
+        "text": "Lo verás así en toda la app y en las páginas compartidas. Exportar o copiar en Markdown también incluye el resumen."
+      },
+      {
+        "title": "Un botón de detener más visible",
+        "text": "El botón para detener la grabación, en la barra de arriba, es más grande y se ve mejor."
+      }
+    ],
     "0.6.0": [
       {
         "title": "Cloudflare se configura desde Murmur",

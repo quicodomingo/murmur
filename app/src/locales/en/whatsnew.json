@@ -6,6 +6,22 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.7.0": [
+      {
+        "title": "Every meeting as Markdown in your folder",
+        "text": "Choose a folder and Murmur saves the summary, notes and transcript there when each meeting ends. While recording, you can turn it on or off from the top bar.",
+        "link": "transcription",
+        "linkLabel": "Choose the folder"
+      },
+      {
+        "title": "The cover is now called Summary",
+        "text": "That's its name across the app and on shared pages. Exporting or copying as Markdown now includes the summary too."
+      },
+      {
+        "title": "A stop button that's easier to see",
+        "text": "The button that stops the recording, in the top bar, is bigger and easier to spot."
+      }
+    ],
     "0.6.0": [
       {
         "title": "Set up Cloudflare from Murmur",
