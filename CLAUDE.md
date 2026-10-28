@@ -1,6 +1,6 @@
 # Murmur
 
-Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur és una app de Mac (Tauri 2, React i un motor en Rust) que transcriu reunions en directe, en català, castellà i anglès, distingeix qui parla i, en acabar, en pot escriure una portada amb un model local. **Tot es processa a l'ordinador.**
+Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur és una app de Mac (Tauri 2, React i un motor en Rust) que transcriu reunions en directe, en català, castellà i anglès, distingeix qui parla i, en acabar, en pot escriure un resum amb un model local. **Tot es processa a l'ordinador.**
 
 ## On és cada cosa
 
@@ -55,6 +55,7 @@ cd app && npx tsc --noEmit && npm run check-locales    # tipus i traduccions
 
 **Full de ruta**
 - Quan s'acaba una tasca, es marca a `docs/ROADMAP.md`. Si canvia com funciona alguna peça, s'actualitza `docs/ARQUITECTURA.md`.
+- Quan s'afegeix una funcionalitat nova o en canvia una de visible, s'actualitza l'apartat de funcionalitats dels tres README (`README.md`, `README.ca.md` i `README.es.md`), i també la privadesa, els requisits o el full de ruta si toca.
 
 ## Abans de publicar una versió
 

@@ -17,34 +17,37 @@
 
 ![Murmur transcrivint una reunió en directe, en mode clar i fosc](docs/design/screens/negre-i-acid/1-reunio-en-directe.png)
 
-Murmur és una app per a Mac que transcriu les reunions mentre passen. Tot funciona a l'ordinador, i cap àudio va a cap servidor. També distingeix qui parla i et deixa prendre notes i captures de pantalla lligades al moment en què les fas. En acabar, pot escriure una portada amb el resum, el to, les decisions i les tasques.
+Murmur és una app per a Mac que transcriu les reunions mentre passen. Tot funciona a l'ordinador, i cap àudio va a cap servidor. També distingeix qui parla i et deixa prendre notes i captures de pantalla lligades al moment en què les fas. En acabar, pot escriure un resum amb el to, les decisions i les tasques. El pots compartir amb un enllaç o desar-lo en Markdown a la teva carpeta.
 
 Va néixer per a reunions en **català**, on la majoria de serveis de transcripció fallen. Sobretot quan la gent passa del català al castellà dins de la mateixa frase.
 
 ## Què fa
 
-- **Transcripció en directe** en català, en castellà, en català i castellà barrejats o en anglès.
+- **Transcripció en directe** en català, en castellà, en català i castellà barrejats o en anglès. En començar tries l'idioma i si hi ha més gent a la sala, i més endavant pots tornar a transcriure una reunió en un altre idioma.
 - **El micròfon i la trucada, per separat.** Murmur grava el micròfon i l'àudio del sistema (Zoom, Meet, Teams…) en dos canals i n'elimina l'eco. Per això funciona també amb altaveus, no només amb auriculars. Mai no grava la pantalla: només en fa una captura quan tu la demanes.
 - **Parlants.** Les veus s'agrupen en directe. En acabar, una segona passada per tota la gravació comprova qui ha dit cada cosa. Pots canviar «Parlant 1» pel nom real o triar-lo entre els convidats de l'esdeveniment del calendari.
 - **Passada final amb Whisper.** Quan la reunió és en una sola llengua, Whisper large-v3-turbo la torna a escoltar quan atures la gravació. Reescriu el text amb puntuació, majúscules i noms propis. No toca les frases que hagis corregit a mà.
-- **Barra flotant mentre graves.** Una píndola petita a la vora de la pantalla queda al davant de la trucada. Mostra el nivell de l'àudio, torna a obrir Murmur, atura la gravació i fa captures de la pantalla compartida. Cada captura queda lligada al moment de la conversa: surt al costat del que s'estava dient i dins la part corresponent de la portada. Si cliques la píndola, Murmur es converteix en una finestra estreta de notes al costat de la trucada.
-- **Notes** amb títols, llistes i caselles. Cada bloc recorda el minut en què es va escriure i surt al costat de la transcripció.
-- **Portada de la reunió**, opcional. Té títol, resum, to, decisions i tasques, i l'escriu un model de llenguatge local (Gemma 4 E4B). Les tasques es poden marcar, editar i assignar.
+- **Barra flotant mentre graves.** Una píndola petita a la vora de la pantalla queda al davant de la trucada. Mostra el nivell de l'àudio, torna a obrir Murmur, atura la gravació i fa captures de la pantalla compartida. Cada captura queda lligada al moment de la conversa: surt al costat del que s'estava dient i dins la part corresponent del resum. Si cliques la píndola, Murmur es converteix en una finestra estreta de notes al costat de la trucada.
+- **Notes** amb títols, llistes i caselles. Cada bloc recorda el minut en què es va escriure i surt al costat de la transcripció. Amb ⌘+ i ⌘− fas més gran o més petit el text de les notes.
+- **Resum de la reunió**, opcional. Té títol, resum, to, decisions i tasques, i l'escriu un model de llenguatge local (Gemma 4 E4B). Les tasques es poden marcar, editar i assignar. Si ho prefereixes, el pot escriure Claude o OpenAI amb la teva clau: només s'hi envia el text, mai l'àudio.
+- **Etiquetes** per ordenar les reunions. Les pots filtrar a la barra lateral i cercar-les, i amb el clic dret les reanomenes, les ajuntes o les esborres.
 - **Calendari.** Murmur t'avisa dos minuts abans que comenci una reunió, i la gravació agafa el títol i els convidats de l'esdeveniment. Funciona amb qualsevol calendari afegit a macOS: iCloud, Google o Exchange.
-- **Cerca** a totes les reunions, i exportació a Markdown, Word, PDF i àudio (.m4a).
+- **Compartir amb un enllaç.** Tries què hi surt (resum, notes, transcripció, captures, àudio), quan caduca l'enllaç i si porta contrasenya. Murmur ho xifra al Mac i ho publica al teu compte de Cloudflare, que és gratuït i es configura des de l'app.
+- **Markdown a la teva carpeta.** Tria una carpeta i Murmur hi desa el resum, les notes i la transcripció de cada reunió quan acaba. Mentre graves, ho pots activar o desactivar per a aquella reunió.
+- **Cerca** a totes les reunions, i exportació a Markdown, Word, PDF, àudio (.m4a) i captures.
 - **Interfície** en català, castellà i anglès, amb tres temes de color i mode clar i fosc.
 
 ## Privadesa
 
-- Tot es fa al Mac: el reconeixement de veu, els parlants, Whisper i el model del resum.
-- Murmur només es connecta a internet per descarregar models (el primer cop, i quan actives una funció opcional) i per buscar actualitzacions. Aquesta comprovació es pot desactivar.
+- Tot es fa al Mac: el reconeixement de veu, els parlants, Whisper i el model del resum. Escriure el resum amb Claude o OpenAI és opcional, fa servir la teva clau (desada al clauer de macOS) i només hi envia text.
+- Murmur només es connecta a internet per descarregar models (el primer cop, i quan actives una funció opcional) i per buscar actualitzacions. Aquesta comprovació es pot desactivar. Les reunions compartides es xifren al Mac abans de sortir-ne, i només les pot llegir qui té l'enllaç.
 - Les reunions es desen en una base de dades SQLite local. L'àudio només es desa si ho actives.
 - Per gravar una reunió cal el consentiment de tothom que hi participa. Murmur t'ho recorda en començar.
 
 ## Requisits
 
 - Un Mac amb Apple Silicon (M1 o posterior) i **macOS 14.2** o posterior.
-- 8 GB de memòria. Per a la portada se'n recomanen 16.
+- 8 GB de memòria. Per al resum local se'n recomanen 16.
 - Uns 600 MB de disc per als models bàsics. Els opcionals n'ocupen més: anglès, 458 MB; Whisper, 574 MB; Gemma, 5,2 GB.
 
 ## Instal·lació
@@ -68,7 +71,7 @@ El primer cop que l'obres, Murmur descarrega els models de veu i et demana aques
 | Detecció de veu | Silero VAD | Silero | MIT |
 | Parlants, en directe | TitaNet small | NVIDIA NeMo | Apache 2.0 |
 | Parlants, passada final | pyannote segmentation 3.0 + ERes2Net | pyannote, 3D-Speaker | MIT, Apache 2.0 |
-| Portada i resum | Gemma 4 E4B | Google | Apache 2.0 |
+| Resum | Gemma 4 E4B | Google | Apache 2.0 |
 
 La veu i els parlants funcionen amb [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx). Whisper funciona amb [whisper.cpp](https://github.com/ggml-org/whisper.cpp), i Gemma amb [llama.cpp](https://github.com/ggml-org/llama.cpp). Tots dos fan servir Metal.
 
@@ -119,7 +122,7 @@ La interfície està en català, castellà i anglès. Els textos són a `app/src
 
 ## Full de ruta
 
-Els propers passos són el suport per a Windows, triar l'idioma per a cada reunió, un vocabulari propi per a noms i marques, i millorar la detecció de parlants. La llista completa és a [docs/ROADMAP.md](docs/ROADMAP.md).
+Els propers passos són el suport per a Windows, un vocabulari propi per a noms i marques, i millorar la detecció de parlants. La llista completa és a [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Col·laborar
 
