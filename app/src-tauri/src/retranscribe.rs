@@ -113,3 +113,38 @@ fn read_replies(child: &mut Child, job: &str, channels: usize, mut progress: imp
     }
     Ok(out)
 }
+
+/// What Whisper hears in each window of `pcm` (16 kHz mono s16le): its language probabilities.
+/// `windows`: a few utterances each (import::windows).
+pub fn detect(models: &Path, pcm: &Path, windows: &[Vec<Span>]) -> Result<Vec<crate::import::Heard>> {
+    let model = WHISPER.file(models, 0);
+    if !model.is_file() {
+        return Err(anyhow!(tr!("model_missing", path = model.display())));
+    }
+    let job = serde_json::json!({
+        "pcm": pcm,
+        "windows": windows.iter().map(|w| w.iter().map(|s| serde_json::json!({ "start": s.start, "end": s.end })).collect::<Vec<_>>()).collect::<Vec<_>>(),
+    });
+    let mut child = Command::new(sidecar()?)
+        .arg(&model)
+        .arg("detect")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .context(tr!("whisper_start_failed"))?;
+    crate::gate::whisper(Some(child.id()));
+    let result = (|| -> Result<Vec<crate::import::Heard>> {
+        child.stdin.take().unwrap().write_all(job.to_string().as_bytes())?;
+        let mut heard = vec![];
+        for line in BufReader::new(child.stdout.take().unwrap()).lines() {
+            heard.push(serde_json::from_str(&line?).context(tr!("whisper_bad_reply"))?);
+        }
+        if !child.wait()?.success() {
+            return Err(anyhow!(tr!("whisper_failed", error = "")));
+        }
+        Ok(heard)
+    })();
+    crate::gate::whisper(None);
+    result
+}

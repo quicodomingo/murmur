@@ -7,9 +7,11 @@ pub mod diarize;
 pub mod engine;
 pub mod gate;
 pub mod i18n;
+pub mod import;
 pub mod cloud;
 pub mod share;
 pub mod llm;
+pub mod mcp;
 pub mod micwatch;
 pub mod models;
 pub mod punctuate;
@@ -101,9 +103,17 @@ async fn start_recording(
     room_speakers: bool,
     language: String,
     final_text: bool,
+    file: Option<String>,
 ) -> Result<Option<String>, String> {
-    if state.recording.lock().unwrap().is_some() {
-        return Err(tr!("already_recording").into());
+    {
+        // An opened file ends on its own, without stop_recording: once its worker is done, the
+        // slot is free.
+        let mut slot = state.recording.lock().unwrap();
+        match slot.as_ref() {
+            Some(rec) if rec.worker.is_finished() => *slot = None,
+            Some(_) => return Err(tr!("already_recording").into()),
+            None => {}
+        }
     }
     // Whisper only for one language: told "Catalan", it turns Spanish into Catalan.
     let final_language = (final_text && matches!(language.as_str(), "ca" | "es" | "en")).then(|| language.clone());
@@ -114,20 +124,35 @@ async fn start_recording(
 
     // cpal streams aren't Send on macOS: own the stream in its own thread until told to stop.
     let simulate = std::env::var("TRANSCRIPTOR_SIMULATE").ok();
-    // The simulator plays a recording as if it were the remote side of a call.
-    let (mic, system) = if simulate.is_some() {
+    // The simulator plays a recording as if it were the remote side of a call. An opened file is
+    // one channel with everyone on it, like the microphone in a room.
+    let (mic, system) = if file.is_some() {
+        (true, false)
+    } else if simulate.is_some() {
         (false, true)
     } else {
         (mic, system)
     };
-    let audio = std::thread::spawn(move || match simulate {
-        Some(path) => {
+    let importing = file.is_some();
+    let tmp = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("import");
+    let progress_app = app.clone();
+    let audio = std::thread::spawn(move || match (file, simulate) {
+        (Some(path), _) => match import::decode(path.as_ref(), &tmp) {
+            Ok(samples) => {
+                let _ = ready_tx.send(Ok(()));
+                feed_file(&progress_app, &samples, audio_tx, stop_rx);
+            }
+            Err(e) => {
+                let _ = ready_tx.send(Err(format!("{e:#}")));
+            }
+        },
+        (None, Some(path)) => {
             let _ = ready_tx.send(Ok(()));
             if let Err(e) = audio::simulate_from_file(&path, audio_tx, stop_rx) {
                 log::error!("{e:#}");
             }
         }
-        None => match audio::start_capture(mic, mic_device.as_deref(), system, audio_tx) {
+        (None, None) => match audio::start_capture(mic, mic_device.as_deref(), system, audio_tx) {
             Ok(stream) => {
                 let _ = ready_tx.send(Ok(()));
                 let _ = stop_rx.recv();
@@ -139,7 +164,10 @@ async fn start_recording(
         },
     });
     ready_rx.recv().map_err(|e| e.to_string())??;
-    shell::set_recording(&app, true);
+    // A file isn't a call: no floating pill, and the work after it needn't wait.
+    if !importing {
+        shell::set_recording(&app, true);
+    }
 
     let audio_path = if save_audio {
         // The folder chosen in the settings, or the app's own data folder.
@@ -241,8 +269,11 @@ async fn start_recording(
             let (source, samples) = match audio_rx.recv_timeout(Duration::from_millis(150)) {
                 Ok(frame) => frame,
                 Err(RecvTimeoutError::Timeout) if stopped_worker.load(Ordering::Relaxed) => break,
+                // A file has no clock to keep up with: nothing to pad.
                 Err(RecvTimeoutError::Timeout) => {
-                    emit(pipeline.tick());
+                    if !importing {
+                        emit(pipeline.tick());
+                    }
                     continue;
                 }
                 Err(RecvTimeoutError::Disconnected) => break,
@@ -270,7 +301,7 @@ async fn start_recording(
                 pipeline.set_partials(true);
             }
             // Pad stalled sources only once everything that arrived has been taken in.
-            if waiting == 0 {
+            if waiting == 0 && !importing {
                 emit(pipeline.tick());
             }
         }
@@ -285,7 +316,9 @@ async fn start_recording(
             }
         };
         let _ = app.emit("transcript-done", ());
-        shell::set_recording(&app, false);
+        if !importing {
+            shell::set_recording(&app, false);
+        }
         // Runs on its own thread so stopping returns at once; the UI shows its progress.
         // Without it, "final-pass-done" still follows so the UI can go on (punctuation, cover).
         match tapped.is_empty() {
@@ -309,6 +342,89 @@ async fn start_recording(
         worker,
     });
     Ok(audio_path.map(|p| p.to_string_lossy().into_owned()))
+}
+
+/// How far an opened file has gone through the engine, in seconds.
+#[derive(Clone, Serialize)]
+struct ImportProgress {
+    done: f32,
+    total: f32,
+}
+
+/// Gives an opened file's samples to the pipeline as fast as it takes them (a few seconds of
+/// audio queued at most, so the file isn't copied whole into the queue), until it ends or the
+/// user stops it.
+fn feed_file(app: &AppHandle, samples: &[f32], tx: Sender<audio::Frame>, stop: crossbeam_channel::Receiver<()>) {
+    const CHUNK: usize = SAMPLE_RATE / 2;
+    let total = samples.len() as f32 / SAMPLE_RATE as f32;
+    let mut said = 0.0;
+    for (i, chunk) in samples.chunks(CHUNK).enumerate() {
+        while tx.len() > 8 {
+            if stop.recv_timeout(Duration::from_millis(20)).is_ok() {
+                return;
+            }
+        }
+        if stop.try_recv().is_ok() || tx.send((audio::Source::Mic, chunk.to_vec())).is_err() {
+            return;
+        }
+        let done = ((i + 1) * CHUNK) as f32 / SAMPLE_RATE as f32;
+        if done - said >= 5.0 {
+            said = done;
+            let _ = app.emit("import-progress", ImportProgress { done: done.min(total), total });
+        }
+    }
+    let _ = app.emit("import-progress", ImportProgress { done: total, total });
+}
+
+/// The language of an audio file opened without one ("ca", "es", "en" or "ca-es"), by listening
+/// to a few moments of it with Whisper. None if it isn't clear or Whisper isn't installed.
+#[tauri::command]
+async fn detect_language(app: AppHandle, path: String) -> Result<import::Detected, String> {
+    let tmp = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("import");
+    tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<import::Detected> {
+        if !models::WHISPER.file(&models_dir(), 0).is_file() {
+            return Ok(import::Detected { language: None, windows: 0 });
+        }
+        let samples = import::decode(path.as_ref(), &tmp)?;
+        let spans = import::speech(&models_dir(), &samples)?;
+        let windows = import::windows(&spans);
+        let pcm = tmp.join(format!("detect-{}.pcm", std::process::id()));
+        std::fs::write(&pcm, import::pcm_bytes(&samples))?;
+        let heard = retranscribe::detect(&models_dir(), &pcm, &windows);
+        let _ = std::fs::remove_file(&pcm);
+        Ok(import::decide(&heard?))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| format!("{e:#}"))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ClaudeStatus {
+    /// What Claude runs to reach Murmur: this very app with `--mcp` (mcp.rs).
+    command: String,
+    desktop_installed: bool,
+    desktop_connected: bool,
+}
+
+fn claude_status_now() -> Result<ClaudeStatus, String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    Ok(ClaudeStatus { command: exe.display().to_string(), desktop_installed: mcp::desktop_installed(), desktop_connected: mcp::desktop_connected() })
+}
+
+/// Settings › Claude: how the connector is set up.
+#[tauri::command]
+async fn claude_status() -> Result<ClaudeStatus, String> {
+    claude_status_now()
+}
+
+/// Adds Murmur to Claude Desktop's servers, or takes it out.
+#[tauri::command]
+async fn claude_desktop_connect(on: bool) -> Result<ClaudeStatus, String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    mcp::set_desktop(on, &exe).map_err(|e| format!("{e:#}"))?;
+    claude_status_now()
 }
 
 /// "Som més a la sala" changed while recording.
@@ -412,21 +528,7 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
             };
             let samples = pipeline::read_tap(&tapped.path)?;
             started("speakers", samples.len() as f32 / SAMPLE_RATE as f32 * DIARIZE_RTF_ESTIMATE);
-            let turns = diarize::diarize(&models_dir(), &samples, diarize::Options::default())?;
-            let mut assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
-            // More voices than the user expects: redo the clustering with their maximum.
-            if diarize::speaker_count(&assignments) > max_speakers {
-                gate::wait();
-                let opts = diarize::Options {
-                    num_speakers: Some(max_speakers),
-                    ..Default::default()
-                };
-                let turns = diarize::diarize(&models_dir(), &samples, opts)?;
-                assignments = diarize::assign(&tapped.spans, &turns, tapped.base);
-            }
-            gate::wait();
-            let assignments =
-                diarize::absorb_small_speakers(&models_dir(), &samples, &tapped.spans, assignments, tapped.base)?;
+            let assignments = diarize::verify(&models_dir(), &samples, &tapped.spans, tapped.base, max_speakers, gate::wait)?;
             let _ = app.emit(
                 "final-pass-speakers",
                 FinalPassSpeakers {
@@ -1229,6 +1331,15 @@ pub fn run() {
             }
             // View: the notes text's size (⌘+ / ⌘− / ⌘0), above Full Screen.
             for item in menu.items()? {
+                if let tauri::menu::MenuItemKind::Submenu(file) = &item {
+                    if file.text()? == "File" {
+                        // A meeting from an audio file, as if it had been recorded.
+                        let open = tauri::menu::MenuItem::with_id(app, "open-audio", i18n::t("menu_open_audio"), true, Some("CmdOrCtrl+O"))?;
+                        shell::keep_label(app.handle(), &open, "menu_open_audio");
+                        file.insert(&open, 0)?;
+                        file.insert(&tauri::menu::PredefinedMenuItem::separator(app)?, 1)?;
+                    }
+                }
                 if let tauri::menu::MenuItemKind::Submenu(view) = item {
                     if view.text()? != "View" {
                         continue;
@@ -1250,6 +1361,10 @@ pub fn run() {
                 "about" => {
                     shell::show_main(app);
                     let _ = app.emit_to("main", "open-about", ());
+                }
+                "open-audio" => {
+                    shell::show_main(app);
+                    let _ = app.emit_to("main", "open-audio", ());
                 }
                 "text-zoom-in" => {
                     let _ = app.emit_to("main", "text-zoom", 1);
@@ -1284,6 +1399,9 @@ pub fn run() {
             set_ui_language,
             prepare,
             start_recording,
+            detect_language,
+            claude_status,
+            claude_desktop_connect,
             stop_recording,
             list_meetings,
             get_meeting,

@@ -1,6 +1,8 @@
 {
   "title": "Ajustes",
   "description": "Preferencias de la app",
+  "saved": "Guardado",
+  "close": "Cerrar",
   "tabs": {
     "general": "General",
     "appearance": "Apariencia",
@@ -8,7 +10,8 @@
     "audio": "Audio",
     "transcription": "Transcripción",
     "intelligence": "Inteligencia",
-    "share": "Compartir"
+    "share": "Compartir",
+    "claude": "Claude"
   },
   "nextRecording": "Los cambios se aplicarán en la próxima grabación.",
   "general": {
@@ -260,5 +263,29 @@
     },
     "manual": "Ya tengo un Worker publicado con setup.sh",
     "back": "Volver al asistente"
+  },
+  "claude": {
+    "intro": "Con el conector, Claude puede leer y buscar tus reuniones y transcribir audios de este Mac con Murmur. La transcripción se hace aquí, y a Claude solo le llega el texto que pide.",
+    "desktop": "Claude Desktop",
+    "desktopToggle": "Conectar con Claude Desktop",
+    "desktopHint": "Murmur se añade a la configuración de Claude Desktop. Después hay que volver a abrirlo.",
+    "desktopOnHint": "Conectado. Si Claude Desktop estaba abierto, vuelve a abrirlo para que lo encuentre.",
+    "desktopMissing": "No se ha encontrado Claude Desktop en este Mac. También puedes usarlo con Claude Code.",
+    "desktopAdded": "Murmur se ha añadido a Claude Desktop. Vuelve a abrirlo para que lo encuentre.",
+    "desktopRemoved": "Murmur ya no está en Claude Desktop.",
+    "manual": "Añadirlo a mano",
+    "manualHint": "En Claude Desktop, ve a Configuración › Desarrollador › Editar configuración y añade esto dentro del archivo:",
+    "code": "Claude Code",
+    "codeHint": "Pega este comando en el Terminal. Murmur quedará disponible en todos tus proyectos:",
+    "codeCheck": "Para comprobarlo, escribe /mcp dentro de Claude Code: tiene que aparecer «murmur».",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "ask": "Qué le puedes pedir",
+    "ask1": "«Transcribe ~/Descargas/entrevista.m4a y hazme un resumen.»",
+    "ask2": "«¿Qué decidimos con Acme la semana pasada?»",
+    "ask3": "«¿Qué tareas tengo pendientes de las reuniones de este mes?»",
+    "ask4": "«Busca en mis reuniones cuándo hablamos del presupuesto.»",
+    "tools": "Claude lo hace con cinco herramientas de Murmur: listar, buscar y leer reuniones, transcribir un archivo y consultar el resultado. La primera vez te pedirá permiso para usar cada una. Una transcripción larga tarda unos minutos, y Claude irá preguntando cómo va.",
+    "privacy": "Murmur no envía nada por su cuenta: Claude solo recibe el texto que pide a las herramientas, y lo trata según tus condiciones con Anthropic. El audio nunca sale del Mac."
   }
 }

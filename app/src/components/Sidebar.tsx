@@ -18,6 +18,8 @@ type Props = {
   meetings: MeetingSummary[];
   selectedId: string | null;
   canCreate: boolean;
+  /** The meeting being made from an audio file: it isn't recording, it's being transcribed. */
+  importingId?: string | null;
   search: (query: string) => Promise<SearchHit[]>;
   onSelect: (id: string) => void;
   onOpenHit: (hit: SearchHit) => void;
@@ -50,7 +52,7 @@ const HITS_PER_MEETING = 3;
 const TAGS_SHOWN = 5;
 const TAGS_OPEN_KEY = "murmur.sidebar.tagsOpen";
 
-export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onOpenHit, onNew, startChoice, onStartChoice, englishReady, onSettings, onDelete, tagFilter, onTagFilter, onRenameTag, onDeleteTag }: Props) {
+export function Sidebar({ meetings, selectedId, canCreate, importingId, search, onSelect, onOpenHit, onNew, startChoice, onStartChoice, englishReady, onSettings, onDelete, tagFilter, onTagFilter, onRenameTag, onDeleteTag }: Props) {
   const { t } = useTranslation("sidebar");
   const { t: tt } = useTranslation("tags");
   const [query, setQuery] = useState("");
@@ -83,7 +85,7 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
       {/* Traffic lights on the left (native), the brand on the right; the strip drags the window. */}
       <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-center justify-end pr-3.5">
         <span data-tauri-drag-region className="flex items-center gap-1.5 text-[12px] font-bold tracking-[-0.02em]">
-          <LogoIcon size={18} />
+          <LogoIcon size={22} />
           murmur
         </span>
       </div>
@@ -155,13 +157,13 @@ export function Sidebar({ meetings, selectedId, canCreate, search, onSelect, onO
                         {m.id === selectedId && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-[2px] bg-mm-sidebar-selection-bar" aria-hidden />}
                         <span className="flex-1 truncate">{m.title}</span>
                         {activeShares(m).length > 0 && <Link2 className="size-3 shrink-0 text-text-secondary" aria-label={translate("share:shared")} />}
-                        {m.status === "recording" ? (
+                        {m.status === "recording" && m.id !== importingId ? (
                           <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label={t("recording")}>
                             <span className="mm-rec size-2 rounded-full bg-mm-recording-dot" aria-hidden />
                             REC
                           </span>
-                        ) : m.status === "processing" ? (
-                          <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label={t("verifyingSpeakers")} />
+                        ) : m.status === "processing" || m.status === "recording" ? (
+                          <span className="size-3 animate-spin rounded-full border-[1.5px] border-text-secondary/30 border-t-text-secondary" aria-label={m.status === "recording" ? translate("app:importing") : t("verifyingSpeakers")} />
                         ) : (
                           <span className="text-[11px] tabular-nums text-text-secondary">{duration(m.duration)}</span>
                         )}

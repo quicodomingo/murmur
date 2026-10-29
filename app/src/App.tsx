@@ -198,6 +198,8 @@ export default function App() {
   /** "Desa en Markdown", chosen for each meeting while it records; written once it's done. */
   const [markdown, setMarkdown] = useState<Record<string, boolean>>({});
   const startedAt = useRef(0);
+  /** A meeting made from an audio file (File › Open Audio…) while it goes through the engine. */
+  const [importing, setImporting] = useState<{ id: string; done: number; total: number } | null>(null);
 
   const meeting = (state.selectedId && state.open[state.selectedId]) || null;
   const recording = Object.values(state.open).find((m) => m.status === "recording") ?? null;
@@ -253,7 +255,10 @@ export default function App() {
           });
       },
       onLevel: setLevel,
-      onDone: () => dispatch({ type: "stopped" }),
+      onDone: () => {
+        dispatch({ type: "stopped" });
+        setImporting(null);
+      },
       onError: (message) => toast.error(message),
       onFinalPass: (e) => post.rustStageStarted(e.meetingId, e.stage, e.estimateSeconds),
       onFinalPassSpeakers: (e) => {
@@ -291,6 +296,11 @@ export default function App() {
       backend.onOpenAbout(() => setShowAbout(true)),
       backend.onRecordRequest((start, choice) => (start ? startRef.current(choice) : stopRef.current())),
       backend.onCaptureRequest(() => captureRef.current()),
+      backend.onOpenAudio(() => openAudioRef.current()),
+      backend.onImportProgress((e) => {
+        setImporting((now) => now && { ...now, ...e });
+        dispatch({ type: "tick", duration: e.done });
+      }),
       backend.onPostPaused((busy) => dispatch({ type: "postPaused", reason: busy.recording ? "recording" : busy.call ? "call" : null })),
     ];
     return () => unlisten.forEach((u) => void u.then((f) => f()));
@@ -382,11 +392,13 @@ export default function App() {
     document.documentElement.style.setProperty("--mm-reading-zoom", String(settings.textZoom));
   }, [settings.textZoom]);
 
+  const isImport = !!recording && importing?.id === recording.id;
   useEffect(() => {
-    if (!recording) return;
+    // A file's time comes from how far the engine has gone (import-progress).
+    if (!recording || isImport) return;
     const id = setInterval(() => dispatch({ type: "tick", duration: (Date.now() - startedAt.current) / 1000 }), 500);
     return () => clearInterval(id);
-  }, [recording, dispatch]);
+  }, [recording, isImport, dispatch]);
 
   /** `choice`: language and people in the room picked right before starting (StartOptions); it becomes the default. */
   const start = useCallback(async (choice?: Partial<StartChoice>) => {
@@ -447,6 +459,72 @@ export default function App() {
   startRef.current = (choice) => {
     if (!recording && !busy) start(choice);
   };
+
+  /**
+   * File › Open Audio…: a meeting from an audio file, as if it had been recorded, with everyone on
+   * one channel. Whisper listens to a few moments to tell its language; if it can't, the
+   * meeting's usual one.
+   */
+  const openAudio = async () => {
+    if (!backend.isTauri()) return;
+    if (recording || busy) {
+      toast(t("importWhileRecording"));
+      return;
+    }
+    if (!transcriptionReady) {
+      setOnboarding({ open: true, atModels: true });
+      return;
+    }
+    const path = await openDialog({ title: t("importDialog"), filters: [{ name: t("importFilter"), extensions: backend.AUDIO_EXTENSIONS }] });
+    if (typeof path !== "string") return;
+    setBusy(true);
+    const listening = toast.loading(t("importDetecting"));
+    const detected = await backend.detectLanguage(path).catch((e) => {
+      toast.error(String(e), { id: listening });
+      return null;
+    });
+    if (!detected) {
+      setBusy(false);
+      return;
+    }
+    let language = detected.language ?? settings.language;
+    if (language === "en" && !models.status.english?.installed) language = settings.language === "en" ? "ca" : settings.language;
+    const name = t(`settings:transcription.languages.${language === "ca-es" ? "caEs" : language}`);
+    toast(detected.language === language ? t("importLanguage", { language: name }) : t("importLanguageUnclear", { language: name }), { id: listening });
+    const title = path.split("/").pop()!.replace(/\.[^.]+$/, "");
+    const m = newMeeting({ mic: true, system: false }, language, title);
+    dispatch({ type: "new", meeting: m });
+    setImporting({ id: m.id, done: 0, total: 0 });
+    setMarkdown((list) => ({ ...list, [m.id]: settings.saveMarkdown && !!settings.markdownDir }));
+    const finalText = language !== "ca-es" && modelInstalled("whisper");
+    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language });
+    try {
+      const audio = await backend.startRecording({
+        meetingId: m.id,
+        mic: true,
+        micDevice: null,
+        system: false,
+        saveAudio: settings.saveAudio,
+        recordingsDir: settings.recordingsDir,
+        maxSpeakers: settings.maxSpeakers,
+        threshold: settings.threshold,
+        verifySpeakers: settings.verifySpeakers,
+        roomSpeakers: true,
+        language,
+        finalText,
+        file: path,
+      });
+      if (audio) dispatch({ type: "audio", id: m.id, path: audio });
+    } catch (e) {
+      dispatch({ type: "stopped" });
+      setImporting(null);
+      toast.error(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const openAudioRef = useRef(openAudio);
+  openAudioRef.current = openAudio;
 
   /** The switch beside the recording pill. The first time, it asks for the folder; the choice is
    * also the default for the next meetings. */
@@ -781,6 +859,7 @@ export default function App() {
             meetings={state.summaries}
             selectedId={state.selectedId}
             canCreate={!recording && !busy}
+            importingId={importing?.id}
             search={search}
             onSelect={(id) => dispatch({ type: "select", id })}
             onOpenHit={(hit) =>
@@ -887,6 +966,9 @@ export default function App() {
             {recording ? (
               <div className="flex h-[30px] items-center gap-2.5 rounded-[15px] bg-mm-recording-pill pl-3 pr-[3px] text-mm-on-recording-pill shadow-[0_0_0_1px_var(--mm-recording-pill-border)]">
                 {/* Two level bars, half a cycle apart; they only move while there's sound. */}
+                {isImport ? (
+                  <span className="size-3 animate-spin rounded-full border-[1.5px] border-current/30 border-t-current" aria-hidden />
+                ) : (
                 <span className="flex h-3.5 items-center gap-[3px]" aria-hidden>
                   {[0, 1].map((i) => (
                     <span
@@ -896,9 +978,10 @@ export default function App() {
                     />
                   ))}
                 </span>
-                <span className="text-[13px] font-medium">{t("recording")}</span>
-                <span className="text-[13px] tabular-nums opacity-70" aria-label={t("recordingTime")}>
-                  {clock(recording.duration)}
+                )}
+                <span className="text-[13px] font-medium">{isImport ? t("importing") : t("recording")}</span>
+                <span className="text-[13px] tabular-nums opacity-70" aria-label={isImport ? undefined : t("recordingTime")}>
+                  {isImport ? t("progress", { percent: Math.floor((importing!.done / (importing!.total || 1)) * 100) }) : clock(recording.duration)}
                 </span>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -906,13 +989,13 @@ export default function App() {
                       type="button"
                       onClick={stop}
                       disabled={busy}
-                      aria-label={t("stopRecording")}
+                      aria-label={isImport ? t("stopImport") : t("stopRecording")}
                       className="grid size-6 place-items-center rounded-full bg-white/20 hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-current disabled:opacity-40"
                     >
                       <span className="size-2.5 rounded-[2px] bg-current" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>{t("stop")}</TooltipContent>
+                  <TooltipContent>{isImport ? t("stopImport") : t("stop")}</TooltipContent>
                 </Tooltip>
               </div>
             ) : (
@@ -980,6 +1063,7 @@ export default function App() {
                 {state.loaded && (
                   <Welcome
                     onStart={() => start()}
+                    onOpenAudio={openAudio}
                     startChoice={startChoice}
                     onStartChoice={updateSettings}
                     englishReady={englishReady}
@@ -1089,6 +1173,7 @@ export default function App() {
 
 function Welcome({
   onStart,
+  onOpenAudio,
   startChoice,
   onStartChoice,
   englishReady,
@@ -1098,6 +1183,7 @@ function Welcome({
   onDownload,
 }: {
   onStart: () => void;
+  onOpenAudio: () => void;
   startChoice: StartChoice;
   onStartChoice: (change: Partial<StartChoice>) => void;
   englishReady: boolean;
@@ -1155,6 +1241,14 @@ function Welcome({
         </button>
         <StartOptions value={startChoice} onChange={onStartChoice} englishReady={englishReady} className="mt-2" />
         <p className="mt-3 text-[12px] text-text-secondary">{t("consentReminder")}</p>
+        <button
+          type="button"
+          onClick={onOpenAudio}
+          disabled={busy}
+          className="mt-4 flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-text-secondary hover:bg-mm-fill-subtle hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40"
+        >
+          <FileAudio className="size-3.5" /> {t("importOpen")}
+        </button>
       </div>
     </div>
   );

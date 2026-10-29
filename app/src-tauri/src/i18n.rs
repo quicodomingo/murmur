@@ -72,6 +72,7 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
         // App menu and menu bar icon.
         "menu_about" => ["Quant a Murmur", "Acerca de Murmur", "About Murmur"],
         "menu_settings" => ["Configuració…", "Ajustes…", "Settings…"],
+        "menu_open_audio" => ["Transcriu des d'un fitxer…", "Transcribir desde un archivo…", "Transcribe from File…"],
         "menu_zoom_in" => ["Amplia el text", "Ampliar el texto", "Make Text Bigger"],
         "menu_zoom_out" => ["Redueix el text", "Reducir el texto", "Make Text Smaller"],
         "menu_zoom_reset" => ["Mida real del text", "Tamaño real del texto", "Actual Text Size"],
@@ -149,6 +150,7 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "No se encuentra el audio de esta reunión",
             "This meeting's audio can't be found",
         ],
+        "audio_open_failed" => ["No s'ha pogut obrir aquest àudio", "No se ha podido abrir este audio", "Couldn't open this audio"],
         "audio_empty" => ["L'àudio és buit", "El audio está vacío", "The audio is empty"],
         "audio_not_opus" => ["L'àudio no és Opus", "El audio no es Opus", "The audio isn't Opus"],
         "audio_convert_failed" => ["No s'ha pogut convertir l'àudio", "No se ha podido convertir el audio", "Couldn't convert the audio"],

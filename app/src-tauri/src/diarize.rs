@@ -131,6 +131,22 @@ impl Diarizer {
     }
 }
 
+/// The final pass's speakers: who said each utterance on one channel (`base`: its first speaker
+/// id), re-clustered with `max_speakers` when it finds more voices than that, and with tiny
+/// speakers folded into the nearest one. `pause` runs between the heavy steps (gate::wait).
+pub fn verify(models: &Path, samples: &[f32], spans: &[Span], base: usize, max_speakers: usize, pause: impl Fn()) -> Result<Vec<Assignment>> {
+    let turns = diarize(models, samples, Options::default())?;
+    let mut assignments = assign(spans, &turns, base);
+    // More voices than the user expects: redo the clustering with their maximum.
+    if speaker_count(&assignments) > max_speakers {
+        pause();
+        let turns = diarize(models, samples, Options { num_speakers: Some(max_speakers), ..Default::default() })?;
+        assignments = assign(spans, &turns, base);
+    }
+    pause();
+    absorb_small_speakers(models, samples, spans, assignments, base)
+}
+
 /// Speakers that actually got utterances.
 pub fn speaker_count(assignments: &[Assignment]) -> usize {
     let mut ids: Vec<usize> = assignments.iter().map(|a| a.speaker).collect();

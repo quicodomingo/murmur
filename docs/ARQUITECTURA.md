@@ -196,6 +196,25 @@ Totes les versions 2.x de `zip` estan retirades de crates.io. `Cargo.toml` fa `[
 
 Si una reunió s'ha gravat amb l'idioma equivocat, «Torna a transcriure en…» (menú del títol) la torna a passar per Whisper en català, castellà o anglès. `retranscribe_meeting` descodifica l'.ogg canal per canal (`playback::decode_channels`: el micròfon a l'esquerra i, en una trucada, el sistema a la dreta), en fa els mateixos fitxers PCM temporals que la gravació i crida `final_pass` només amb el text. Les frases són les de la reunió (inici i final), així que qui parla i quan es manté; les corregides a mà no es toquen. La interfície desa l'idioma nou i, si la portada està activada, la torna a fer. «Català + castellà» no hi és perquè Whisper només treballa en una llengua.
 
+### Obrir un àudio (`import.rs`)
+
+Fitxer › Transcriu des d'un fitxer… (⌘O) fa una reunió a partir d'un fitxer, com si s'hagués gravat:
+
+- **Descodificar.** `afconvert` de macOS ho passa a WAV de 16 kHz (mp3, m4a, wav, aiff, flac, mp4 i també Ogg/Opus a les versions noves de macOS). Si no pot, un .ogg passa pel decodificador d'Opus de l'app. Els canals es barregen a `import::wav_samples`: amb `-c 1`, `afconvert` es queda només amb l'esquerre, i en una trucada gravada en estèreo cada persona va en un canal.
+- **Idioma.** Si no se sap, `detect_language` el demana a Whisper. Silero VAD troba on es parla, `import::windows` en fa fins a 8 finestres d'uns 10 s de veu repartides pel fitxer, i `murmur-whisper <model> detect` en dona les probabilitats de català, castellà i anglès. `import::decide` compta les finestres clares (≥ 0,6). Si el català i el castellà hi surten tots dos (≥ 15% de les finestres; una finestra amb tots dos ≥ 0,3 compta mig per a cadascun), és «Català + castellà». Si no està clar, es fa servir l'idioma de sempre. Una reunió de 20 minuts triga uns 20 s.
+- **Transcriure.** `start_recording` amb `file`: el fitxer va pel canal del micròfon (tothom en un canal, com a la sala), sense eco ni farciment de silenci, tan de pressa com el motor el pren (unes 25 vegades el temps real a l'M4). Després hi ha la passada final de sempre. No mostra l'indicador ni fa esperar la feina d'una altra reunió.
+
+Mesura amb `examples/lang_probe.rs` (decisió per fitxer) i `examples/import_probe.rs` (velocitat del motor).
+
+### Connector per a Claude (`mcp.rs`)
+
+El mateix binari de l'app, cridat amb `--mcp` (`main.rs`), és un servidor MCP per stdio: `/Applications/Murmur.app/Contents/MacOS/transcriptor --mcp`. Així no cal instal·lar res més ni afegir cap binari al paquet.
+
+- **Eines:** `list_meetings`, `search_meetings` i `get_meeting` llegeixen la base de dades de l'app en mode de només lectura (`Db::open_read_only`; l'app hi pot escriure alhora, és WAL). `get_meeting` torna el resum, les tasques, les notes i la transcripció en Markdown, amb els noms dels parlants. `transcribe_file` torna de seguida un identificador i transcriu en un fil (`import::transcribe_file`: idioma, motor, parlants i Whisper, com «Transcriu des d'un fitxer…» però sense interfície). `get_transcription` en diu l'estat o el text. Una transcripció llarga triga més del que Claude espera una resposta, per això és asíncrona. Una sola alhora.
+- **Sortida neta:** el protocol és la sortida estàndard. En començar es duplica i el descriptor 1 passa a apuntar a stderr, perquè cap biblioteca (sherpa-onnx, onnxruntime) hi escrigui res.
+- **Configuració › Claude:** l'interruptor afegeix o treu l'entrada `murmur` de `~/Library/Application Support/Claude/claude_desktop_config.json` sense tocar res més (si l'arxiu no és JSON vàlid, no el reescriu). Per a Claude Code mostra l'ordre `claude mcp add`. Desactivat per defecte: només hi ha connector si l'usuari l'afegeix.
+- **Privadesa:** Murmur no envia res. Claude rep el text que demana a les eines; l'àudio no surt del Mac.
+
 ## Passada final: verificació de parlants (`diarize.rs`, `final_pass` a `lib.rs`)
 
 - Durant la gravació, el canal dels altres (el sistema en una trucada, o el micròfon si no n'hi ha) es desa en PCM de 16 bits a `<app_cache_dir>/final-pass/`.

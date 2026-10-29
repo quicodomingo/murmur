@@ -48,7 +48,23 @@ export const startRecording = (opts: {
   language: Language;
   /** Whisper writes the text again after stopping (single-language meetings). */
   finalText: boolean;
-}) => invoke<string | null>("start_recording", opts);
+  /** An audio file instead of the microphone (File › Open Audio…): one channel, as fast as it goes. */
+  file?: string;
+}) => invoke<string | null>("start_recording", { file: null, ...opts });
+
+/** Audio files File › Open Audio… offers (import.rs EXTENSIONS). */
+export const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "ogg", "opus", "mp4", "mov"];
+/** The language of an audio file, by listening to a few moments of it; null if it isn't clear. */
+export const detectLanguage = (path: string) => invoke<{ language: Language | null; windows: number }>("detect_language", { path });
+/** Settings › Claude: the connector (mcp.rs). `command`: what Claude runs, with `--mcp`. */
+export type ClaudeStatus = { command: string; desktopInstalled: boolean; desktopConnected: boolean };
+export const claudeStatus = () => invoke<ClaudeStatus>("claude_status");
+export const claudeDesktopConnect = (on: boolean) => invoke<ClaudeStatus>("claude_desktop_connect", { on });
+/** File › Open Audio… (⌘O). */
+export const onOpenAudio = (fn: () => void) => listen("open-audio", () => fn());
+/** How far an opened file has gone through the engine, in seconds. */
+export const onImportProgress = (fn: (e: { done: number; total: number }) => void) =>
+  listen<{ done: number; total: number }>("import-progress", (e) => fn(e.payload));
 
 export const stopRecording = () => invoke<void>("stop_recording");
 

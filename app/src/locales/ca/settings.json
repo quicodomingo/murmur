@@ -1,6 +1,8 @@
 {
   "title": "Configuració",
   "description": "Preferències de l'app",
+  "saved": "Desat",
+  "close": "Tanca",
   "tabs": {
     "general": "General",
     "appearance": "Aparença",
@@ -8,7 +10,8 @@
     "audio": "Àudio",
     "transcription": "Transcripció",
     "intelligence": "Intel·ligència",
-    "share": "Compartir"
+    "share": "Compartir",
+    "claude": "Claude"
   },
   "nextRecording": "Els canvis s'aplicaran a la propera gravació.",
   "general": {
@@ -260,5 +263,29 @@
     },
     "manual": "Ja tinc un Worker publicat amb setup.sh",
     "back": "Torna a l'assistent"
+  },
+  "claude": {
+    "intro": "Amb el connector, Claude pot llegir i cercar les teves reunions i transcriure àudios d'aquest Mac amb Murmur. La transcripció es fa aquí, i a Claude només li arriba el text que demana.",
+    "desktop": "Claude Desktop",
+    "desktopToggle": "Connecta amb Claude Desktop",
+    "desktopHint": "Murmur s'afegeix a la configuració de Claude Desktop. Després cal tornar-lo a obrir.",
+    "desktopOnHint": "Connectat. Si Claude Desktop estava obert, torna'l a obrir perquè el trobi.",
+    "desktopMissing": "No s'ha trobat Claude Desktop en aquest Mac. També el pots fer servir amb Claude Code.",
+    "desktopAdded": "Murmur s'ha afegit a Claude Desktop. Torna'l a obrir perquè el trobi.",
+    "desktopRemoved": "Murmur ja no és a Claude Desktop.",
+    "manual": "Afegir-lo a mà",
+    "manualHint": "A Claude Desktop, ves a Configuració › Desenvolupador › Edita la configuració i afegeix-hi això dins de l'arxiu:",
+    "code": "Claude Code",
+    "codeHint": "Enganxa aquesta ordre al Terminal. Murmur quedarà disponible a tots els teus projectes:",
+    "codeCheck": "Per comprovar-ho, escriu /mcp dins de Claude Code: hi ha de sortir «murmur».",
+    "copy": "Copia",
+    "copied": "Copiat",
+    "ask": "Què li pots demanar",
+    "ask1": "«Transcriu ~/Baixades/entrevista.m4a i fes-me'n un resum.»",
+    "ask2": "«Què vam decidir amb Acme la setmana passada?»",
+    "ask3": "«Quines tasques tinc pendents de les reunions d'aquest mes?»",
+    "ask4": "«Busca a les meves reunions quan vam parlar del pressupost.»",
+    "tools": "Claude ho fa amb cinc eines de Murmur: llistar, cercar i llegir reunions, transcriure un fitxer i consultar-ne el resultat. La primera vegada et demanarà permís per fer servir cadascuna. Una transcripció llarga triga uns minuts, i Claude anirà preguntant com va.",
+    "privacy": "Murmur no envia res pel seu compte: Claude només rep el text que demana a les eines, i el tracta segons les teves condicions amb Anthropic. L'àudio no surt mai del Mac."
   }
 }

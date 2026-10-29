@@ -202,6 +202,22 @@ impl Db {
         Ok(Self { conn })
     }
 
+    /// The app's database for reading only, while the app may be writing it (the Claude
+    /// connector, mcp.rs).
+    pub fn open_read_only(path: &Path) -> Result<Self> {
+        let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX)
+            .context(tr!("db_open_failed"))?;
+        conn.busy_timeout(std::time::Duration::from_secs(5))?;
+        Ok(Self { conn })
+    }
+
+    /// A meeting's note blocks as plain text, with the minute each was written at.
+    pub fn note_texts(&self, id: &str) -> Result<Vec<(f64, String)>> {
+        let mut stmt = self.conn.prepare("SELECT t, text FROM search WHERE kind = 'note' AND meeting_id = ?1 ORDER BY CAST(t AS REAL)")?;
+        let rows = stmt.query_map([id], |r| Ok((r.get::<_, f64>(0)?, r.get::<_, String>(1)?)))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     #[cfg(test)]
     fn in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory()?;

@@ -65,5 +65,14 @@
   "retranscribeOk": "Torna a transcriure",
   "retranscribeNeedsWhisper": "Per tornar a transcriure cal el model Whisper.",
   "markdownSaved": "Desada en Markdown",
-  "markdownFailed": "No s'ha pogut desar en Markdown: {{error}}"
+  "markdownFailed": "No s'ha pogut desar en Markdown: {{error}}",
+  "importOpen": "Transcriu des d'un fitxer…",
+  "importDialog": "Obre un àudio",
+  "importFilter": "Àudio",
+  "importWhileRecording": "Atura la gravació abans d'obrir un àudio.",
+  "importDetecting": "Escoltant en quin idioma és…",
+  "importLanguage": "Idioma: {{language}}. Si no és aquest, en acabar la pots tornar a transcriure en un altre.",
+  "importLanguageUnclear": "No s'ha pogut saber l'idioma. Es transcriu amb el de sempre: {{language}}.",
+  "importing": "Transcrivint",
+  "stopImport": "Atura (es queda el que ja s'ha transcrit)"
 }

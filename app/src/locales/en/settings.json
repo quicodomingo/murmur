@@ -1,6 +1,8 @@
 {
   "title": "Settings",
   "description": "App preferences",
+  "saved": "Saved",
+  "close": "Close",
   "tabs": {
     "general": "General",
     "appearance": "Appearance",
@@ -8,7 +10,8 @@
     "audio": "Audio",
     "transcription": "Transcription",
     "intelligence": "Intelligence",
-    "share": "Sharing"
+    "share": "Sharing",
+    "claude": "Claude"
   },
   "nextRecording": "Changes will apply to the next recording.",
   "general": {
@@ -260,5 +263,29 @@
     },
     "manual": "I already have a Worker published with setup.sh",
     "back": "Back to the assistant"
+  },
+  "claude": {
+    "intro": "With the connector, Claude can read and search your meetings and transcribe audio on this Mac with Murmur. Transcription happens here, and Claude only gets the text it asks for.",
+    "desktop": "Claude Desktop",
+    "desktopToggle": "Connect to Claude Desktop",
+    "desktopHint": "Murmur is added to Claude Desktop's settings. Then reopen it.",
+    "desktopOnHint": "Connected. If Claude Desktop was open, reopen it so it finds Murmur.",
+    "desktopMissing": "Claude Desktop isn't on this Mac. You can also use it with Claude Code.",
+    "desktopAdded": "Murmur was added to Claude Desktop. Reopen it so it finds Murmur.",
+    "desktopRemoved": "Murmur is no longer in Claude Desktop.",
+    "manual": "Add it by hand",
+    "manualHint": "In Claude Desktop, go to Settings › Developer › Edit Config and add this to the file:",
+    "code": "Claude Code",
+    "codeHint": "Paste this command in Terminal. Murmur will be available in all your projects:",
+    "codeCheck": "To check, type /mcp in Claude Code: “murmur” should be listed.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "ask": "What you can ask",
+    "ask1": "“Transcribe ~/Downloads/interview.m4a and summarise it.”",
+    "ask2": "“What did we decide with Acme last week?”",
+    "ask3": "“Which tasks are still open from this month's meetings?”",
+    "ask4": "“Search my meetings for when we talked about the budget.”",
+    "tools": "Claude does it with five Murmur tools: list, search and read meetings, transcribe a file and check on it. The first time, it asks your permission for each one. A long transcription takes a few minutes, and Claude checks how it's going.",
+    "privacy": "Murmur sends nothing on its own: Claude only gets the text it asks the tools for, and handles it under your terms with Anthropic. Audio never leaves the Mac."
   }
 }

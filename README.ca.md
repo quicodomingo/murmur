@@ -28,6 +28,8 @@ Va néixer per a reunions en **català**, on la majoria de serveis de transcripc
 - **Parlants.** Les veus s'agrupen en directe. En acabar, una segona passada per tota la gravació comprova qui ha dit cada cosa. Pots canviar «Parlant 1» pel nom real o triar-lo entre els convidats de l'esdeveniment del calendari.
 - **Passada final amb Whisper.** Quan la reunió és en una sola llengua, Whisper large-v3-turbo la torna a escoltar quan atures la gravació. Reescriu el text amb puntuació, majúscules i noms propis. No toca les frases que hagis corregit a mà.
 - **Barra flotant mentre graves.** Una píndola petita a la vora de la pantalla queda al davant de la trucada. Mostra el nivell de l'àudio, torna a obrir Murmur, atura la gravació i fa captures de la pantalla compartida. Cada captura queda lligada al moment de la conversa: surt al costat del que s'estava dient i dins la part corresponent del resum. Si cliques la píndola, Murmur es converteix en una finestra estreta de notes al costat de la trucada.
+- **Obrir un àudio.** Fitxer › Transcriu des d'un fitxer… (⌘O) converteix un mp3, m4a, wav, ogg o qualsevol altre àudio en una reunió, amb els parlants i la passada final. Murmur endevina sol en quin idioma és.
+- **Connector per a Claude**, opcional. Claude Desktop i Claude Code poden llegir i cercar les teves reunions i transcriure àudios amb Murmur, al teu Mac. S'activa a Configuració › Claude.
 - **Notes** amb títols, llistes i caselles. Cada bloc recorda el minut en què es va escriure i surt al costat de la transcripció. Amb ⌘+ i ⌘− fas més gran o més petit el text de les notes.
 - **Resum de la reunió**, opcional. Té títol, resum, to, decisions i tasques, i l'escriu un model de llenguatge local (Gemma 4 E4B). Les tasques es poden marcar, editar i assignar. Si ho prefereixes, el pot escriure Claude o OpenAI amb la teva clau: només s'hi envia el text, mai l'àudio.
 - **Etiquetes** per ordenar les reunions. Les pots filtrar a la barra lateral i cercar-les, i amb el clic dret les reanomenes, les ajuntes o les esborres.
@@ -40,7 +42,7 @@ Va néixer per a reunions en **català**, on la majoria de serveis de transcripc
 ## Privadesa
 
 - Tot es fa al Mac: el reconeixement de veu, els parlants, Whisper i el model del resum. Escriure el resum amb Claude o OpenAI és opcional, fa servir la teva clau (desada al clauer de macOS) i només hi envia text.
-- Murmur només es connecta a internet per descarregar models (el primer cop, i quan actives una funció opcional) i per buscar actualitzacions. Aquesta comprovació es pot desactivar. Les reunions compartides es xifren al Mac abans de sortir-ne, i només les pot llegir qui té l'enllaç.
+- Murmur només es connecta a internet per descarregar models (el primer cop, i quan actives una funció opcional) i per buscar actualitzacions. Aquesta comprovació es pot desactivar. Les reunions compartides es xifren al Mac abans de sortir-ne, i només les pot llegir qui té l'enllaç. Amb el connector per a Claude activat, Claude rep el text que demana, mai l'àudio.
 - Les reunions es desen en una base de dades SQLite local. L'àudio només es desa si ho actives.
 - Per gravar una reunió cal el consentiment de tothom que hi participa. Murmur t'ho recorda en començar.
 

@@ -3,7 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { AudioLines, CalendarDays, Check, ChevronRight, CloudUpload, Contrast, Link2, Lock, Mic, SlidersHorizontal, Sparkles } from "lucide-react";
+import { AudioLines, CalendarDays, Check, ChevronRight, CloudUpload, Contrast, Copy, Link2, Lock, Mic, Plug, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -46,6 +46,7 @@ const TABS = [
   { id: "transcription", icon: AudioLines },
   { id: "intelligence", icon: Sparkles },
   { id: "share", icon: Link2 },
+  { id: "claude", icon: Plug },
 ] as const;
 
 
@@ -57,6 +58,16 @@ export type Tab = (typeof TABS)[number]["id"];
 export function SettingsDialog({ open, onOpenChange, settings, onChange, recording, meeting, onCheckUpdates, onShowWhatsNew, initialTab }: Props) {
   const { t } = useTranslation("settings");
   const [tab, setTab] = useState<Tab>("general");
+  // Settings apply and are kept as soon as they change: a word in the title bar says so.
+  const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<number | undefined>(undefined);
+  const change: Props["onChange"] = (patch) => {
+    onChange(patch);
+    setSaved(true);
+    window.clearTimeout(savedTimer.current);
+    savedTimer.current = window.setTimeout(() => setSaved(false), 1800);
+  };
+  useEffect(() => () => window.clearTimeout(savedTimer.current), []);
   useEffect(() => {
     if (open && initialTab) setTab(initialTab);
   }, [open, initialTab]);
@@ -70,9 +81,29 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
   }, [open]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[620px]" showCloseButton={false}>
-        <div className="border-b border-border px-4 pb-2 pt-3">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[700px]" showCloseButton={false}>
+        <div className="relative border-b border-border px-4 pb-2 pt-3">
           <DialogTitle className="text-center text-[13px] font-semibold">{t("title")}</DialogTitle>
+          <span
+            role="status"
+            aria-live="polite"
+            className={cn("absolute left-4 top-3 flex items-center gap-1 text-[11px] text-muted-foreground transition-opacity duration-300", saved ? "opacity-100" : "opacity-0")}
+          >
+            {saved && (
+              <>
+                <Check className="size-3" aria-hidden /> {t("saved")}
+              </>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label={t("close")}
+            title={t("close")}
+            className="absolute right-3 top-2.5 grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-mm-fill-subtle hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+          >
+            <X className="size-4" />
+          </button>
           <DialogDescription className="sr-only">{t("description")}</DialogDescription>
           <div className="mt-2 flex justify-center gap-1" role="tablist">
             {TABS.map(({ id, icon: Icon }) => (
@@ -93,13 +124,14 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
 
         <div className="h-[min(62vh,520px)] overflow-y-auto bg-mm-settings-background px-8 py-5">
           {recording && ["audio", "transcription", "intelligence"].includes(tab) && <p className="mb-3 text-[12px] text-muted-foreground">{t("nextRecording")}</p>}
-          {tab === "general" && <GeneralTab settings={settings} onChange={onChange} onGoTo={setTab} onCheckUpdates={onCheckUpdates} onShowWhatsNew={onShowWhatsNew} />}
-          {tab === "appearance" && <AppearanceTab settings={settings} onChange={onChange} />}
-          {tab === "calendar" && <CalendarSettings settings={settings} onChange={onChange} />}
-          {tab === "audio" && <AudioTab open={open} settings={settings} onChange={onChange} recording={recording} />}
-          {tab === "transcription" && <TranscriptionTab settings={settings} onChange={onChange} />}
-          {tab === "intelligence" && <IntelligenceTab settings={settings} onChange={onChange} meeting={meeting} onLlmLoaded={() => (llmLoaded.current = true)} />}
+          {tab === "general" && <GeneralTab settings={settings} onChange={change} onGoTo={setTab} onCheckUpdates={onCheckUpdates} onShowWhatsNew={onShowWhatsNew} />}
+          {tab === "appearance" && <AppearanceTab settings={settings} onChange={change} />}
+          {tab === "calendar" && <CalendarSettings settings={settings} onChange={change} />}
+          {tab === "audio" && <AudioTab open={open} settings={settings} onChange={change} recording={recording} />}
+          {tab === "transcription" && <TranscriptionTab settings={settings} onChange={change} />}
+          {tab === "intelligence" && <IntelligenceTab settings={settings} onChange={change} meeting={meeting} onLlmLoaded={() => (llmLoaded.current = true)} />}
           {tab === "share" && <ShareTab />}
+          {tab === "claude" && <ClaudeTab open={open} />}
         </div>
       </DialogContent>
     </Dialog>
@@ -1030,6 +1062,108 @@ function ShareTab() {
         <span>{t("share.privacy")}</span>
       </p>
     </>
+  );
+}
+
+// --- Claude --------------------------------------------------------------------------------
+
+/**
+ * The Claude connector (mcp.rs): Claude Desktop and Claude Code start Murmur with `--mcp` to read
+ * and search the meetings and transcribe files on this Mac. Off until the user adds it.
+ */
+function ClaudeTab({ open }: { open: boolean }) {
+  const { t } = useTranslation("settings");
+  const [status, setStatus] = useState<backend.ClaudeStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [manual, setManual] = useState(false);
+  useEffect(() => {
+    if (open && backend.isTauri()) backend.claudeStatus().then(setStatus).catch(() => {});
+  }, [open]);
+  // Outside the app (UI work), the path the installed app has.
+  const command = status?.command ?? "/Applications/Murmur.app/Contents/MacOS/transcriptor";
+  const codeCommand = `claude mcp add murmur --scope user -- "${command}" --mcp`;
+  const desktopJson = JSON.stringify({ mcpServers: { murmur: { command, args: ["--mcp"] } } }, null, 2);
+
+  const toggleDesktop = async (on: boolean) => {
+    setBusy(true);
+    try {
+      setStatus(await backend.claudeDesktopConnect(on));
+      toast(on ? t("claude.desktopAdded") : t("claude.desktopRemoved"));
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const copy = (text: string) => navigator.clipboard.writeText(text).then(() => toast(t("claude.copied")));
+
+  return (
+    <>
+      <p className="mb-4 px-1 text-[12px] leading-snug text-muted-foreground">{t("claude.intro")}</p>
+      <Group title={t("claude.desktop")}>
+        <Row
+          label={t("claude.desktopToggle")}
+          hint={status && !status.desktopInstalled ? t("claude.desktopMissing") : status?.desktopConnected ? t("claude.desktopOnHint") : t("claude.desktopHint")}
+        >
+          <Switch
+            checked={!!status?.desktopConnected}
+            disabled={busy || !status || !status.desktopInstalled}
+            onCheckedChange={toggleDesktop}
+            aria-label={t("claude.desktopToggle")}
+          />
+        </Row>
+        <div className="px-3 py-2">
+          <button type="button" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground" aria-expanded={manual} onClick={() => setManual((m) => !m)}>
+            <ChevronRight className={cn("size-3.5 transition-transform", manual && "rotate-90")} aria-hidden /> {t("claude.manual")}
+          </button>
+          {manual && (
+            <div className="mt-2">
+              <p className="text-[11px] leading-snug text-muted-foreground">{t("claude.manualHint")}</p>
+              <CodeBlock text={desktopJson} onCopy={() => copy(desktopJson)} label={t("claude.copy")} />
+            </div>
+          )}
+        </div>
+      </Group>
+      <Group title={t("claude.code")}>
+        <div className="px-3 py-2.5">
+          <p className="text-[12px] leading-snug">{t("claude.codeHint")}</p>
+          <CodeBlock text={codeCommand} onCopy={() => copy(codeCommand)} label={t("claude.copy")} />
+          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{t("claude.codeCheck")}</p>
+        </div>
+      </Group>
+      <Group title={t("claude.ask")}>
+        <ul className="space-y-1.5 px-3 py-2.5 text-[12px] leading-snug">
+          {(["ask1", "ask2", "ask3", "ask4"] as const).map((k) => (
+            <li key={k} className="text-foreground">
+              {t(`claude.${k}`)}
+            </li>
+          ))}
+        </ul>
+        <p className="px-3 py-2 text-[11px] leading-snug text-muted-foreground">{t("claude.tools")}</p>
+      </Group>
+      <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
+        <Lock className="mt-px size-3 shrink-0" aria-hidden />
+        <span>{t("claude.privacy")}</span>
+      </p>
+    </>
+  );
+}
+
+/** A command or a piece of configuration to copy, as it has to be typed. */
+function CodeBlock({ text, onCopy, label }: { text: string; onCopy: () => void; label: string }) {
+  return (
+    <div className="relative mt-2 rounded-md border border-border bg-mm-fill-subtle">
+      <pre className="whitespace-pre-wrap break-all px-2.5 py-2 pr-10 font-mono text-[11px] leading-relaxed">{text}</pre>
+      <button
+        type="button"
+        onClick={onCopy}
+        aria-label={label}
+        title={label}
+        className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+      >
+        <Copy className="size-3.5" />
+      </button>
+    </div>
   );
 }
 

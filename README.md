@@ -28,6 +28,8 @@ It started as a tool for meetings in **Catalan**, where most transcription servi
 - **Speakers.** Voices are grouped live. When the meeting ends, a second pass over the whole recording checks who said what. Rename “Speaker 1” to a real name, or pick one from the calendar event's guests.
 - **Final pass with Whisper.** For single-language meetings, Whisper large-v3-turbo listens again after you stop and rewrites the text with punctuation, capitals and proper names. It doesn't touch the lines you corrected by hand.
 - **Floating bar while you record.** A small pill on the edge of the screen stays on top of your call: it shows the audio level, brings Murmur back, stops the recording and takes a screenshot of the shared screen. Each screenshot is tied to the moment of the conversation, so it appears next to what was being said, and in the right part of the summary. Click the pill to turn Murmur into a narrow notes window beside the call.
+- **Open an audio file.** File › Transcribe from File… (⌘O) turns an mp3, m4a, wav, ogg or other audio file into a meeting, with speakers and the final pass. Murmur works out the language by itself.
+- **Claude connector**, optional. Claude Desktop and Claude Code can read and search your meetings and transcribe audio files with Murmur, on your Mac. Turn it on in Settings › Claude.
 - **Notes** with headings, lists and checkboxes. Each block remembers the minute it was written and shows up next to the transcript. ⌘+ and ⌘− make the notes text bigger or smaller.
 - **Meeting summary**, optional: a title, summary, tone, decisions and tasks, written by a local language model (Gemma 4 E4B). Tasks can be checked off, edited and assigned. If you prefer, it can be written by Claude or OpenAI with your own key: only the text is sent, never the audio.
 - **Tags** to organise meetings. Filter by them in the sidebar, search them, and rename, merge or delete them with a right click.
@@ -40,7 +42,7 @@ It started as a tool for meetings in **Catalan**, where most transcription servi
 ## Privacy
 
 - Everything runs on your Mac: speech recognition, speakers, Whisper and the summary model. Writing the summary with Claude or OpenAI is optional, uses your own key (kept in the macOS keychain) and only sends text.
-- Murmur only connects to the internet to download models (the first time, and when you enable an optional feature) and to check for updates. You can turn the update check off. Shared meetings are encrypted on your Mac before leaving it, and only you and whoever has the link can read them.
+- Murmur only connects to the internet to download models (the first time, and when you enable an optional feature) and to check for updates. You can turn the update check off. Shared meetings are encrypted on your Mac before leaving it, and only you and whoever has the link can read them. With the Claude connector on, Claude gets the text it asks for, never the audio.
 - Meetings are stored in a local SQLite database. Audio is only saved if you turn it on.
 - Recording a meeting requires the consent of everyone in it. Murmur reminds you when you start.
 

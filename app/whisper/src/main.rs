@@ -9,6 +9,13 @@
 //! `{"channel": i, "texts": [{"start": s, "text": "…"}]}` per channel. Utterances Whisper heard
 //! nothing in, or where it went wrong, are left out (they keep their live text).
 //!
+//!     murmur-whisper <model.bin> detect  < job.json
+//!
+//! Language detection for a file opened without one. Job: `{"pcm": "<file>", "windows":
+//! [[{"start": s, "end": s}, …], …]}`, each window a few utterances spliced as below (up to 30 s).
+//! Output, one line per window: `{"window": i, "top": "pt", "ca": p, "es": p, "en": p}`, Whisper's
+//! probabilities.
+//!
 //! The utterances' audio is spliced into chunks of up to 28 s (Whisper reads 30 s at a time) with
 //! a short silence between them, so pauses cost nothing and can't make Whisper invent text.
 //! Token timestamps (DTW) say which utterance each word belongs to.
@@ -60,6 +67,12 @@ struct Span {
     end: f32,
 }
 
+#[derive(Deserialize)]
+struct DetectJob {
+    pcm: String,
+    windows: Vec<Vec<Span>>,
+}
+
 #[derive(Serialize)]
 struct Text {
     start: f32,
@@ -87,6 +100,10 @@ fn run() -> Result<()> {
     };
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
+    if language == "detect" {
+        let job: DetectJob = serde_json::from_str(&input).context("feina no vàlida")?;
+        return detect(model, &job);
+    }
     let job: Job = serde_json::from_str(&input).context("feina no vàlida")?;
 
     let mut params = WhisperContextParameters::default();
@@ -150,6 +167,46 @@ fn run() -> Result<()> {
             })
             .collect();
         writeln!(out, "{}", serde_json::json!({ "channel": i, "texts": texts }))?;
+        out.flush()?;
+    }
+    Ok(())
+}
+
+/// Whisper's language probabilities for each window of `job.pcm`.
+fn detect(model: &str, job: &DetectJob) -> Result<()> {
+    let mut params = WhisperContextParameters::default();
+    params.use_gpu(true);
+    let ctx = WhisperContext::new_with_params(model, params).context("no s'ha pogut carregar Whisper")?;
+    let mut state = ctx.create_state()?;
+    let samples = read_pcm(&job.pcm)?;
+    let id = |code: &str| whisper_rs::get_lang_id(code).map(|i| i as usize);
+    let (ca, es, en) = (id("ca"), id("es"), id("en"));
+    let mut out = std::io::stdout().lock();
+    for (i, spans) in job.windows.iter().enumerate() {
+        let mut buf: Vec<f32> = vec![];
+        for span in spans {
+            let from = ((span.start * RATE) as usize).min(samples.len());
+            let to = ((span.end * RATE) as usize).clamp(from, samples.len());
+            if !buf.is_empty() {
+                buf.resize(buf.len() + (GAP_S * RATE) as usize, 0.0);
+            }
+            buf.extend_from_slice(&samples[from..to]);
+        }
+        buf.truncate(30 * RATE as usize);
+        if buf.len() < RATE as usize {
+            continue;
+        }
+        state.pcm_to_mel(&buf, 4)?;
+        let (top, probs) = state.lang_detect(0, 4)?;
+        let p = |id: Option<usize>| id.and_then(|i| probs.get(i)).copied().unwrap_or(0.0);
+        let line = serde_json::json!({
+            "window": i,
+            "top": whisper_rs::get_lang_str(top).unwrap_or(""),
+            "ca": p(ca),
+            "es": p(es),
+            "en": p(en),
+        });
+        writeln!(out, "{line}")?;
         out.flush()?;
     }
     Ok(())

@@ -65,5 +65,14 @@
   "retranscribeOk": "Transcribe again",
   "retranscribeNeedsWhisper": "Transcribing again needs the Whisper model.",
   "markdownSaved": "Saved as Markdown",
-  "markdownFailed": "Couldn’t save as Markdown: {{error}}"
+  "markdownFailed": "Couldn’t save as Markdown: {{error}}",
+  "importOpen": "Transcribe from file…",
+  "importDialog": "Open audio",
+  "importFilter": "Audio",
+  "importWhileRecording": "Stop recording before opening an audio file.",
+  "importDetecting": "Listening for the language…",
+  "importLanguage": "Language: {{language}}. If that's wrong, you can transcribe it again in another one when it's done.",
+  "importLanguageUnclear": "Couldn't tell the language. Transcribing in your usual one: {{language}}.",
+  "importing": "Transcribing",
+  "stopImport": "Stop (keeps what's been transcribed)"
 }
