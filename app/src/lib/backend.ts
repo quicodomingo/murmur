@@ -87,6 +87,9 @@ export const searchMeetings = (query: string) => invoke<SearchHit[]>("search_mee
 export const renameTag = (from: string, to: string) => invoke<void>("rename_tag", { from, to });
 /** Removes a tag from every meeting. */
 export const deleteTag = (name: string) => invoke<void>("delete_tag", { name });
+/** Settings › Transcripció › Glossari: words the transcription spells as given (glossary.rs). */
+export const getGlossary = () => invoke<string[]>("get_glossary");
+export const setGlossary = (terms: string[]) => invoke<void>("set_glossary", { terms });
 export const deleteMeeting = (id: string, audioPath: string | null) =>
   invoke<void>("delete_meeting", { id, audioPath });
 export const startMicMonitor = (device: string | null) => invoke<void>("start_mic_monitor", { device });

@@ -47,10 +47,11 @@ Sobre la transcripció:
 - [ ] Corregir noms i marques pel context (worpress → WordPress), amb el vocabulari personalitzat i els convidats del calendari.
 - [ ] Versió «neta» per llegir (sense «eh», «o sigui», repeticions), conservant l'original.
 - [ ] Suggerir el nom dels parlants pel context («com deia el Guillem»), sempre com a proposta, mai automàtic.
-- [ ] **Glossari** de paraules que la transcripció escriu malament (noms propis, marques, sigles: WordPress, WooCommerce, Shopify…), editable a Configuració › Transcripció i també des del text («Afegeix al glossari» en corregir una paraula). Tres usos:
-  1. En directe: *hotwords* de sherpa-onnx (cerca *modified beam search* amb bonificació per a aquestes paraules; els Transducer com el nostre Conformer ho admeten). Mesurar-ho al banc de proves: pot fer aparèixer la paraula on no toca.
-  2. En acabar: corregir les formes semblants («wordpres», «woo commerce») per la del glossari, amb coincidència aproximada i només per a paraules prou llargues.
-  3. A la portada: passar-lo al model de llenguatge perquè escrigui bé els noms.
+- [x] **Glossari** de paraules que la transcripció escriu malament (noms propis, marques, sigles), a Configuració › Transcripció i des del text («Vols afegir… al glossari?» en corregir una frase). Corregeix cada frase acabada, en directe i després de Whisper (`glossary.rs`).
+  - [ ] A la portada: passar-lo al model de llenguatge perquè escrigui bé els noms.
+  - [ ] Afegir-hi els convidats de l'esdeveniment del calendari, només per a aquella reunió.
+  - [ ] Aplicar-lo a una reunió ja feta (ara només val per a les noves i les que es tornen a transcriure).
+  - [ ] *Hotwords* de sherpa-onnx en directe, si encara cal: el text en directe se substitueix en acabar, Parakeet (anglès) és CTC i caldria *modified beam search*. Mesurar-ho abans.
 - [ ] **Speaker tags**: el nom de qui parla des de l'app de la trucada (Meet a Chrome, Zoom, Teams) amb el permís d'Accessibilitat, combinat amb la separació de veus (la veu agrupa; l'app posa el nom). Activable a Configuració › Transcripció. Prova prèvia: `examples/ax_probe.rs`.
 
 Sobre el contingut:

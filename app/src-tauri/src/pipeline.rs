@@ -93,6 +93,8 @@ pub struct Pipeline<'m> {
     recorder: Option<Recorder>,
     record_mic: Vec<f32>,
     record_system: Vec<f32>,
+    /// Spelling for finished sentences (glossary.rs).
+    glossary: Vec<String>,
 }
 
 impl<'m> Pipeline<'m> {
@@ -103,6 +105,11 @@ impl<'m> Pipeline<'m> {
         for session in [self.mic.as_mut(), self.system.as_mut()].into_iter().flatten() {
             session.set_partials(on);
         }
+    }
+
+    /// Words finished sentences should spell as given (Settings › Transcripció › Glossari).
+    pub fn set_glossary(&mut self, terms: Vec<String>) {
+        self.glossary = terms;
     }
 
     /// How many voices the microphone can have: 1 in a call with nobody else in the room.
@@ -166,6 +173,7 @@ impl<'m> Pipeline<'m> {
             recorder,
             record_mic: vec![],
             record_system: vec![],
+            glossary: vec![],
         })
     }
 
@@ -296,7 +304,10 @@ impl<'m> Pipeline<'m> {
 
     fn filter(&mut self, events: Vec<Event>) -> Vec<Event> {
         let mut out = Vec::with_capacity(events.len());
-        for event in events {
+        for mut event in events {
+            if let Event::Final { text, .. } = &mut event {
+                *text = crate::glossary::correct(text, &self.glossary);
+            }
             if let Event::Final {
                 channel,
                 start,

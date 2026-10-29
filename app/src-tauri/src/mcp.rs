@@ -145,7 +145,8 @@ impl Server {
             let _one = running.lock().unwrap_or_else(|e| e.into_inner());
             *job.state.lock().unwrap() = JobState::Running(Stage::Language, 0.0);
             let tmp = std::env::temp_dir().join("murmur-mcp");
-            let result = import::transcribe_file(&models_dir(), &file, language.as_deref(), max_speakers, &tmp, |stage, share| {
+            let glossary = open_db().and_then(|db| db.glossary()).unwrap_or_default();
+            let result = import::transcribe_file(&models_dir(), &file, language.as_deref(), max_speakers, &glossary, &tmp, |stage, share| {
                 *job.state.lock().unwrap() = JobState::Running(stage, share);
             });
             *job.state.lock().unwrap() = match result {

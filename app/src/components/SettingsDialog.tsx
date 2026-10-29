@@ -734,6 +734,7 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
         )}
         {settings.language !== "ca-es" && <ModelRow id="whisper" name={t("transcription.whisperModel")} enabled onDisable={() => {}} />}
       </Group>
+      <GlossaryGroup />
       <Group title={t("transcription.liveSpeakers")}>
         <Row
           label={t("transcription.roomSpeakers")}
@@ -811,6 +812,78 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
         </Row>
       </Group>
     </>
+  );
+}
+
+/** Names and brands the transcription spells as written here (glossary.rs). Saved as it changes. */
+function GlossaryGroup() {
+  const { t } = useTranslation("settings");
+  const [terms, setTerms] = useState<string[] | null>(null);
+  const [draft, setDraft] = useState("");
+  useEffect(() => {
+    if (backend.isTauri()) backend.getGlossary().then(setTerms).catch(() => setTerms([]));
+    else setTerms([]);
+  }, []);
+  const save = (next: string[]) => {
+    setTerms(next);
+    if (backend.isTauri()) backend.setGlossary(next).catch((e) => toast.error(String(e)));
+  };
+  /** Several at once, separated by commas or lines (pasted from a list). */
+  const add = () => {
+    const next = [...(terms ?? [])];
+    for (const term of draft.split(/[,\n]/).map((x) => x.trim().replace(/\s+/g, " "))) {
+      if (term && !next.some((x) => x.toLowerCase() === term.toLowerCase())) next.push(term);
+    }
+    if (next.length !== terms?.length) save(next);
+    setDraft("");
+  };
+  return (
+    <Group title={t("transcription.glossary")}>
+      <div className="px-3 py-2.5">
+        <div className="text-[11px] leading-snug text-muted-foreground">{t("transcription.glossaryHint")}</div>
+        <form
+          className="mt-2.5 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            add();
+          }}
+        >
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={t("transcription.glossaryPlaceholder")}
+            aria-label={t("transcription.glossaryNew")}
+            className="h-7 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-[13px] placeholder:text-muted-foreground"
+          />
+          <button
+            type="submit"
+            disabled={!draft.trim()}
+            className="h-7 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50"
+          >
+            {t("transcription.glossaryAdd")}
+          </button>
+        </form>
+        {terms && terms.length > 0 ? (
+          <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={t("transcription.glossary")}>
+            {terms.map((term) => (
+              <li key={term} className="inline-flex h-[22px] items-center gap-1 rounded-[5px] bg-mm-fill-subtle pl-[7px] pr-[3px] text-[12px] font-medium">
+                {term}
+                <button
+                  type="button"
+                  onClick={() => save(terms.filter((x) => x !== term))}
+                  aria-label={t("transcription.glossaryRemove", { term })}
+                  className="grid size-4 place-items-center rounded-[3px] text-mm-text-tertiary hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10"
+                >
+                  <X className="size-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          terms && <div className="mt-2.5 text-[12px] text-muted-foreground">{t("transcription.glossaryEmpty")}</div>
+        )}
+      </div>
+    </Group>
   );
 }
 

@@ -155,7 +155,14 @@
     "saveMarkdownHint": "En acabar, Murmur hi escriu el resum, les notes i la transcripció en un fitxer .md. Mentre graves, ho pots canviar per a aquella reunió des de la barra de dalt.",
     "markdownFolder": "Carpeta dels Markdown",
     "markdownNoFolder": "Encara no n'has triat cap",
-    "markdownFolderDialog": "Carpeta per als Markdown de les reunions"
+    "markdownFolderDialog": "Carpeta per als Markdown de les reunions",
+    "glossary": "Glossari",
+    "glossaryHint": "Noms, marques i sigles que la transcripció escriu malament. Murmur els escriurà tal com els poses aquí, en directe i en acabar. També s'hi ajusten les majúscules: si hi poses una paraula corrent, com «Mar», canviarà a tot arreu.",
+    "glossaryNew": "Paraula nova del glossari",
+    "glossaryPlaceholder": "WordPress, Guillem Puig…",
+    "glossaryAdd": "Afegeix",
+    "glossaryRemove": "Treu «{{term}}» del glossari",
+    "glossaryEmpty": "Encara no hi ha cap paraula. També pots afegir-les en corregir una frase de la transcripció."
   },
   "intelligence": {
     "cover": "Resum",

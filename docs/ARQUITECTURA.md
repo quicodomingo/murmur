@@ -192,6 +192,13 @@ Totes les versions 2.x de `zip` estan retirades de crates.io. `Cargo.toml` fa `[
 - La flash attention va un 20% més ràpid, però sense DTW les paraules cauen a la frase següent.
 - Descartat: Whisper amb sherpa-onnx (CPU, RTF 0,55, i el model publicat no dona temps per paraula; CoreML no hi és disponible).
 
+### Glossari (`glossary.rs`)
+
+- Taula `glossary` a la base de dades (un terme per fila, sense distingir majúscules, en l'ordre en què s'han afegit). Es llegeix en començar una gravació, a la passada final i al connector per a Claude (`transcribe_file`). S'edita a Configuració › Transcripció, i en corregir una frase a mà la interfície proposa afegir-hi els noms nous (`lib/glossary.ts`, `newNames`: paraules amb majúscules dins o que no comencen frase).
+- `glossary::correct` passa per cada frase acabada del directe (`Pipeline::filter`) i per cada frase de Whisper (`retranscribe::transcribe`). Compara grups d'1 a 3 paraules amb cada terme sense accents, majúscules, apòstrofs ni espais («soft català», «Wordpress», «d'aïna»). Als termes de 7 lletres o més admet una lletra de diferència, i dues a partir de 12, sempre amb la mateixa inicial. Els curts només canvien si coincideixen exactament. Si hi ha empat, guanya el grup de menys paraules («Wordpress o» no es menja la «o»). També recupera l'apòstrof que el directe perd davant de vocal o h («daina» → «d'AINA»).
+- Mesura (`MURMUR_GLOSSARY="AINA,Softcatalà,WordPress,WooCommerce" cargo run --release --example whisper_probe -- ../../data/reunio-3min.wav ca`): de cinc errors de Whisper, en corregeix quatre i no toca res més. «sob català» queda tal qual, perquè és massa lluny. Amb noms que semblen paraules corrents (Mar, Pau, Marta), cap fals positiu.
+- Descartat: passar el glossari a Whisper com a `initial_prompt`. Escrivia bé AINA i Softcatalà, però es menjava mitja frase (unes 15 paraules) i canviava paraules que estaven bé («agafar» → «agrair»).
+
 ### Tornar a transcriure en un altre idioma
 
 Si una reunió s'ha gravat amb l'idioma equivocat, «Torna a transcriure en…» (menú del títol) la torna a passar per Whisper en català, castellà o anglès. `retranscribe_meeting` descodifica l'.ogg canal per canal (`playback::decode_channels`: el micròfon a l'esquerra i, en una trucada, el sistema a la dreta), en fa els mateixos fitxers PCM temporals que la gravació i crida `final_pass` només amb el text. Les frases són les de la reunió (inici i final), així que qui parla i quan es manté; les corregides a mà no es toquen. La interfície desa l'idioma nou i, si la portada està activada, la torna a fer. «Català + castellà» no hi és perquè Whisper només treballa en una llengua.

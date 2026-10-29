@@ -78,5 +78,7 @@
   "importLanguage": "Idioma: {{language}}. Si no es este, al terminar puedes volver a transcribirla en otro.",
   "importLanguageUnclear": "No se ha podido saber el idioma. Se transcribe con el de siempre: {{language}}.",
   "importing": "Transcribiendo",
-  "stopImport": "Detener (se queda lo que ya se ha transcrito)"
+  "stopImport": "Detener (se queda lo que ya se ha transcrito)",
+  "glossaryOffer": "¿Quieres añadir {{words}} al glosario? Así la transcripción lo escribirá bien la próxima vez.",
+  "glossaryAdd": "Añadir"
 }

@@ -78,5 +78,7 @@
   "importLanguage": "Language: {{language}}. If that's wrong, you can transcribe it again in another one when it's done.",
   "importLanguageUnclear": "Couldn't tell the language. Transcribing in your usual one: {{language}}.",
   "importing": "Transcribing",
-  "stopImport": "Stop (keeps what's been transcribed)"
+  "stopImport": "Stop (keeps what's been transcribed)",
+  "glossaryOffer": "Add {{words}} to the glossary? The transcription will spell it right next time.",
+  "glossaryAdd": "Add"
 }

@@ -46,8 +46,9 @@ fn sidecar() -> Result<PathBuf> {
 }
 
 /// New text for the utterances of each channel (`pcm`: 16 kHz mono s16le, as the pipeline taps
-/// it). Utterances left out keep their live text. `progress` gets the share done, 0–1.
-pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
+/// it). Utterances left out keep their live text. `glossary`: words to spell as given
+/// (glossary.rs). `progress` gets the share done, 0–1.
+pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], glossary: &[String], progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
     let model = WHISPER.file(models, 0);
     if !model.is_file() {
         return Err(anyhow!(tr!("model_missing", path = model.display())));
@@ -69,7 +70,11 @@ pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], 
     crate::gate::whisper(Some(child.id()));
     let result = read_replies(&mut child, &job.to_string(), channels.len(), progress);
     crate::gate::whisper(None);
-    result
+    let mut result = result?;
+    for text in result.iter_mut().flatten() {
+        text.text = crate::glossary::correct(&text.text, glossary);
+    }
+    Ok(result)
 }
 
 /// Sends the job to the Whisper process and collects its texts, one list per channel.

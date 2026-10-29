@@ -42,6 +42,7 @@ import { exportMeeting, saveMarkdown, toMarkdown, type ExportFormat } from "@/li
 import { defaultTitle } from "@/lib/cover";
 import { locale, t as translate } from "@/lib/i18n";
 import { cloudModelName, coverEngine, loadCloudModels, useCloud } from "@/lib/cloud";
+import { offerGlossary } from "@/lib/glossary";
 import { downloadModel, modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
@@ -781,7 +782,11 @@ export default function App() {
         onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
         onReassign={(utteranceId, speaker, version) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker, version })}
         onRename={(speaker, name, version) => dispatch({ type: "rename", id: meeting.id, speaker, name, version })}
-        onEdit={(utteranceId, text) => dispatch({ type: "edit", id: meeting.id, utteranceId, text })}
+        onEdit={(utteranceId, text) => {
+          const before = meeting.utterances.find((u) => u.id === utteranceId)?.text ?? "";
+          dispatch({ type: "edit", id: meeting.id, utteranceId, text });
+          if (text !== before) void offerGlossary(before, text);
+        }}
         tags={showCover ? undefined : tagsOf(meeting, "mt-2.5")}
         onRemoveScreen={(s) =>
           backend

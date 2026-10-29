@@ -1,6 +1,7 @@
 //! Final-pass check: the live engine's utterances of a 16 kHz WAV next to what Whisper
 //! (retranscribe.rs) makes of them, and how long Whisper takes.
 //!     cargo run --release --example whisper_probe -- ../../data/reunio-3min.wav ca [seconds]
+//! `MURMUR_GLOSSARY="WordPress,WooCommerce"` passes a glossary, as Settings › Transcripció does.
 
 use std::time::Instant;
 
@@ -65,7 +66,8 @@ fn main() {
     std::fs::write(&pcm, bytes).unwrap();
     eprintln!("{} frases", spans.len());
     let t = Instant::now();
-    let texts = retranscribe::transcribe(&dir, &language, &[(pcm.as_path(), spans.as_slice())], |_| {})
+    let glossary: Vec<String> = std::env::var("MURMUR_GLOSSARY").unwrap_or_default().split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect();
+    let texts = retranscribe::transcribe(&dir, &language, &[(pcm.as_path(), spans.as_slice())], &glossary, |_| {})
         .expect("whisper")
         .remove(0);
     let took = t.elapsed().as_secs_f32();

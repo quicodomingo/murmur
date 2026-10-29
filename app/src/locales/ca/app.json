@@ -78,5 +78,7 @@
   "importLanguage": "Idioma: {{language}}. Si no és aquest, en acabar la pots tornar a transcriure en un altre.",
   "importLanguageUnclear": "No s'ha pogut saber l'idioma. Es transcriu amb el de sempre: {{language}}.",
   "importing": "Transcrivint",
-  "stopImport": "Atura (es queda el que ja s'ha transcrit)"
+  "stopImport": "Atura (es queda el que ja s'ha transcrit)",
+  "glossaryOffer": "Vols afegir {{words}} al glossari? Així la transcripció ho escriurà bé la propera vegada.",
+  "glossaryAdd": "Afegeix"
 }

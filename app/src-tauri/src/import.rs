@@ -229,12 +229,14 @@ pub enum Stage {
 }
 
 /// Transcribes `path`: its language (if not given), the live engine, then who spoke when and
-/// Whisper's text, as after a recording. `progress` gets the stage and the share of it done.
+/// Whisper's text, as after a recording. `glossary`: words to spell as given (glossary.rs).
+/// `progress` gets the stage and the share of it done.
 pub fn transcribe_file(
     models: &Path,
     path: &Path,
     language: Option<&str>,
     max_speakers: usize,
+    glossary: &[String],
     tmp_dir: &Path,
     mut progress: impl FnMut(Stage, f32),
 ) -> Result<Transcript> {
@@ -265,6 +267,7 @@ pub fn transcribe_file(
     let tap = tmp_dir.join(format!("tap-{}.pcm", std::process::id()));
     let mut pipeline = Pipeline::new(&live, true, false, max_speakers, 0.65, None, vec![(Channel::Mic, tap.clone())])?;
     pipeline.set_partials(false);
+    pipeline.set_glossary(glossary.to_vec());
     let mut lines: Vec<Line> = vec![];
     let mut take = |events: Vec<Event>| {
         for e in events {
@@ -299,7 +302,7 @@ pub fn transcribe_file(
         // Whisper only for one language: told "Catalan", it turns Spanish into Catalan.
         if whisper && language != "ca-es" {
             progress(Stage::Whisper, 0.0);
-            let texts = crate::retranscribe::transcribe(models, &language, &[(tapped.path.as_path(), tapped.spans.as_slice())], |p| progress(Stage::Whisper, p))?;
+            let texts = crate::retranscribe::transcribe(models, &language, &[(tapped.path.as_path(), tapped.spans.as_slice())], glossary, |p| progress(Stage::Whisper, p))?;
             for t in texts.into_iter().flatten() {
                 if let Some(line) = lines.iter_mut().find(|l| (l.start - t.start).abs() < 0.01) {
                     line.text = t.text;

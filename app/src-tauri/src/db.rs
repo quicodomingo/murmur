@@ -54,6 +54,12 @@ CREATE TABLE IF NOT EXISTS meeting_tags (
     PRIMARY KEY (meeting_id, tag_id)
 );
 
+-- Glossary: words the transcription should write as given here (WordPress, noms propis…), in
+-- the order they were added.
+CREATE TABLE IF NOT EXISTS glossary (
+    term TEXT PRIMARY KEY COLLATE NOCASE
+);
+
 -- One row per searchable piece: a title, an utterance or a note block.
 -- remove_diacritics 2: "reunio" finds "reunió", "cami" finds "camí".
 CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(
@@ -319,6 +325,27 @@ impl Db {
     /// Removes a tag from every meeting; the meetings stay.
     pub fn delete_tag(&mut self, name: &str) -> Result<()> {
         self.conn.execute("DELETE FROM tags WHERE name = ?1", [name])?;
+        Ok(())
+    }
+
+    /// The glossary, in the order its words were added. Empty if the table isn't there (a
+    /// read-only database an older version created).
+    pub fn glossary(&self) -> Result<Vec<String>> {
+        let Ok(mut stmt) = self.conn.prepare("SELECT term FROM glossary ORDER BY rowid") else {
+            return Ok(vec![]);
+        };
+        let terms = stmt.query_map([], |r| r.get(0))?;
+        Ok(terms.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Replaces the glossary. Blank words go; the same word twice (ignoring capitals) stays once.
+    pub fn set_glossary(&mut self, terms: &[String]) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM glossary", [])?;
+        for term in terms.iter().map(|t| t.trim()).filter(|t| !t.is_empty()) {
+            tx.execute("INSERT OR IGNORE INTO glossary (term) VALUES (?1)", [term])?;
+        }
+        tx.commit()?;
         Ok(())
     }
 
@@ -843,6 +870,15 @@ mod tests {
                 .as_bool()
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn glossary_keeps_order_and_ignores_case() {
+        let mut db = Db::in_memory().unwrap();
+        db.set_glossary(&["WordPress".into(), " ".into(), "Shopify".into(), "wordpress".into()]).unwrap();
+        assert_eq!(db.glossary().unwrap(), ["WordPress", "Shopify"]);
+        db.set_glossary(&["Shopify".into(), "WooCommerce".into()]).unwrap();
+        assert_eq!(db.glossary().unwrap(), ["Shopify", "WooCommerce"]);
     }
 
     #[test]

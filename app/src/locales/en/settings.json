@@ -155,7 +155,14 @@
     "saveMarkdownHint": "When it ends, Murmur writes the summary, notes and transcript to a .md file. While recording, you can change it for that meeting from the top bar.",
     "markdownFolder": "Markdown Folder",
     "markdownNoFolder": "None chosen yet",
-    "markdownFolderDialog": "Folder for the meetings' Markdown files"
+    "markdownFolderDialog": "Folder for the meetings' Markdown files",
+    "glossary": "Glossary",
+    "glossaryHint": "Names, brands and acronyms the transcription gets wrong. Murmur will write them as you put them here, live and when it finishes. Capitals follow too: if you add an everyday word, like “Mark”, it will change everywhere.",
+    "glossaryNew": "New glossary word",
+    "glossaryPlaceholder": "WordPress, Guillem Puig…",
+    "glossaryAdd": "Add",
+    "glossaryRemove": "Remove “{{term}}” from the glossary",
+    "glossaryEmpty": "No words yet. You can also add them when you correct a sentence in the transcript."
   },
   "intelligence": {
     "cover": "Summary",

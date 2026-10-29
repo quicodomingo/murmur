@@ -6,6 +6,7 @@ pub mod db;
 pub mod diarize;
 pub mod engine;
 pub mod gate;
+pub mod glossary;
 pub mod i18n;
 pub mod import;
 pub mod cloud;
@@ -235,6 +236,7 @@ async fn start_recording(
     let room = Arc::new(AtomicBool::new(room_speakers));
     let room_worker = room.clone();
     let final_pass_meeting = meeting_id.clone();
+    let glossary = with_db(&app, |db| db.glossary()).unwrap_or_default();
 
     let worker = std::thread::spawn(move || {
         let mut pipeline = match Pipeline::new(
@@ -252,6 +254,7 @@ async fn start_recording(
                 return;
             }
         };
+        pipeline.set_glossary(glossary);
         // A call with nobody else in the room: the microphone is only the user.
         let mut room_now = room_speakers;
         if mic && system && !room_now {
@@ -565,7 +568,8 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
             started("text", 5.0 + speech * retranscribe::RTF_ESTIMATE);
             let jobs: Vec<(&std::path::Path, &[diarize::Span])> =
                 channels.iter().map(|t| (t.path.as_path(), t.spans.as_slice())).collect();
-            let results = retranscribe::transcribe(&models_dir(), language, &jobs, |_| {})?;
+            let glossary = with_db(&app, |db| db.glossary()).unwrap_or_default();
+            let results = retranscribe::transcribe(&models_dir(), language, &jobs, &glossary, |_| {})?;
             for (tapped, texts) in channels.iter().zip(results) {
                 let _ = app.emit(
                     "final-pass-text",
@@ -1125,6 +1129,17 @@ async fn delete_tag(app: AppHandle, name: String) -> Result<(), String> {
     with_db(&app, |db| db.delete_tag(&name))
 }
 
+/// Settings › Transcripció › Glossari.
+#[tauri::command]
+async fn get_glossary(app: AppHandle) -> Result<Vec<String>, String> {
+    with_db(&app, |db| db.glossary())
+}
+
+#[tauri::command]
+async fn set_glossary(app: AppHandle, terms: Vec<String>) -> Result<(), String> {
+    with_db(&app, |db| db.set_glossary(&terms))
+}
+
 #[tauri::command]
 async fn search_meetings(app: AppHandle, query: String) -> Result<Vec<db::Hit>, String> {
     with_db(&app, |db| db.search(&query, 60))
@@ -1422,6 +1437,8 @@ pub fn run() {
             search_meetings,
             rename_tag,
             delete_tag,
+            get_glossary,
+            set_glossary,
             delete_meeting,
             list_microphones,
             start_mic_monitor,
