@@ -105,6 +105,7 @@ async fn start_recording(
     language: String,
     final_text: bool,
     file: Option<String>,
+    guests: Vec<String>,
 ) -> Result<Option<String>, String> {
     {
         // An opened file ends on its own, without stop_recording: once its worker is done, the
@@ -227,16 +228,18 @@ async fn start_recording(
             .collect(),
         None => vec![],
     };
+    // The user's glossary, plus the calendar event's guests for this meeting.
+    let glossary = glossary::with_guests(&with_db(&app, |db| db.glossary()).unwrap_or_default(), &guests);
     let plan = FinalPlan {
         speakers: verify_speakers.then_some((speakers_channel, max_speakers)),
         language: final_language,
+        glossary: glossary.clone(),
     };
     let stopped = Arc::new(AtomicBool::new(false));
     let stopped_worker = stopped.clone();
     let room = Arc::new(AtomicBool::new(room_speakers));
     let room_worker = room.clone();
     let final_pass_meeting = meeting_id.clone();
-    let glossary = with_db(&app, |db| db.glossary()).unwrap_or_default();
 
     let worker = std::thread::spawn(move || {
         let mut pipeline = match Pipeline::new(
@@ -520,6 +523,8 @@ struct FinalPlan {
     speakers: Option<(Channel, usize)>,
     /// Write the text again with Whisper in this language ("ca", "es", "en").
     language: Option<String>,
+    /// Spelling for Whisper's text (glossary.rs).
+    glossary: Vec<String>,
 }
 
 /// After a recording: re-check who spoke when, then improve the text with Whisper.
@@ -568,8 +573,7 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
             started("text", 5.0 + speech * retranscribe::RTF_ESTIMATE);
             let jobs: Vec<(&std::path::Path, &[diarize::Span])> =
                 channels.iter().map(|t| (t.path.as_path(), t.spans.as_slice())).collect();
-            let glossary = with_db(&app, |db| db.glossary()).unwrap_or_default();
-            let results = retranscribe::transcribe(&models_dir(), language, &jobs, &glossary, |_| {})?;
+            let results = retranscribe::transcribe(&models_dir(), language, &jobs, &plan.glossary, |_| {})?;
             for (tapped, texts) in channels.iter().zip(results) {
                 let _ = app.emit(
                     "final-pass-text",
@@ -606,12 +610,13 @@ struct RetranscribeChannel {
 /// "Torna a transcriure en…": Whisper listens to the saved recording again in another language,
 /// utterance by utterance, as the final pass does after recording. Same events ("final-pass"…).
 #[tauri::command]
-async fn retranscribe_meeting(app: AppHandle, meeting_id: String, audio_path: String, language: String, channels: Vec<RetranscribeChannel>) -> Result<(), String> {
+async fn retranscribe_meeting(app: AppHandle, meeting_id: String, audio_path: String, language: String, channels: Vec<RetranscribeChannel>, guests: Vec<String>) -> Result<(), String> {
     if !["ca", "es", "en"].contains(&language.as_str()) {
         return Err(tr!("whisper_one_language").into());
     }
     let ogg = recording_path(&audio_path)?;
     let tmp = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("retranscribe");
+    let glossary = glossary::with_guests(&with_db(&app, |db| db.glossary()).unwrap_or_default(), &guests);
     std::thread::spawn(move || {
         let tapped = (|| -> anyhow::Result<Vec<pipeline::Tapped>> {
             let decoded = playback::decode_channels(&ogg)?;
@@ -634,7 +639,7 @@ async fn retranscribe_meeting(app: AppHandle, meeting_id: String, audio_path: St
             Ok(tapped)
         })();
         match tapped {
-            Ok(tapped) => final_pass(app, meeting_id, tapped, FinalPlan { speakers: None, language: Some(language) }),
+            Ok(tapped) => final_pass(app, meeting_id, tapped, FinalPlan { speakers: None, language: Some(language), glossary }),
             Err(e) => {
                 let _ = app.emit("final-pass-done", FinalPassDone { meeting_id, error: Some(tr!("final_pass_error", error = format!("{e:#}"))) });
             }

@@ -48,8 +48,8 @@ Sobre la transcripció:
 - [ ] Versió «neta» per llegir (sense «eh», «o sigui», repeticions), conservant l'original.
 - [ ] Suggerir el nom dels parlants pel context («com deia el Guillem»), sempre com a proposta, mai automàtic.
 - [x] **Glossari** de paraules que la transcripció escriu malament (noms propis, marques, sigles), a Configuració › Transcripció i des del text («Vols afegir… al glossari?» en corregir una frase). Corregeix cada frase acabada, en directe i després de Whisper (`glossary.rs`).
-  - [ ] A la portada: passar-lo al model de llenguatge perquè escrigui bé els noms.
-  - [ ] Afegir-hi els convidats de l'esdeveniment del calendari, només per a aquella reunió.
+  - [x] A la portada: el model de llenguatge rep com s'escriuen els noms (els convidats i els termes del glossari que surten a la reunió).
+  - [x] Afegir-hi els convidats de l'esdeveniment del calendari, només per a aquella reunió (nom complet i nom de pila).
   - [ ] Aplicar-lo a una reunió ja feta (ara només val per a les noves i les que es tornen a transcriure).
   - [ ] *Hotwords* de sherpa-onnx en directe, si encara cal: el text en directe se substitueix en acabar, Parakeet (anglès) és CTC i caldria *modified beam search*. Mesurar-ho abans.
 - [ ] **Speaker tags**: el nom de qui parla des de l'app de la trucada (Meet a Chrome, Zoom, Teams) amb el permís d'Accessibilitat, combinat amb la separació de veus (la veu agrupa; l'app posa el nom). Activable a Configuració › Transcripció. Prova prèvia: `examples/ax_probe.rs`.

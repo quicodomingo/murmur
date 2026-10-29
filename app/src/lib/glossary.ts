@@ -1,7 +1,31 @@
 import { toast } from "sonner";
 
 import * as backend from "./backend";
-import { locale, t } from "./i18n";
+import { locale, t, type UiLanguage } from "./i18n";
+import type { Meeting } from "./types";
+
+/** Lowercase without accents, to find a term in a text. */
+const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/**
+ * Names the cover's model should spell right: the calendar event's guests, and the glossary's
+ * terms that come up in the meeting (`document`, what the model reads). Only those: a list of
+ * terms that aren't there can tempt a small model to bring them in.
+ */
+async function coverTerms(m: Meeting, document: string): Promise<string[]> {
+  const glossary = backend.isTauri() ? await backend.getGlossary().catch(() => [] as string[]) : [];
+  const text = fold(document);
+  // A guest without capitals is the user part of an e-mail, not a name.
+  const guests = (m.guests ?? []).filter((g) => /\p{Lu}/u.test(g));
+  const terms = [...guests, ...glossary.filter((g) => text.includes(fold(g)))];
+  return terms.filter((term, i) => terms.findIndex((x) => x.toLowerCase() === term.toLowerCase()) === i);
+}
+
+/** What goes after the cover's general instructions: how to spell those names, if there are any. */
+export async function spellingNote(m: Meeting, document: string, lng?: UiLanguage): Promise<string> {
+  const terms = await coverTerms(m, document);
+  return terms.length ? `\n\n${t("cover:spelling", { terms: terms.join(", "), lng })}` : "";
+}
 
 /** A word without the marks around it or an elision in front ("d'AINA," → "AINA"). */
 const bare = (word: string) => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").replace(/^\p{L}{1,2}['’](?=\p{L})/u, "");

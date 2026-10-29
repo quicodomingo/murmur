@@ -16,6 +16,31 @@ struct Term<'a> {
     key: Vec<char>,
 }
 
+/// The glossary for one meeting: the user's, plus the calendar event's guests, whole ("Guillem
+/// Puig") and by first name ("Guillem"), as people call each other. Not the surnames, which are
+/// often everyday words (Puig, Rius, Serra), nor first names under 4 letters (Pau, Mar). A guest
+/// without capitals is the user part of an e-mail ("gpuig"), not a name: left out.
+pub fn with_guests(glossary: &[String], guests: &[String]) -> Vec<String> {
+    let mut terms = glossary.to_vec();
+    let mut push = |term: &str| {
+        if !terms.iter().any(|t| t.to_lowercase() == term.to_lowercase()) {
+            terms.push(term.to_string());
+        }
+    };
+    for guest in guests.iter().map(|g| g.trim()) {
+        if !guest.chars().any(char::is_uppercase) || guest.chars().any(|c| !(c.is_alphabetic() || " -'’.".contains(c))) {
+            continue;
+        }
+        push(guest);
+        let parts: Vec<&str> = guest.split_whitespace().collect();
+        let given = parts[..parts.len().saturating_sub(1)].iter().find(|p| p.chars().filter(|c| c.is_alphabetic()).count() >= 4);
+        if let Some(given) = given {
+            push(given);
+        }
+    }
+    terms
+}
+
 /// `text` with the glossary's spelling. Unchanged if nothing matches.
 pub fn correct(text: &str, glossary: &[String]) -> String {
     let terms: Vec<Term> = glossary
@@ -184,6 +209,14 @@ mod tests {
         assert_eq!(correct("(«softcatala»)", &g), "(«Softcatalà»)");
         assert_eq!(correct("el traductor és el daina però", &g), "el traductor és el d'AINA però");
         assert_eq!(correct("gent que tingui un wordpress o", &g), "gent que tingui un WordPress o");
+    }
+
+    #[test]
+    fn adds_the_guests_names() {
+        let guests = ["Guillem Puig", "M. Àngels Rius", "gpuig", "Ana de la Torre", "softcatala.org"].map(String::from);
+        let terms = with_guests(&["Softcatalà".into(), "guillem".into()], &guests);
+        assert_eq!(terms, ["Softcatalà", "guillem", "Guillem Puig", "M. Àngels Rius", "Àngels", "Ana de la Torre"]);
+        assert_eq!(correct("li ho deia la maria àngels", &with_guests(&[], &guests)), "li ho deia la maria Àngels");
     }
 
     #[test]

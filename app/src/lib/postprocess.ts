@@ -17,6 +17,7 @@ import {
   renameInCover,
 } from "./cover";
 import { cloudModelName, coverEngine, coverReady } from "./cloud";
+import { spellingNote } from "./glossary";
 import { locale, t } from "./i18n";
 import { modelInstalled } from "./models";
 import type { Settings } from "./settings";
@@ -104,11 +105,12 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
           const document = coverDocument(meeting, lng);
           const tasks = llmTasks(config.current.prompts, undefined, lng);
           const engine = coverEngine(config.current);
+          const spelling = await spellingNote(meeting, document, lng);
           dispatch({ type: "postStage", id, stage, steps, estimateSeconds: coverEstimate(document, tasks.length, false, !!engine) });
           try {
             const results = await backend.runLlm({
               job: id,
-              system: promptText("system", config.current.prompts, lng),
+              system: promptText("system", config.current.prompts, lng) + spelling,
               document,
               tasks,
               keepLoaded: false,

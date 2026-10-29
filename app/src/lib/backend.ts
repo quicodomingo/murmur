@@ -50,7 +50,9 @@ export const startRecording = (opts: {
   finalText: boolean;
   /** An audio file instead of the microphone (File › Open Audio…): one channel, as fast as it goes. */
   file?: string;
-}) => invoke<string | null>("start_recording", { file: null, ...opts });
+  /** The calendar event's guests: their names join the glossary for this meeting (glossary.rs). */
+  guests?: string[];
+}) => invoke<string | null>("start_recording", { file: null, guests: [], ...opts });
 
 /** Audio files File › Open Audio… offers (import.rs EXTENSIONS). */
 export const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "ogg", "opus", "mp4", "mov"];
@@ -225,8 +227,8 @@ export const shareUploadFile = (id: string, name: string, ttl: number | null, by
  * "Torna a transcriure en…": Whisper writes each utterance again from the saved audio (lib.rs
  * retranscribe_meeting); the result comes as a final pass ("final-pass", "final-pass-text"…).
  */
-export const retranscribeMeeting = (meetingId: string, audioPath: string, language: Language, channels: { base: number; spans: [number, number][] }[]) =>
-  invoke<void>("retranscribe_meeting", { meetingId, audioPath, language, channels });
+export const retranscribeMeeting = (meetingId: string, audioPath: string, language: Language, channels: { base: number; spans: [number, number][] }[], guests: string[]) =>
+  invoke<void>("retranscribe_meeting", { meetingId, audioPath, language, channels, guests });
 /** Cloudflare's token form, filled in with the permissions Murmur needs. */
 export const shareTokenUrl = () => invoke<string>("share_token_url");
 export type CfAccount = { id: string; name: string };

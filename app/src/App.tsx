@@ -460,6 +460,7 @@ export default function App() {
         roomSpeakers,
         language,
         finalText,
+        guests: m.guests,
       });
       if (path) dispatch({ type: "audio", id: m.id, path });
     } catch (e) {
@@ -713,7 +714,7 @@ export default function App() {
     post.planRetranscribe(m.id, language);
     dispatch({ type: "language", id: m.id, language });
     try {
-      await backend.retranscribeMeeting(m.id, m.audioPath, language, channels);
+      await backend.retranscribeMeeting(m.id, m.audioPath, language, channels, m.guests ?? []);
     } catch (e) {
       toast.error(String(e));
       dispatch({ type: "postDone", id: m.id });

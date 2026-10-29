@@ -15,6 +15,7 @@ import type { CfAccount, ShareSetupStep } from "@/lib/backend";
 import { locale, systemLanguage, UI_LANGUAGE_NAMES, UI_LANGUAGES, type UiLanguagePref } from "@/lib/i18n";
 import { cloudModel, connectCloud, coverEngine, disconnectCloud, KEYS_URL, loadCloudModels, PROVIDERS, useCloud } from "@/lib/cloud";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
+import { spellingNote } from "@/lib/glossary";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
 import { connectShare, disconnectShare, setupShare, useShareStatus } from "@/lib/share";
@@ -1631,10 +1632,11 @@ function PromptEditor({
       const engine = coverEngine(settings);
       if (!engine) onLlmLoaded();
       // The general instructions are tried with the title (the quickest part).
+      const document = coverDocument(meeting);
       const [answer] = await backend.runLlm({
         job,
-        system: promptText("system", settings.prompts),
-        document: coverDocument(meeting),
+        system: promptText("system", settings.prompts) + (await spellingNote(meeting, document)),
+        document,
         tasks: llmTasks(settings.prompts, [id === "system" ? "title" : id]),
         keepLoaded: true,
         engine,
