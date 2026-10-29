@@ -6,6 +6,12 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.9.1": [
+      {
+        "title": "Arrastra un audio a la ventana",
+        "text": "Suelta un audio o un vídeo en la ventana de Murmur y lo transcribe. Mientras lo arrastras, la ventana te indica si puede abrirlo."
+      }
+    ],
     "0.9.0": [
       {
         "title": "Envía audios a Murmur desde otras apps",

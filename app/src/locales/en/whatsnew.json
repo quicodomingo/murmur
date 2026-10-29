@@ -6,6 +6,12 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.9.1": [
+      {
+        "title": "Drag audio onto the window",
+        "text": "Drop an audio or video file on Murmur's window and it transcribes it. While you drag it, the window shows whether it can open it."
+      }
+    ],
     "0.9.0": [
       {
         "title": "Send audio to Murmur from other apps",

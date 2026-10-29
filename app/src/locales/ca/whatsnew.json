@@ -6,6 +6,12 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.9.1": [
+      {
+        "title": "Arrossega un àudio a la finestra",
+        "text": "Deixa anar un àudio o un vídeo a la finestra de Murmur i el transcriu. Mentre l'arrossegues, la finestra t'indica si el pot obrir."
+      }
+    ],
     "0.9.0": [
       {
         "title": "Envia àudios a Murmur des d'altres apps",

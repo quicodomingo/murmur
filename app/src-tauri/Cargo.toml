@@ -1,6 +1,6 @@
 [package]
 name = "transcriptor"
-version = "0.9.0"
+version = "0.9.1"
 description = "Transcriptor de reunions en català, local"
 authors = ["Quico Domingo"]
 edition = "2024"
