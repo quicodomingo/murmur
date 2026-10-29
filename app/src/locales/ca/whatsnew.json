@@ -6,6 +6,12 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.9.0": [
+      {
+        "title": "Envia àudios a Murmur des d'altres apps",
+        "text": "Murmur surt al menú Compartir: tria un àudio a Finder, a Missatges o a qualsevol app que comparteixi fitxers, i Murmur el transcriu. També pots fer servir Finder › Obre amb o deixar-lo anar a la icona del Dock."
+      }
+    ],
     "0.8.0": [
       {
         "title": "Transcriu des d'un fitxer",

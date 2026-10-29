@@ -6,6 +6,12 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.9.0": [
+      {
+        "title": "Envía audios a Murmur desde otras apps",
+        "text": "Murmur aparece en el menú Compartir: elige un audio en Finder, en Mensajes o en cualquier app que comparta archivos, y Murmur lo transcribe. También puedes usar Finder › Abrir con o soltarlo sobre el icono del Dock."
+      }
+    ],
     "0.8.0": [
       {
         "title": "Transcribe desde un archivo",

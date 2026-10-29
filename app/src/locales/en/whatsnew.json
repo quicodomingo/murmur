@@ -6,6 +6,12 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.9.0": [
+      {
+        "title": "Send audio to Murmur from other apps",
+        "text": "Murmur is in the Share menu: pick an audio file in Finder, Messages or any app that shares files, and Murmur transcribes it. You can also use Finder › Open With or drop it on the Dock icon."
+      }
+    ],
     "0.8.0": [
       {
         "title": "Transcribe from a file",
