@@ -73,8 +73,10 @@ body {
 .brand { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--mm-text-secondary); }
 .logo { width: 20px; height: 20px; }
 .logo-bg { fill: var(--mm-logo-background); }
-.logo-bar-1 { fill: var(--mm-logo-bar-1); }
-.logo-bar-2 { fill: var(--mm-logo-bar-2); }
+.logo-m { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 17; }
+.logo-echo { stroke: var(--mm-logo-bar-2); }
+.logo-gap { stroke: var(--mm-logo-background); stroke-width: 27; }
+.logo-front { stroke: var(--mm-logo-bar-1); }
 
 h1 { margin: 28px 0 0; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; overflow-wrap: anywhere; }
 h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--mm-text-secondary); }

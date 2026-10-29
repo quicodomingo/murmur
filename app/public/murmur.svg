@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <!-- Murmur, icona petita (tema Negre i àcid). Mono: segona barra #FFFFFF al 45%. Formigó: barres #D3D4D1 i #E10600 sobre #121212. -->
+  <!-- Murmur, icona petita (marca Eco, tema Negre i àcid). Mono: eco blanc al 45%. Formigó: "m" #D3D4D1 i eco #E10600 sobre #121212. -->
   <rect width="200" height="200" rx="46" fill="#0B0B0B"/>
-  <rect x="62" y="52" width="26" height="96" rx="13" fill="#F5F5F5"/>
-  <rect x="112" y="52" width="26" height="96" rx="13" fill="#D4FF3A"/>
+  <g transform="translate(-4 -3)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 140 V100 a18 18 0 0 1 36 0 V140 M96 100 a18 18 0 0 1 36 0 V140" transform="translate(15 -15)" stroke="#D4FF3A" stroke-width="17"/>
+    <path d="M60 140 V100 a18 18 0 0 1 36 0 V140 M96 100 a18 18 0 0 1 36 0 V140" stroke="#0B0B0B" stroke-width="27"/>
+    <path d="M60 140 V100 a18 18 0 0 1 36 0 V140 M96 100 a18 18 0 0 1 36 0 V140" stroke="#F5F5F5" stroke-width="17"/>
+  </g>
 </svg>

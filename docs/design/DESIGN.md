@@ -11,19 +11,22 @@ Murmur és una app de macOS per transcriure reunions en directe, **en local i am
 | `tokens/murmur-theme.css` | Variables CSS `--mm-*` per `data-theme` i `data-mode` | Webs, maquetes o una UI web |
 | `screens/<tema>/*.png` | Captura de cada pantalla, mode clar a l'esquerra i fosc a la dreta | Referència visual |
 | `mockups/<tema>/*.html` | Les mateixes pantalles en HTML estàtic | Mides, espaiats i textos exactes |
-| `icons/app/` | Icona de l'app a 1024×1024, un per tema (plantilla d'Apple: cos de 824 px, ombra inclosa) | `Assets.xcassets/AppIcon` |
+| `icons/app/` | Icona de l'app (marca Eco) a 1024×1024, una per tema (plantilla d'Apple: cos de 824 px, ombra inclosa) | `Assets.xcassets/AppIcon` |
 | `icons/menubar/` | Icona de la barra de menús, 18 pt @1x i @2x, tres estats | `NSStatusItem` |
-| `icons/logo/` | Marca monocroma i icona petita en SVG | Barra lateral, About |
+| `icons/logo/` | Marca Eco monocroma i icona de cada tema en SVG | Barra lateral, About |
 
 Pantalles: `1-reunio-en-directe`, `2-portada`, `3-configuracio` (les cinc pestanyes), `4-quant-a`, `5-barra-de-menus-i-avisos`, `6-onboarding`. Temes: `negre-i-acid` (per defecte), `monocrom`, `formigo-i-vermell`.
 
 ## Marca
 
 - **Nom:** Murmur, sempre en minúscules dins el logotip ("murmur") i amb majúscula inicial al text corrent.
-- **Concepte:** "mur-mur", dues parets. El que es diu a la reunió no surt del Mac. La marca són **dues barres verticals arrodonides**.
+- **Concepte: Eco.** Una "m" minúscula i el seu eco, desplaçat amunt i a la dreta. Cada paraula es diu i s'escriu: la veu i la transcripció. També és el "mur-mur" repetit del nom.
+- **Construcció** (graella de 200, `icons/logo/`): la "m" és un traç arrodonit de 17 unitats. L'eco és la mateixa "m" desplaçada (+15, −15) en el color d'accent. Entre totes dues hi ha un buit de 5 unitats (un traç de 27 del color de fons sota la "m" del davant). En versions monocromes el buit és un retall real (màscara), no un color.
+- **Colors de la marca:** Negre i àcid: fons #0B0B0B, "m" #F5F5F5, eco #D4FF3A. Monocrom: eco blanc al 45%. Formigó: "m" #D3D4D1, eco #E10600 sobre #121212. Ja ve resolt a `logoBackground`, `logoBar1` (la "m") i `logoBar2` (l'eco).
+- **No:** no facis servir dues barres verticals per representar Murmur (es llegeix com a pausa). Les barres de nivell només existeixen dins la píndola de gravació, amb alçades diferents i animades.
 - **Missatge principal:** *Privat, perquè és local.* Qualsevol text sobre privadesa ha de lligar "local" amb "privat": l'àudio i el text no surten mai de l'ordinador.
 - **Llengua:** la interfície és en català. Res de castellanismes. No facis servir guions llargs (—) en cap text; fes servir comes, dos punts o punts.
-- **Tipografia:** la del sistema (SF Pro) a tota l'app. El logotip "murmur" de l'About fa servir Space Grotesk Bold amb lletres juntes (−0,04 em) i una barra vertical entre les dues síl·labes.
+- **Tipografia:** la del sistema (SF Pro) a tota l'app. El logotip "murmur" fa servir Space Grotesk Bold amb lletres juntes (−0,045 em), sempre sencer i sense separadors.
 
 ## Temes i modes
 
@@ -53,7 +56,7 @@ Regla de proporció: **90% neutres, 9% text i negre, 1% accent.** Si l'accent ap
 ## Components
 
 ### Barra lateral
-- **Capçalera:** semàfors a l'esquerra; a la dreta, la icona petita (18 pt, `logoBackground` + `logoBar1` + `logoBar2`) i "murmur" en 12 pt bold.
+- **Capçalera:** semàfors a l'esquerra; a la dreta, la icona petita (22 pt, `logoBackground` + `logoBar1` + `logoBar2`) i "murmur" en 12 pt bold.
 - **Nova reunió:** botó sòlid a tota l'amplada, just sota la capçalera (alçada 32, radi 8, `newMeeting` / `onNewMeeting`), amb icona + i la drecera ⌘N a la dreta al 60% d'opacitat.
 - **Fila seleccionada:** fons `sidebarSelection` i una barreta vertical de 3 pt a l'esquerra (`sidebarSelectionBar`). És un eco del logo.
 - **Reunió gravant:** a la dreta de la fila, un punt vermell de 8 pt que fa pampallugues (opacitat 1 → 0,35, 1,4 s, ease-in-out, amb un halo que s'expandeix) i el text "REC" en 10 pt bold (`recordingLabel`).
@@ -99,9 +102,9 @@ Icona de 104 pt, logotip, versió, una frase que explica que tot es processa en 
 
 ### Icona de la barra de menús
 `NSStatusItem` de 18 pt. Tres estats (fitxers a `icons/menubar/`):
-- **En repòs** (`MenuBarTemplate`): una barra plena i l'altra de contorn. `isTemplate = true`.
-- **Reunió a prop** (`MenuBarAlertTemplate`): barres plenes i un punt. `isTemplate = true`.
-- **Gravant** (`MenuBarRecording`): barres plenes i punt vermell. `isTemplate = false`, perquè el vermell s'ha de veure.
+- **En repòs** (`MenuBarTemplate`): la marca Eco sola, monocroma. `isTemplate = true`.
+- **Reunió a prop** (`MenuBarAlertTemplate`): la marca amb un punt a dalt a la dreta. `isTemplate = true`.
+- **Gravant** (`MenuBarRecording`): la marca amb el punt vermell. `isTemplate = false`, perquè el vermell s'ha de veure.
 
 ### Indicador de gravació
 Mentre es grava, una píndola vertical a la vora dreta de la pantalla (finestra pròpia, transparent, sempre al davant, a tots els escriptoris). Fons `recordingPill`, amplada 52, radi 26: punt `recordingDot` de 12 que parpelleja, les dues barres de nivell `recordingLevel` de 4×16 (com a la píndola de gravació), el botó de captura i un botó petit d'aturar. El punt i les barres tornen a obrir Murmur.
@@ -120,7 +123,7 @@ Sota cada botó de començar a gravar, l'idioma de la reunió i si sou més gent
 Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16, ombra suau, `toastBackground`). Tenen un botó rodó de tancar a la cantonada superior esquerra.
 - **Comença d'aquí a 2 minuts:** icona de calendari, títol de la reunió · hora · plataforma. Depèn del calendari connectat.
 - **Reunió detectada:** punt vermell amb halo, "*App* fa servir el micròfon".
-- Un sol botó, sempre **Comença a gravar**, amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable al botó: l'idioma i la gent a la sala van sota el text (vegeu Opcions de començar), en menús natius perquè la finestra és petita. No el logotip: les seves dues barres semblen un botó de pausa.
+- Un sol botó, sempre **Comença a gravar**, amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable al botó: l'idioma i la gent a la sala van sota el text (vegeu Opcions de començar), en menús natius perquè la finestra és petita.
 - A sota, una barra de compte enrere de 3 pt (`toastProgress` sobre `toastBorder`); quan s'acaba, l'avís desapareix sol.
 
 ### Novetats de Murmur
