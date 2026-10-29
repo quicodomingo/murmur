@@ -27,6 +27,8 @@ cd app && npm install && npm run tauri dev            # l'app
 TRANSCRIPTOR_SIMULATE=../data/reunio-3min.wav npm run tauri dev   # amb un WAV en lloc del micròfon
 cd app/src-tauri && cargo test                         # tests del motor
 cd app && npx tsc --noEmit && npm run check-locales    # tipus i traduccions
+cd app/src-tauri && cargo run --release -- --mcp       # el connector per a Claude (MCP per stdio)
+cd app/src-tauri && cargo run --release --example lang_probe -- ../../data/reunio.m4a   # l'idioma que detectaria
 ```
 
 ## Regles del projecte
@@ -46,6 +48,7 @@ cd app && npx tsc --noEmit && npm run check-locales    # tipus i traduccions
 - Tot es processa en local per defecte. Qualsevol connexió al núvol ha de ser opcional i explícita.
 - Si algun dia hi ha un model al núvol, serà amb la clau pròpia de l'usuari, desada al clauer del sistema, mai en text pla. Només s'hi enviaria text, mai àudio.
 - Compartir una reunió publica només el que tria l'usuari, xifrat al Mac abans de sortir-ne, al seu propi Worker de Cloudflare.
+- El connector per a Claude (`mcp.rs`) està desactivat fins que l'usuari l'afegeix. Llegeix la base de dades només en lectura, i a Claude només li dona text, mai àudio.
 - Gravar una reunió requereix el consentiment de qui hi participa, i l'app ho recorda en començar.
 
 **Models i dades**
