@@ -376,6 +376,16 @@ fn feed_file(app: &AppHandle, samples: &[f32], tx: Sender<audio::Frame>, stop: c
     let _ = app.emit("import-progress", ImportProgress { done: total, total });
 }
 
+/// Audio files that macOS asked Murmur to open (Finder › Open With, the Dock icon, the Share
+/// menu's extension), until the window takes them: on a cold launch they arrive before it loads.
+#[derive(Default)]
+struct Opened(Mutex<Vec<String>>);
+
+#[tauri::command]
+fn take_opened_files(opened: State<'_, Opened>) -> Vec<String> {
+    std::mem::take(&mut *opened.0.lock().unwrap())
+}
+
 /// The language of an audio file opened without one ("ca", "es", "en" or "ca-es"), by listening
 /// to a few moments of it with Whisper. None if it isn't clear or Whisper isn't installed.
 #[tauri::command]
@@ -1385,6 +1395,7 @@ pub fn run() {
             Ok(())
         })
         .manage(AppState::default())
+        .manage(Opened::default())
         .manage(shell::Shell::default())
         // Closing the window keeps Murmur in the menu bar (it still notices meetings).
         .on_window_event(|window, event| {
@@ -1400,6 +1411,7 @@ pub fn run() {
             prepare,
             start_recording,
             detect_language,
+            take_opened_files,
             claude_status,
             claude_desktop_connect,
             stop_recording,
@@ -1470,8 +1482,24 @@ pub fn run() {
         .expect("error while running tauri application")
         .run(|app, event| {
             // Clicking the Dock icon brings the hidden window back.
-            if let tauri::RunEvent::Reopen { .. } = event {
-                shell::show_main(app);
+            match event {
+                tauri::RunEvent::Reopen { .. } => shell::show_main(app),
+                #[cfg(target_os = "macos")]
+                tauri::RunEvent::Opened { urls } => {
+                    let audio: Vec<String> = urls
+                        .iter()
+                        .filter_map(|u| u.to_file_path().ok())
+                        .filter(|p| p.extension().and_then(|e| e.to_str()).is_some_and(|e| import::EXTENSIONS.contains(&e.to_lowercase().as_str())))
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .collect();
+                    if audio.is_empty() {
+                        return;
+                    }
+                    app.state::<Opened>().0.lock().unwrap().extend(audio);
+                    shell::show_main(app);
+                    let _ = app.emit("opened-files", ());
+                }
+                _ => {}
             }
         });
 }

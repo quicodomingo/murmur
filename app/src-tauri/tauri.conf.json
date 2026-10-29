@@ -49,6 +49,15 @@
       "icons/icon.ico"
     ],
     "category": "Productivity",
+    "fileAssociations": [
+      {
+        "name": "Audio",
+        "ext": ["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "ogg", "opus", "mp4", "mov"],
+        "contentTypes": ["public.audio", "public.mpeg-4", "com.apple.quicktime-movie"],
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ],
     "externalBin": ["binaries/murmur-whisper"],
     "resources": {
       "locales/ca.lproj/InfoPlist.strings": "ca.lproj/InfoPlist.strings",

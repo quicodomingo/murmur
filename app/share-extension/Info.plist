@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>ca</string>
+  <key>CFBundleDisplayName</key>
+  <string>Murmur</string>
+  <key>CFBundleExecutable</key>
+  <string>MurmurShare</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.quicodomingo.murmur.share</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>MurmurShare</string>
+  <key>CFBundlePackageType</key>
+  <string>XPC!</string>
+  <key>CFBundleShortVersionString</key>
+  <string>VERSION</string>
+  <key>CFBundleVersion</key>
+  <string>VERSION</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>14.2</string>
+  <key>NSExtension</key>
+  <dict>
+    <key>NSExtensionPointIdentifier</key>
+    <string>com.apple.share-services</string>
+    <key>NSExtensionPrincipalClass</key>
+    <string>MurmurShare.ShareViewController</string>
+    <key>NSExtensionAttributes</key>
+    <dict>
+      <!-- Only for audio or video files (mp4 and mov conform to public.movie). -->
+      <key>NSExtensionActivationRule</key>
+      <string>SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $a, ANY $a.registeredTypeIdentifiers UTI-CONFORMS-TO "public.audio" OR ANY $a.registeredTypeIdentifiers UTI-CONFORMS-TO "public.movie").@count &gt;= 1).@count &gt;= 1</string>
+    </dict>
+  </dict>
+</dict>
+</plist>

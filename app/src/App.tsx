@@ -289,14 +289,25 @@ export default function App() {
       toast.error(String(e));
     }
   };
+  // Files from outside (Open With, the Dock icon, the Share menu), one after another.
+  const [opened, setOpened] = useState<string[]>([]);
+  const takeOpened = () => void backend.takeOpenedFiles().then((paths) => paths.length && setOpened((q) => [...q, ...paths]));
+  useEffect(() => {
+    if (!opened.length || !state.loaded || !models.loaded || recording || busy || importing) return;
+    const [next, ...rest] = opened;
+    setOpened(rest);
+    void openAudioRef.current(next);
+  }, [opened, state.loaded, models.loaded, recording, busy, importing]);
   useEffect(() => {
     if (!backend.isTauri()) return;
+    takeOpened();
     const unlisten = [
       backend.onOpenSettings(() => setShowSettings(true)),
       backend.onOpenAbout(() => setShowAbout(true)),
       backend.onRecordRequest((start, choice) => (start ? startRef.current(choice) : stopRef.current())),
       backend.onCaptureRequest(() => captureRef.current()),
       backend.onOpenAudio(() => openAudioRef.current()),
+      backend.onOpenedFiles(takeOpened),
       backend.onImportProgress((e) => {
         setImporting((now) => now && { ...now, ...e });
         dispatch({ type: "tick", duration: e.done });
@@ -463,9 +474,9 @@ export default function App() {
   /**
    * File › Open Audio…: a meeting from an audio file, as if it had been recorded, with everyone on
    * one channel. Whisper listens to a few moments to tell its language; if it can't, the
-   * meeting's usual one.
+   * meeting's usual one. `given`: a file from outside, instead of asking for one.
    */
-  const openAudio = async () => {
+  const openAudio = async (given?: string) => {
     if (!backend.isTauri()) return;
     if (recording || busy) {
       toast(t("importWhileRecording"));
@@ -475,7 +486,7 @@ export default function App() {
       setOnboarding({ open: true, atModels: true });
       return;
     }
-    const path = await openDialog({ title: t("importDialog"), filters: [{ name: t("importFilter"), extensions: backend.AUDIO_EXTENSIONS }] });
+    const path = given ?? (await openDialog({ title: t("importDialog"), filters: [{ name: t("importFilter"), extensions: backend.AUDIO_EXTENSIONS }] }));
     if (typeof path !== "string") return;
     setBusy(true);
     const listening = toast.loading(t("importDetecting"));

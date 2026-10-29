@@ -62,6 +62,9 @@ export const claudeStatus = () => invoke<ClaudeStatus>("claude_status");
 export const claudeDesktopConnect = (on: boolean) => invoke<ClaudeStatus>("claude_desktop_connect", { on });
 /** File › Open Audio… (⌘O). */
 export const onOpenAudio = (fn: () => void) => listen("open-audio", () => fn());
+/** Audio files macOS handed to Murmur (Open With, the Dock icon, the Share menu), waiting to be transcribed. */
+export const takeOpenedFiles = () => invoke<string[]>("take_opened_files");
+export const onOpenedFiles = (fn: () => void) => listen("opened-files", () => fn());
 /** How far an opened file has gone through the engine, in seconds. */
 export const onImportProgress = (fn: (e: { done: number; total: number }) => void) =>
   listen<{ done: number; total: number }>("import-progress", (e) => fn(e.payload));

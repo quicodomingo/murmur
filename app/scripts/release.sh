@@ -35,6 +35,9 @@ notarize() {
 echo "› Compilant i signant amb «${IDENTITY}»"
 npm run tauri build -- --bundles app
 
+echo "› Afegint l'extensió del menú Compartir"
+scripts/share-extension.sh "$APP"
+
 echo "› Notaritzant l'app"
 ditto -c -k --keepParent "$APP" "$OUT/Murmur.zip"
 notarize "$OUT/Murmur.zip"

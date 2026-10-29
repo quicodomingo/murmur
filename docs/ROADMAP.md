@@ -122,6 +122,7 @@ Entre reunions (bloc 5):
 - [ ] Exportar totes les reunions d'una etiqueta, i una portada del client amb les últimes reunions.
 - [x] Obrir un àudio com a reunió (Fitxer › Transcriu des d'un fitxer…, ⌘O): mp3, m4a, wav, ogg… passa pel motor com una gravació, amb l'idioma detectat per Whisper.
 - [ ] Provar la detecció d'idioma amb àudios reals en castellà, en anglès i barrejats (ara només s'ha provat amb reunions en català i veus sintètiques).
+- [x] Enviar un àudio a Murmur des del menú Compartir d'altres apps (extensió a `app/share-extension/`), amb Finder › Obre amb o deixant-lo anar a la icona del Dock.
 - [ ] Arrossegar un àudio a la finestra per obrir-lo.
 - [x] Connector per a Claude (servidor MCP local, `transcriptor --mcp`): transcriure un fitxer i llegir i cercar les reunions des de Claude Desktop i Claude Code. Configuració › Claude, desactivat per defecte.
 - [ ] Provar el connector amb Claude Desktop i Claude Code de debò, amb l'app instal·lada (i que el camí de l'app no canviï en actualitzar-la).

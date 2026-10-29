@@ -8,5 +8,10 @@
   <!-- Hardened runtime: needed to read the calendar (EventKit). -->
   <key>com.apple.security.personal-information.calendars</key>
   <true/>
+  <!-- The folder the Share menu's extension leaves copies in (share-extension/). -->
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>NYQHV4FSKC.com.quicodomingo.murmur</string>
+  </array>
 </dict>
 </plist>

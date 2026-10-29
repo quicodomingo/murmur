@@ -42,6 +42,8 @@ La clau pública és a `app/src-tauri/tauri.conf.json` › `plugins.updater.pubk
    cd app
    RELEASE_NOTES="Una frase amb el més important de la versió." ./scripts/release.sh
    ```
+   Després de compilar, hi afegeix l'extensió del menú Compartir (`scripts/share-extension.sh`), que necessita `swiftc` (les Command Line Tools n'hi ha prou).
+
    Deixa a `app/src-tauri/target/release/bundle/release/`:
    - `Murmur-<versió>.dmg`: signat, notaritzat i grapat.
    - `Murmur.app.tar.gz` i `.sig`: el paquet d'actualització, fet de l'app ja notaritzada i signat amb la clau de les actualitzacions.
