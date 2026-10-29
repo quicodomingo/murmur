@@ -6,6 +6,26 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.8.0": [
+      {
+        "title": "Transcribe desde un archivo",
+        "text": "En Archivo › Transcribir desde un archivo… (⌘O) puedes abrir un mp3, m4a, wav, ogg o cualquier otro audio, y Murmur hace una reunión con los hablantes y la pasada final. El idioma lo adivina solo."
+      },
+      {
+        "title": "Murmur, también desde Claude",
+        "text": "Claude Desktop y Claude Code pueden leer y buscar tus reuniones y transcribir audios de este Mac con Murmur. El audio nunca sale del Mac.",
+        "link": "claude",
+        "linkLabel": "Conéctalo"
+      },
+      {
+        "title": "Una marca nueva",
+        "text": "Las dos barras parecían el botón de pausa. Ahora Murmur es una «m» y su eco: la voz y la transcripción."
+      },
+      {
+        "title": "La configuración, más clara",
+        "text": "Tiene un botón para cerrarla y te dice «Guardado» cada vez que cambias un ajuste."
+      }
+    ],
     "0.7.1": [
       {
         "title": "Texto de las notas más grande o más pequeño",

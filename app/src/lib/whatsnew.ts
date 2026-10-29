@@ -7,6 +7,7 @@ import i18n, { t } from "./i18n";
  * A version with no notes shows nothing.
  */
 export const RELEASES: { version: string; date: string }[] = [
+  { version: "0.8.0", date: "2026-10-29" },
   { version: "0.7.1", date: "2026-10-27" },
   { version: "0.7.0", date: "2026-10-27" },
   { version: "0.6.0", date: "2026-10-26" },
@@ -16,7 +17,7 @@ export const RELEASES: { version: string; date: string }[] = [
 ];
 
 /** Where a note's link goes: a tab of the settings. */
-export type WhatsNewLink = "general" | "appearance" | "calendar" | "audio" | "transcription" | "intelligence" | "share";
+export type WhatsNewLink = "general" | "appearance" | "calendar" | "audio" | "transcription" | "intelligence" | "share" | "claude";
 export type WhatsNewItem = { title: string; text: string; link?: WhatsNewLink; linkLabel?: string };
 export type WhatsNewRelease = { version: string; date: string; items: WhatsNewItem[] };
 

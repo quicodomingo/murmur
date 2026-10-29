@@ -6,6 +6,26 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.8.0": [
+      {
+        "title": "Transcriu des d'un fitxer",
+        "text": "A Fitxer › Transcriu des d'un fitxer… (⌘O) pots obrir un mp3, m4a, wav, ogg o qualsevol altre àudio, i Murmur en fa una reunió amb els parlants i la passada final. L'idioma l'endevina sol."
+      },
+      {
+        "title": "Murmur, també des de Claude",
+        "text": "Claude Desktop i Claude Code poden llegir i cercar les teves reunions i transcriure àudios d'aquest Mac amb Murmur. L'àudio no surt mai del Mac.",
+        "link": "claude",
+        "linkLabel": "Connecta-ho"
+      },
+      {
+        "title": "Una marca nova",
+        "text": "Les dues barres semblaven el botó de pausa. Ara Murmur és una «m» i el seu eco: la veu i la transcripció."
+      },
+      {
+        "title": "La configuració, més clara",
+        "text": "Té un botó per tancar-la i et diu «Desat» cada vegada que canvies un ajust."
+      }
+    ],
     "0.7.1": [
       {
         "title": "Text de les notes més gran o més petit",
