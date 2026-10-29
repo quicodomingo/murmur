@@ -11,6 +11,7 @@ import { AboutDialog } from "@/components/AboutDialog";
 import { LogoIcon } from "@/components/Logo";
 import { Onboarding } from "@/components/Onboarding";
 import { Cover } from "@/components/Cover";
+import { DropOverlay } from "@/components/DropOverlay";
 import { NotesPanel } from "@/components/NotesPanel";
 import { SIDE_WIDTH, SidePanel } from "@/components/SidePanel";
 import { PlayerBar } from "@/components/PlayerBar";
@@ -864,6 +865,7 @@ export default function App() {
 
   return (
     <TooltipProvider delayDuration={600}>
+      <DropOverlay later={!!recording || busy || !!importing} onDrop={(paths) => setOpened((q) => [...q, ...paths])} />
       <div className="flex h-screen overflow-hidden">
         {showSidebar && (
           <Sidebar
