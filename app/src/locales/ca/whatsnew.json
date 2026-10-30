@@ -6,6 +6,18 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.10.0": [
+      {
+        "title": "Glossari",
+        "text": "Afegeix-hi noms i marques, i la transcripció els escriurà com tu, també als àudios que importis. Quan corregeixis un nom en una frase, Murmur et proposarà afegir-lo.",
+        "link": "transcription",
+        "linkLabel": "Obre el glossari"
+      },
+      {
+        "title": "Els noms dels convidats, ben escrits",
+        "text": "En una reunió del calendari, els noms dels convidats compten com a glossari, i el resum també els escriu bé."
+      }
+    ],
     "0.9.1": [
       {
         "title": "Arrossega un àudio a la finestra",

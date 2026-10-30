@@ -6,6 +6,18 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.10.0": [
+      {
+        "title": "Glossary",
+        "text": "Add names and brands, and the transcript will spell them your way, in imported audio too. When you correct a name in a sentence, Murmur offers to add it.",
+        "link": "transcription",
+        "linkLabel": "Open the glossary"
+      },
+      {
+        "title": "Guests' names, spelled right",
+        "text": "In a calendar meeting, the guests' names count as glossary, and the summary spells them right too."
+      }
+    ],
     "0.9.1": [
       {
         "title": "Drag audio onto the window",

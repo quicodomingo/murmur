@@ -6,6 +6,18 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.10.0": [
+      {
+        "title": "Glosario",
+        "text": "Añade nombres y marcas, y la transcripción los escribirá como tú, también en los audios que importes. Cuando corrijas un nombre en una frase, Murmur te propondrá añadirlo.",
+        "link": "transcription",
+        "linkLabel": "Abre el glosario"
+      },
+      {
+        "title": "Los nombres de los invitados, bien escritos",
+        "text": "En una reunión del calendario, los nombres de los invitados cuentan como glosario, y el resumen también los escribe bien."
+      }
+    ],
     "0.9.1": [
       {
         "title": "Arrastra un audio a la ventana",
