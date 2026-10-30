@@ -94,7 +94,7 @@ Entre reunions (bloc 5):
 - [x] Pantalla «Novetats de Murmur» després d'actualitzar, amb «No ho tornis a mostrar» (es reactiva a Configuració › General). Text dins l'app, en tres idiomes.
 - [ ] Revisar les traduccions amb algú nadiu (sobretot els noms dels menús de macOS en castellà) i provar els textos dels permisos en un Mac en castellà i en anglès.
 - [x] README per a GitHub (anglès, `README.md`; català, `README.ca.md`).
-- [ ] Codi obert: triar la llicència, afegir `LICENSE` i fer públic el repositori.
+- [x] Codi obert: llicència MIT (`LICENSE`) i repositori públic.
 
 ## 4. Configuració pendent (ja dissenyada)
 

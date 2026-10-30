@@ -34,13 +34,13 @@ gh release create "v$VERSION" \
   "$OUT/Murmur-$VERSION.dmg" "$OUT/Murmur.app.tar.gz" "$OUT/Murmur.app.tar.gz.sig" "$OUT/latest.json"
 echo "Publicat: https://github.com/$REPO/releases/tag/v$VERSION"
 
-# The private repo, for collaborators: the code at this version and its .dmg.
-PRIVATE=${PRIVATE_REPO:-quicodomingo/murmur}
+# The code repo: the code at this version and its .dmg.
+CODE=${CODE_REPO:-quicodomingo/murmur}
 git push --quiet origin HEAD
 gh release create "v$VERSION" \
-  --repo "$PRIVATE" \
+  --repo "$CODE" \
   --target "$(git rev-parse HEAD)" \
   --title "Murmur $VERSION" \
   --notes "${RELEASE_NOTES:-Murmur $VERSION}" \
   "$OUT/Murmur-$VERSION.dmg"
-echo "També al repositori privat: https://github.com/$PRIVATE/releases/tag/v$VERSION"
+echo "També al repositori del codi: https://github.com/$CODE/releases/tag/v$VERSION"

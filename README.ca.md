@@ -133,4 +133,4 @@ Els *issues* i les *pull requests* són benvinguts. Ens són especialment útils
 
 ## Llicència
 
-Pendent de decidir.
+[MIT](LICENSE). Els models mantenen les seves pròpies llicències (vegeu [Models](#models)).

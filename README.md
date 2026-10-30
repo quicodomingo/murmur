@@ -133,4 +133,4 @@ Issues and pull requests are welcome. Recordings of real meetings with a hand-ma
 
 ## Licence
 
-To be decided.
+[MIT](LICENSE). The models keep their own licences (see [Models](#models)).

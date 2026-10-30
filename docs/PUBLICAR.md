@@ -3,7 +3,7 @@
 Les apps instal·lades busquen actualitzacions en obrir-se (si l'usuari no ho ha desactivat) i amb «Comprova ara» a Configuració › General. Hi ha dues coses que es poden publicar, cadascuna pel seu camí:
 
 - **L'app**: una *release* a [quicodomingo/murmur-releases](https://github.com/quicodomingo/murmur-releases/releases) amb el `.dmg` (instal·lacions noves) i el paquet d'actualització (`Murmur.app.tar.gz`, la seva signatura i `latest.json`).
-- **El repositori privat** [quicodomingo/murmur](https://github.com/quicodomingo/murmur) (codi): `publish.sh` hi puja el codi i hi crea la mateixa *release* amb el `.dmg`, per als col·laboradors.
+- **El repositori del codi** [quicodomingo/murmur](https://github.com/quicodomingo/murmur), públic i amb llicència MIT: `publish.sh` hi puja el codi i hi crea la mateixa *release* amb el `.dmg`, lligada al commit de la versió.
 - **Els models**: el catàleg [`models.json`](https://github.com/quicodomingo/murmur-releases/blob/main/models.json) del mateix repositori. Els fitxers dels models són a Hugging Face (`quicodomingo/murmur-models`) o al seu origen.
 
 Publicar és públic i no es pot desfer per a qui ja s'hagi actualitzat: prova sempre la versió al teu Mac abans.
@@ -61,7 +61,7 @@ La clau pública és a `app/src-tauri/tauri.conf.json` › `plugins.updater.pubk
    ```bash
    RELEASE_NOTES="Una frase amb el més important de la versió." ./scripts/publish.sh
    ```
-   Crea la *release* `v<versió>` al repositori públic amb els quatre fitxers, puja el codi al privat (`git push`) i hi crea la mateixa *release* amb el `.dmg`. Les notes van a GitHub i a `latest.json`: són el que l'app mostra a la finestra «Actualitzant Murmur».
+   Crea la *release* `v<versió>` al repositori públic amb els quatre fitxers, puja el codi al repositori del codi (`git push`) i hi crea la mateixa *release* amb el `.dmg`. Les notes van a GitHub i a `latest.json`: són el que l'app mostra a la finestra «Actualitzant Murmur».
 
 7. **Comprova-ho**:
    ```bash
