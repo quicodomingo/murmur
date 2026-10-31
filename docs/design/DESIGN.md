@@ -136,13 +136,14 @@ Finestra de 720×540 que surt el primer cop que s'obre l'app. Peu fix de 68 pt a
 2. **Transcripció en directe:** "Veus el text mentre parleu". Il·lustració: píndola de gravació i una intervenció que s'està escrivint.
 3. **Parlants i notes:** "Qui parla i què hi apuntes". Il·lustració: gràfic de qui ha parlat i notes amb el minut.
 4. **Portada:** "La reunió, resumida". Il·lustració: títol, decisions i tasques.
-5. **Avisos:** "Cap reunió sense gravar". Il·lustració: barra de menús i avís "Reunió detectada".
-6. **Models** (tres estats de la mateixa pantalla):
-   - *Triar:* "Descarrega els models". Dues files: **Model de transcripció** (Necessari, sempre inclòs, no es pot desmarcar) i **Eines de resum i portada** (Opcional, interruptor activat per defecte). Cada fila mostra la mida de descàrrega. A sota, la nota de privadesa amb cadenat. Botó: Descarrega i comença.
-   - *Descarregant:* una barra de progrés per model (6 pt, `toggleOn` sobre `separator`), percentatge a la dreta. Primer el model de transcripció; les eines esperen ("En espera"). Si l'interruptor de les eines és apagat, només hi ha una barra. Botó principal desactivat ("Descarregant…") i secundari "Continua en segon pla": la descàrrega segueix si es tanca la finestra.
+5. **Barra flotant:** "La trucada, sempre a la vista". Il·lustració: una trucada amb una diapositiva compartida, la píndola de gravació a la vora (punt, nivells, càmera i aturar) i la captura que acaba de fer, a «Pantalles» amb el minut.
+6. **Avisos:** "Cap reunió sense gravar". Il·lustració: barra de menús i avís "Reunió detectada".
+7. **Models** (tres estats de la mateixa pantalla):
+   - *Triar:* "Descarrega els models". Dues files: **Model de transcripció** (Necessari, sempre inclòs, no es pot desmarcar) i **Resums** (Opcional), amb un selector de qui els escriu: *Gemma, en aquest Mac* (per defecte; diu que pesa 5,2 GB i que necessita un Mac amb 16 GB de memòria), *Claude*, *ChatGPT* o *Ara no*. Amb Claude o ChatGPT surt el camp de la clau d'API (es comprova i es desa al clauer) i el botó principal no s'activa fins que el compte està connectat; la nota de privadesa diu llavors que només s'envia el text. Cada fila mostra la mida de descàrrega. A sota, la nota de privadesa amb cadenat. Botó: Descarrega i comença.
+   - *Descarregant:* una barra de progrés per model (6 pt, `toggleOn` sobre `separator`), percentatge a la dreta. Primer el model de transcripció; Gemma espera ("En espera"). Amb Claude, ChatGPT o «Ara no», només hi ha la barra de la transcripció. Botó principal desactivat ("Descarregant…") i secundari "Continua en segon pla": la descàrrega segueix si es tanca la finestra.
    - *A punt:* barres plenes, "Fet". Botó: Tanca.
 
-Les il·lustracions dels passos 2 a 5 són fragments reals de la interfície amb els tokens del tema actiu, dins una caixa de 236 pt d'alçada amb fons `fillSubtle`. Les mides dels models estan pendents (a les maquetes surten com a [mida]).
+Les il·lustracions dels passos 2 a 6 són fragments reals de la interfície amb els tokens del tema actiu, dins una caixa de 236 pt d'alçada amb fons `fillSubtle`. Les mides dels models estan pendents (a les maquetes surten com a [mida]).
 
 ## Accessibilitat i moviment
 - Contrast mínim 4,5:1 per al text (3:1 a partir de 24 pt). Per això l'àcid mai és text sobre clar.

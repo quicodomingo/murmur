@@ -60,6 +60,12 @@ export function useCloud(): CloudState {
 
 /** Checks the key with the provider and saves it; throws the provider's error otherwise. */
 export async function connectCloud(provider: CloudProvider, key: string) {
+  // In a browser during development ("?window=onboarding"): any key that looks like one.
+  if (import.meta.env.DEV && !backend.isTauri()) {
+    await new Promise((r) => setTimeout(r, 600));
+    if (key.trim().length < 12) throw new Error("401: invalid x-api-key");
+    return set({ status: { ...state.status, [provider]: key.trim().slice(-4) } });
+  }
   const models = await backend.cloudConnect(provider, key);
   set({ models: { ...state.models, [provider]: models }, errors: { ...state.errors, [provider]: undefined } });
   await refreshCloud();

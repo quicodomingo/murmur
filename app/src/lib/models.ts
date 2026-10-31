@@ -26,7 +26,20 @@ export const MODEL_NAMES = Object.defineProperties(
   Object.fromEntries(MODEL_IDS.map((id) => [id, { get: () => t(`models:names.${id}`), enumerable: true }])),
 );
 
-let state: ModelsState = { status: {}, downloading: {}, errors: {}, queued: [], loaded: !backend.isTauri() };
+/**
+ * In a browser during development ("?window=onboarding"), made-up models that download in a few
+ * seconds, so the first-run screens can be tried without the app.
+ */
+const FAKE = import.meta.env.DEV && !backend.isTauri();
+const fakeStatus = (id: ModelId, bytes: number, downloadable = true): ModelStatus => ({ id, installed: false, bytes, downloaded: 0, downloadable, required: id === "transcription" });
+
+let state: ModelsState = {
+  status: FAKE ? { transcription: fakeStatus("transcription", 585_366_000), punctuation: fakeStatus("punctuation", 128_469_163, false), llm: fakeStatus("llm", 5_154_941_280) } : {},
+  downloading: {},
+  errors: {},
+  queued: [],
+  loaded: !backend.isTauri(),
+};
 /** Callbacks waiting for a download to end (true: the model is there now). */
 const waiters = new Map<ModelId, ((ok: boolean) => void)[]>();
 const listeners = new Set<() => void>();
@@ -96,7 +109,23 @@ export async function downloadQueue(ids: ModelId[]): Promise<boolean> {
   return true;
 }
 
+/** FAKE: fills the bar in about four seconds, then the model is "installed". */
+function fakeDownload(id: ModelId) {
+  const total = state.status[id]?.bytes ?? 1;
+  let done = 0;
+  const timer = setInterval(() => {
+    done = Math.min(total, done + total / 40);
+    if (done < total) return set({ ...state, downloading: { ...state.downloading, [id]: { done, total } } });
+    clearInterval(timer);
+    const { [id]: _done, ...downloading } = state.downloading;
+    set({ ...state, downloading, status: { ...state.status, [id]: { ...state.status[id]!, installed: true, downloaded: total } } });
+    waiters.get(id)?.forEach((w) => w(true));
+    waiters.delete(id);
+  }, 100);
+}
+
 export async function downloadModel(id: ModelId) {
+  if (FAKE) return fakeDownload(id);
   const total = state.status[id]?.bytes ?? 0;
   set({
     ...state,

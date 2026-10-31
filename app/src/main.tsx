@@ -5,6 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App";
 import { ErrorScreen } from "./components/ErrorScreen";
 import { IndicatorWindow } from "./components/IndicatorWindow";
+import { Onboarding } from "./components/Onboarding";
 import { ToastWindow } from "./components/ToastWindow";
 import { WhatsNewDialog } from "./components/WhatsNewDialog";
 import { releasesBetween } from "./lib/whatsnew";
@@ -29,7 +30,7 @@ if (!import.meta.env.DEV) {
 // The same page also runs the floating alert and the recording indicator (shell.rs), both
 // transparent around their content.
 // In a browser during development, "?window=indicator" or "?window=toast" shows that window on its own
-// ("?window=whatsnew": the version notes).
+// ("?window=whatsnew": the version notes; "?window=onboarding": the welcome screens, from the start).
 const devLabel = import.meta.env.DEV ? new URLSearchParams(location.search).get("window") : null;
 const label = "__TAURI_INTERNALS__" in window ? getCurrentWindow().label : (devLabel ?? "main");
 const isToast = label === "toast";
@@ -40,6 +41,8 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     {devLabel === "whatsnew" ? (
       <WhatsNewDialog releases={releasesBetween(null, "999.0.0")} manual={false} onLink={() => {}} onClose={() => {}} />
+    ) : devLabel === "onboarding" ? (
+      <Onboarding open startAtModels={false} onChange={() => {}} onClose={() => location.reload()} />
     ) : isToast ? (
       <ToastWindow />
     ) : isIndicator ? (

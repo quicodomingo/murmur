@@ -11,7 +11,7 @@
     "live": {
       "kicker": "Live transcription",
       "title": "See the text as you talk",
-      "text": "Murmur transcribes the meeting in real time, with Catalan as its main language. You can follow it, correct it and annotate it as it happens."
+      "text": "Murmur transcribes the meeting in real time, with full support for Catalan. You can follow it, correct it and annotate it as it happens."
     },
     "speakers": {
       "kicker": "Speakers and notes",
@@ -22,6 +22,11 @@
       "kicker": "Summary",
       "title": "The meeting, summed up",
       "text": "When it ends, Murmur prepares a summary with the title, main points, decisions and tasks. Each point links to the moment it was said."
+    },
+    "indicator": {
+      "kicker": "Floating bar",
+      "title": "The call, always in view",
+      "text": "While you record, a small bar sits on the edge of the screen, over the call. One click captures what's being shared, and the screenshot shows up in the summary, at the minute it was taken."
     },
     "alerts": {
       "kicker": "Alerts",
@@ -51,7 +56,9 @@
     "menuBarClock": "Mon 10:58 AM",
     "alertTitle": "Meeting detected",
     "alertText": "Meet is using the microphone",
-    "alertAction": "Start Recording"
+    "alertAction": "Start Recording",
+    "slideTitle": "Launch plan",
+    "screensPart": "Screens"
   },
   "models": {
     "kicker": "Last step",
@@ -65,10 +72,8 @@
     "required": "Required",
     "transcriptionText": "Turns speech into text, in Catalan and other languages, right on this Mac.",
     "alwaysIncluded": "Always included",
-    "toolsName": "Summary tools",
     "optional": "Optional",
-    "toolsText": "Punctuation, title, summary, decisions and tasks for each meeting. You can add them later in Settings.",
-    "offline": "Once downloaded, they work offline. Meeting audio and text never leave this computer: no cloud, no accounts.",
+    "offline": "Once downloaded, they work offline. Meeting audio and text never leave this computer.",
     "close": "Close",
     "continueInBackground": "Continue in Background",
     "downloading": "Downloading…",
@@ -76,6 +81,23 @@
     "downloadAndStart": "Download and Start",
     "done": "Done",
     "waiting": "Waiting",
-    "percent": "{{value}}%"
+    "percent": "{{value}}%",
+    "summaryName": "Summaries",
+    "summaryText": "Title, summary, decisions and tasks for each meeting. Choose who writes them:",
+    "writers": {
+      "local": "Gemma, on this Mac",
+      "anthropic": "Claude",
+      "openai": "ChatGPT",
+      "none": "Not Now"
+    },
+    "localText": "Gemma 4, by Google, runs on this Mac. It takes {{size}} and needs a Mac with 16 GB of memory.",
+    "noneText": "You can choose later in Settings › Intelligence.",
+    "cloudText": "Only the meeting's text is sent to {{name}}, never the audio. You need an API key, billed separately by usage: the subscription doesn't work.",
+    "cloudCreateKey": "Create one at {{site}}",
+    "cloudKey": "{{name}} API key",
+    "cloudConnect": "Connect",
+    "cloudChecking": "Checking…",
+    "cloudConnected": "{{name}} connected. Key saved in the keychain, ending in …{{hint}}",
+    "offlineCloud": "Audio never leaves this computer. For the summaries, only the meeting's text is sent, with your key."
   }
 }

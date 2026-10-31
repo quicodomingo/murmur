@@ -11,7 +11,7 @@
     "live": {
       "kicker": "Transcripció en directe",
       "title": "Veus el text mentre parleu",
-      "text": "Murmur transcriu la reunió en temps real, amb el català com a llengua principal. La pots seguir, corregir i anotar al moment."
+      "text": "Murmur transcriu la reunió en temps real, amb suport total per al català. La pots seguir, corregir i anotar al moment."
     },
     "speakers": {
       "kicker": "Parlants i notes",
@@ -22,6 +22,11 @@
       "kicker": "Resum",
       "title": "La reunió, resumida",
       "text": "En acabar, Murmur prepara un resum amb el títol, les idees principals, les decisions i les tasques. Cada punt enllaça al moment on es va dir."
+    },
+    "indicator": {
+      "kicker": "Barra flotant",
+      "title": "La trucada, sempre a la vista",
+      "text": "Mentre graves, una barra petita queda a la vora de la pantalla, damunt de la trucada. Amb un clic captures el que s'hi comparteix, i la captura surt al resum, al minut on es va fer."
     },
     "alerts": {
       "kicker": "Avisos",
@@ -51,7 +56,9 @@
     "menuBarClock": "dl. 10:58",
     "alertTitle": "Reunió detectada",
     "alertText": "Meet fa servir el micròfon",
-    "alertAction": "Comença a gravar"
+    "alertAction": "Comença a gravar",
+    "slideTitle": "Pla de llançament",
+    "screensPart": "Pantalles"
   },
   "models": {
     "kicker": "Últim pas",
@@ -65,10 +72,8 @@
     "required": "Necessari",
     "transcriptionText": "Converteix la veu en text, en català i altres llengües, dins d'aquest Mac.",
     "alwaysIncluded": "Sempre inclòs",
-    "toolsName": "Eines de resum",
     "optional": "Opcional",
-    "toolsText": "Puntuació, títol, resum, decisions i tasques de cada reunió. Es pot afegir més endavant des de Configuració.",
-    "offline": "Un cop descarregats, funcionen sense connexió. L'àudio i el text de les reunions no surten mai d'aquest ordinador: no hi ha núvol ni comptes.",
+    "offline": "Un cop descarregats, funcionen sense connexió. L'àudio i el text de les reunions no surten mai d'aquest ordinador.",
     "close": "Tanca",
     "continueInBackground": "Continua en segon pla",
     "downloading": "Descarregant…",
@@ -76,6 +81,23 @@
     "downloadAndStart": "Descarrega i comença",
     "done": "Fet",
     "waiting": "En espera",
-    "percent": "{{value}} %"
+    "percent": "{{value}} %",
+    "summaryName": "Resums",
+    "summaryText": "Títol, resum, decisions i tasques de cada reunió. Tria qui els escriu:",
+    "writers": {
+      "local": "Gemma, en aquest Mac",
+      "anthropic": "Claude",
+      "openai": "ChatGPT",
+      "none": "Ara no"
+    },
+    "localText": "Gemma 4, de Google, funciona dins d'aquest Mac. Pesa {{size}} i necessita un Mac amb 16 GB de memòria.",
+    "noneText": "Pots triar-ho més endavant a Configuració › Intel·ligència.",
+    "cloudText": "Només s'envia el text de la reunió a {{name}}, mai l'àudio. Cal una clau d'API, que es factura a part segons l'ús: la subscripció no serveix.",
+    "cloudCreateKey": "Crea'n una a {{site}}",
+    "cloudKey": "Clau d'API de {{name}}",
+    "cloudConnect": "Connecta",
+    "cloudChecking": "Comprovant…",
+    "cloudConnected": "{{name}} connectat. Clau desada al clauer, acaba en …{{hint}}",
+    "offlineCloud": "L'àudio no surt mai d'aquest ordinador. Per fer els resums, només s'envia el text de la reunió, amb la teva clau."
   }
 }

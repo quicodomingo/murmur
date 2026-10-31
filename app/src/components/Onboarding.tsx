@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { AudioLines, Check, Lock, Sparkles } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { AudioLines, Camera, Check, Lock, Sparkles, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Flag, speakerTone } from "@/components/SpeakerFlag";
 import { LogoIcon, LogoMark, Wordmark } from "@/components/Logo";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
+import { Segmented } from "@/components/SettingsDialog";
+import * as backend from "@/lib/backend";
+import { connectCloud, KEYS_URL, useCloud } from "@/lib/cloud";
 import { bytes, downloadQueue, useModels } from "@/lib/models";
 import type { Settings } from "@/lib/settings";
-import type { ModelId } from "@/lib/types";
+import type { CloudProvider, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -20,10 +23,12 @@ type Props = {
   startAtModels?: boolean;
 };
 
-const STEPS = 6;
-const TOOLS: ModelId[] = ["punctuation", "llm"];
+const STEPS = 7;
 
-/** First-run screens (docs/design/DESIGN.md › Onboarding): five steps, then the models. */
+/** Who writes the summaries, chosen on the last step: the local model, Claude, ChatGPT or nobody yet. */
+type Writer = "local" | CloudProvider | "none";
+
+/** First-run screens (docs/design/DESIGN.md › Onboarding): six steps, then the models. */
 export function Onboarding({ open, onClose, onChange, startAtModels }: Props) {
   const { t } = useTranslation("onboarding");
   const [step, setStep] = useState(startAtModels ? STEPS - 1 : 0);
@@ -109,10 +114,10 @@ function Welcome() {
   );
 }
 
-// --- 2–5. What Murmur does --------------------------------------------------------------
+// --- 2–6. What Murmur does --------------------------------------------------------------
 
 /** Each feature step's strings, under `features.<key>` in the onboarding namespace. */
-const FEATURES: Record<number, "live" | "speakers" | "cover" | "alerts"> = { 1: "live", 2: "speakers", 3: "cover", 4: "alerts" };
+const FEATURES: Record<number, "live" | "speakers" | "cover" | "indicator" | "alerts"> = { 1: "live", 2: "speakers", 3: "cover", 4: "indicator", 5: "alerts" };
 
 function Feature({ step }: { step: number }) {
   const { t } = useTranslation("onboarding");
@@ -125,7 +130,8 @@ function Feature({ step }: { step: number }) {
         {step === 1 && <LiveIllustration />}
         {step === 2 && <SpeakersIllustration />}
         {step === 3 && <CoverIllustration />}
-        {step === 4 && <AlertIllustration />}
+        {step === 4 && <IndicatorIllustration />}
+        {step === 5 && <AlertIllustration />}
       </div>
       <div className="flex-1 px-12 pt-[26px]">
         <div className="text-[12px] font-semibold text-muted-foreground">{f.kicker}</div>
@@ -243,6 +249,58 @@ function CoverIllustration() {
   );
 }
 
+/** A call with a shared slide, the recording pill on the screen's edge, and the screenshot it just took. */
+function IndicatorIllustration() {
+  const { t } = useTranslation("onboarding");
+  return (
+    <div className="flex w-[560px] items-center gap-5">
+      <div className="relative h-[176px] flex-1 overflow-hidden rounded-[10px] bg-mm-background shadow-[0_0_0_1px_var(--mm-separator)]">
+        <div className="flex h-5 items-center gap-1 border-b border-border px-2">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="size-1.5 rounded-full bg-mm-separator" />
+          ))}
+        </div>
+        <div className="flex h-[155px] gap-2 p-2">
+          <div className="flex-1 rounded-md bg-mm-fill-subtle px-3 py-2.5">
+            <div className="text-[11px] font-bold">{t("demo.slideTitle")}</div>
+            <div className="mt-2 h-1.5 w-4/5 rounded-full bg-mm-separator" />
+            <div className="mt-1.5 h-1.5 w-3/5 rounded-full bg-mm-separator" />
+            <div className="mt-1.5 h-1.5 w-2/3 rounded-full bg-mm-separator" />
+          </div>
+          <div className="flex w-[64px] flex-col gap-2">
+            {[0, 1].map((i) => (
+              <span key={i} className="flex-1 rounded-md bg-mm-fill-subtle" />
+            ))}
+          </div>
+        </div>
+        {/* The pill, on the right edge of the screen (IndicatorWindow), smaller. */}
+        <div className="absolute right-2 top-1/2 flex w-9 -translate-y-1/2 flex-col items-center gap-1.5 rounded-[18px] bg-mm-recording-pill py-1.5 text-mm-on-recording-pill shadow-[0_0_0_1px_var(--mm-recording-pill-border),0_4px_14px_rgb(0_0_0/0.3)]">
+          <span className="mm-rec mt-1 size-2 rounded-full bg-mm-recording-dot" />
+          <span className="flex h-3 items-center gap-[2px]">
+            <span className="mm-bar h-3 w-[3px] rounded-[2px] bg-mm-recording-level" />
+            <span className="mm-bar mm-bar-2 h-3 w-[3px] rounded-[2px] bg-mm-recording-level" />
+          </span>
+          <span className="grid size-7 place-items-center rounded-full bg-mm-recording-level text-mm-recording-pill">
+            <Camera className="size-3.5" strokeWidth={2} />
+          </span>
+          <span className="grid size-5 place-items-center">
+            <Square className="size-2" fill="currentColor" strokeWidth={0} />
+          </span>
+        </div>
+      </div>
+      <div className={cn(card, "w-[170px] px-3 py-2.5")}>
+        <div className="text-[11px] font-semibold text-muted-foreground">{t("demo.screensPart")}</div>
+        <div className="mt-2 rounded-md bg-mm-fill-subtle px-2 py-1.5 shadow-[0_0_0_1px_var(--mm-separator)]">
+          <div className="text-[9px] font-bold">{t("demo.slideTitle")}</div>
+          <div className="mt-1 h-1 w-4/5 rounded-full bg-mm-separator" />
+          <div className="mt-1 h-1 w-3/5 rounded-full bg-mm-separator" />
+        </div>
+        <div className="mt-1 text-[10px] tabular-nums text-mm-timestamp">14:32</div>
+      </div>
+    </div>
+  );
+}
+
 function AlertIllustration() {
   const { t } = useTranslation("onboarding");
   return (
@@ -271,25 +329,31 @@ function AlertIllustration() {
   );
 }
 
-// --- 6. Models -----------------------------------------------------------------------------
+// --- 7. Models -----------------------------------------------------------------------------
 
 function Models({ step, onBack, onClose, onChange }: { step: number; onBack: () => void; onClose: () => void; onChange: Props["onChange"] }) {
   const { t } = useTranslation("onboarding");
   const models = useModels();
-  const [tools, setTools] = useState(true);
+  const cloud = useCloud();
+  const [writer, setWriter] = useState<Writer>("local");
   const [started, setStarted] = useState(false);
   const status = (id: ModelId) => models.status[id];
   const installed = (ids: ModelId[]) => ids.every((id) => status(id)?.installed);
+  const remote = writer === "anthropic" || writer === "openai" ? writer : null;
   // Punctuation isn't published yet: leave out what can't be downloaded.
-  const toolIds = TOOLS.filter((id) => status(id)?.downloadable !== false);
-  const wanted: ModelId[] = ["transcription", ...(tools ? toolIds : [])];
+  const toolIds = (writer === "none" ? [] : writer === "local" ? (["punctuation", "llm"] as ModelId[]) : (["punctuation"] as ModelId[])).filter(
+    (id) => status(id)?.downloadable !== false,
+  );
+  const wanted: ModelId[] = ["transcription", ...toolIds];
   const busy = wanted.some((id) => models.downloading[id] || models.queued.includes(id));
   const ready = started && installed(wanted);
   const failed = wanted.map((id) => models.errors[id]).find(Boolean);
   const phase = ready ? "ready" : started && (busy || !failed) ? "downloading" : "choose";
+  // Claude or ChatGPT: the account must be connected before going on.
+  const waitingForKey = !!remote && !cloud.status[remote];
 
   const start = () => {
-    if (tools) onChange({ punctuate: toolIds.includes("punctuation"), summarize: true });
+    if (writer !== "none") onChange({ punctuate: toolIds.includes("punctuation"), summarize: true, coverEngine: writer });
     setStarted(true);
     downloadQueue(wanted);
   };
@@ -301,6 +365,7 @@ function Models({ step, onBack, onClose, onChange }: { step: number; onBack: () 
     return done / total;
   };
   const rowState = (ids: ModelId[]): "idle" | "waiting" | "active" | "done" => {
+    if (!ids.length) return "idle";
     if (installed(ids)) return started ? "done" : "idle";
     if (!started) return "idle";
     return ids.some((id) => models.downloading[id]) ? "active" : "waiting";
@@ -310,6 +375,12 @@ function Models({ step, onBack, onClose, onChange }: { step: number; onBack: () 
   const intro =
     phase === "ready" ? t("models.introReady") : phase === "downloading" ? t("models.introDownloading") : t("models.introChoose");
   const size = (ids: ModelId[]) => bytes(ids.reduce((n, id) => n + (status(id)?.bytes ?? 0), 0));
+  const writers: { value: Writer; label: string }[] = [
+    { value: "local", label: t("models.writers.local") },
+    { value: "anthropic", label: t("models.writers.anthropic") },
+    { value: "openai", label: t("models.writers.openai") },
+    { value: "none", label: t("models.writers.none") },
+  ];
 
   return (
     <>
@@ -335,20 +406,28 @@ function Models({ step, onBack, onClose, onChange }: { step: number; onBack: () 
           />
           <ModelRow
             icon={<Sparkles className="size-4" />}
-            name={t("models.toolsName")}
+            name={t("models.summaryName")}
             badge={t("models.optional")}
-            size={size(toolIds)}
-            text={t("models.toolsText")}
-            state={tools ? rowState(toolIds) : "idle"}
+            size={writer === "local" ? size(toolIds) : ""}
+            text={t("models.summaryText")}
+            state={rowState(toolIds)}
             progress={progress(toolIds)}
-            error={tools ? (models.errors.punctuation ?? models.errors.llm) : undefined}
+            error={toolIds.map((id) => models.errors[id]).find(Boolean)}
             last
-            control={<Switch checked={tools} disabled={started && phase !== "choose"} onCheckedChange={setTools} aria-label={t("models.toolsName")} />}
-          />
+          >
+            <div className={cn("mt-2.5 flex", phase !== "choose" && "pointer-events-none opacity-60")}>
+              <Segmented<Writer> value={writer} options={writers} onChange={setWriter} labelledBy="onboarding-summary" />
+            </div>
+            <div id="onboarding-summary" className="mt-2 text-[12px] leading-normal text-muted-foreground">
+              {writer === "local" && t("models.localText", { size: size(["llm"]) })}
+              {writer === "none" && t("models.noneText")}
+              {remote && <CloudKey provider={remote} connected={cloud.status[remote]} locked={phase !== "choose"} />}
+            </div>
+          </ModelRow>
         </div>
         <div className="mt-3 flex items-start gap-2.5 text-[12px] leading-normal text-muted-foreground">
           <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>{t("models.offline")}</span>
+          <span>{remote ? t("models.offlineCloud") : t("models.offline")}</span>
         </div>
       </div>
       {phase === "ready" ? (
@@ -361,7 +440,86 @@ function Models({ step, onBack, onClose, onChange }: { step: number; onBack: () 
           onBack={onBack}
           primary={failed ? t("models.retry") : installed(wanted) ? t("start") : t("models.downloadAndStart")}
           onNext={start}
+          disabled={waitingForKey}
         />
+      )}
+    </>
+  );
+}
+
+/** Claude or ChatGPT on the models step: the API key, checked and saved to the keychain (lib/cloud.ts). */
+function CloudKey({ provider, connected, locked }: { provider: CloudProvider; connected: string | null; locked: boolean }) {
+  const { t } = useTranslation("onboarding");
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const name = t(`models.writers.${provider}`);
+
+  if (connected)
+    return (
+      <span className="flex items-center gap-1.5 text-foreground">
+        <Check className="size-3.5 text-mm-toggle-on" strokeWidth={3} aria-hidden />
+        {t("models.cloudConnected", { name, hint: connected })}
+      </span>
+    );
+
+  const connect = async () => {
+    if (!key.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await connectCloud(provider, key);
+      setKey("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const site = new URL(KEYS_URL[provider]).host;
+  return (
+    <>
+      <p>
+        {t("models.cloudText", { name })}{" "}
+        <button
+          type="button"
+          onClick={() => (backend.isTauri() ? openUrl(KEYS_URL[provider]) : Promise.resolve(window.open(KEYS_URL[provider], "_blank"))).catch(() => {})}
+          className="text-mm-link hover:underline"
+        >
+          {t("models.cloudCreateKey", { site })}
+        </button>
+      </p>
+      <form
+        className="mt-1.5 flex items-center gap-1.5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          connect();
+        }}
+      >
+        <input
+          type="password"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          disabled={locked}
+          placeholder={provider === "anthropic" ? "sk-ant-…" : "sk-…"}
+          aria-label={t("models.cloudKey", { name })}
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={!!error}
+          className="h-7 min-w-0 flex-1 rounded-md border border-input bg-background px-2 font-mono text-[12px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive"
+        />
+        <button
+          type="submit"
+          disabled={busy || locked || !key.trim()}
+          className="h-7 shrink-0 rounded-md border border-input bg-background px-2.5 text-[12px] text-foreground hover:bg-muted disabled:opacity-50"
+        >
+          {busy ? t("models.cloudChecking") : t("models.cloudConnect")}
+        </button>
+      </form>
+      {error && (
+        <p role="alert" className="mt-1 text-destructive">
+          {error}
+        </p>
       )}
     </>
   );
@@ -378,6 +536,7 @@ function ModelRow({
   error,
   control,
   last,
+  children,
 }: {
   icon: React.ReactNode;
   name: string;
@@ -387,8 +546,10 @@ function ModelRow({
   state: "idle" | "waiting" | "active" | "done";
   progress: number;
   error?: string;
-  control: React.ReactNode;
+  control?: React.ReactNode;
   last?: boolean;
+  /** Extra content under the text (the summary writer choice). */
+  children?: React.ReactNode;
 }) {
   const { t } = useTranslation("onboarding");
   return (
@@ -402,6 +563,7 @@ function ModelRow({
           <span className="text-[12px] tabular-nums text-muted-foreground">{size}</span>
         </div>
         <div className="mt-0.5 text-[12px] text-muted-foreground">{text}</div>
+        {children}
         {error ? (
           <div className="mt-2 text-[12px] text-destructive">{error}</div>
         ) : (
