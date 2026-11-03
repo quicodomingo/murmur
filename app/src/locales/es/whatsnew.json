@@ -6,6 +6,16 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.11.0": [
+      {
+        "title": "Continúa una reunión",
+        "text": "Si la has detenido demasiado pronto, pulsa «Continuar» durante los 10 minutos siguientes, o elige «Continuar la reunión» en el menú del título. Todo queda en una sola reunión, con una línea que marca la pausa."
+      },
+      {
+        "title": "Las mismas voces",
+        "text": "Al continuar, Murmur reconoce a quien ya había hablado y mantiene su nombre y su color. El audio queda en un solo archivo y la duración es la suma de las partes."
+      }
+    ],
     "0.10.0": [
       {
         "title": "Glosario",

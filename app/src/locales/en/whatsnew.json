@@ -6,6 +6,16 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.11.0": [
+      {
+        "title": "Continue a meeting",
+        "text": "If you stopped too soon, press “Continue” within the next 10 minutes, or choose “Continue Meeting” from the title menu. It all stays one meeting, with a line marking the pause."
+      },
+      {
+        "title": "The same voices",
+        "text": "When you continue, Murmur recognises who had already spoken and keeps their name and colour. The audio stays in one file and the length is the sum of the parts."
+      }
+    ],
     "0.10.0": [
       {
         "title": "Glossary",

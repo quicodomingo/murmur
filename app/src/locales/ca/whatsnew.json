@@ -6,6 +6,16 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.11.0": [
+      {
+        "title": "Continua una reunió",
+        "text": "Si l'has aturat massa aviat, prem «Continua» durant els 10 minuts següents, o tria «Continua la reunió» al menú del títol. Tot queda en una sola reunió, amb una línia que marca la pausa."
+      },
+      {
+        "title": "Les mateixes veus",
+        "text": "En continuar, Murmur reconeix qui ja havia parlat i en manté el nom i el color. L'àudio queda en un sol fitxer i la durada és la suma de les parts."
+      }
+    ],
     "0.10.0": [
       {
         "title": "Glossari",
