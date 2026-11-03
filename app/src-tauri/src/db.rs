@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS meetings (
     guests        TEXT,
     screens       TEXT,
     language      TEXT,
-    shares        TEXT
+    shares        TEXT,
+    parts         TEXT
 );
 
 CREATE TABLE IF NOT EXISTS utterances (
@@ -144,6 +145,8 @@ pub struct MetaPatch {
     pub language: Option<String>,
     /// Links it was shared with (lib/share.ts): [{id, url, createdAt, expiresAt, …}].
     pub shares: Option<Value>,
+    /// Times it was recorded again after stopping ("Continua"): [{startedAt, at}].
+    pub parts: Option<Value>,
     /// Its tags, in order; replaces the ones it had.
     pub tags: Option<Vec<String>>,
 }
@@ -355,7 +358,7 @@ impl Db {
             .conn
             .query_row(
                 "SELECT id, title, created_at, duration, status, speaker_names, sources, audio_path,
-                        notes_doc, legacy_notes, cover, guests, screens, language, shares
+                        notes_doc, legacy_notes, cover, guests, screens, language, shares, parts
                  FROM meetings WHERE id = ?1",
                 [id],
                 |r| {
@@ -376,6 +379,7 @@ impl Db {
                         "screens": parse(r.get(12)?).unwrap_or(json!([])),
                         "language": r.get::<_, Option<String>>(13)?,
                         "shares": parse(r.get(14)?).unwrap_or(json!([])),
+                        "parts": parse(r.get(15)?).unwrap_or(json!([])),
                     }))
                 },
             )
@@ -426,8 +430,8 @@ impl Db {
         };
         tx.execute(
             "INSERT INTO meetings (id, title, created_at, duration, status, speaker_names, sources,
-                                   audio_path, notes_doc, legacy_notes, cover, guests, screens, language, shares)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                                   audio_path, notes_doc, legacy_notes, cover, guests, screens, language, shares, parts)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             params![
                 id,
                 meeting
@@ -456,6 +460,7 @@ impl Db {
                 text("screens"),
                 meeting.get("language").and_then(Value::as_str),
                 text("shares"),
+                text("parts"),
             ],
         )?;
         let utterances: Vec<Utterance> =
@@ -532,6 +537,12 @@ impl Db {
             if let Some(v) = meta.shares {
                 tx.execute(
                     "UPDATE meetings SET shares = ?2 WHERE id = ?1",
+                    params![id, v.to_string()],
+                )?;
+            }
+            if let Some(v) = meta.parts {
+                tx.execute(
+                    "UPDATE meetings SET parts = ?2 WHERE id = ?1",
                     params![id, v.to_string()],
                 )?;
             }
@@ -643,6 +654,9 @@ fn migrate(conn: &Connection) -> Result<()> {
     }
     if !has("meetings", "shares")? {
         conn.execute("ALTER TABLE meetings ADD COLUMN shares TEXT", [])?;
+    }
+    if !has("meetings", "parts")? {
+        conn.execute("ALTER TABLE meetings ADD COLUMN parts TEXT", [])?;
     }
     Ok(())
 }

@@ -18,6 +18,7 @@ import type {
   LlmResult,
   LlmTask,
   Meeting,
+  MeetingPart,
   MeetingSummary,
   ModelId,
   ModelStatus,
@@ -52,7 +53,13 @@ export const startRecording = (opts: {
   file?: string;
   /** The calendar event's guests: their names join the glossary for this meeting (glossary.rs). */
   guests?: string[];
-}) => invoke<string | null>("start_recording", { ...opts, file: opts.file ?? null, guests: opts.guests ?? [] });
+  /**
+   * "Continua": record again into this meeting. Its length so far, its lines ([start, end,
+   * speaker]: their voices come back with their number) and its recording, which goes on.
+   */
+  resume?: { duration: number; lines: [number, number, number][]; audioPath: string | null };
+}) =>
+  invoke<{ audioPath: string | null; offset: number }>("start_recording", { ...opts, file: opts.file ?? null, guests: opts.guests ?? [], resume: opts.resume ?? null });
 
 /** Audio files File › Open Audio… offers (import.rs EXTENSIONS). */
 export const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "ogg", "opus", "mp4", "mov"];
@@ -72,10 +79,15 @@ export const onImportProgress = (fn: (e: { done: number; total: number }) => voi
   listen<{ done: number; total: number }>("import-progress", (e) => fn(e.payload));
 
 export const stopRecording = () => invoke<void>("stop_recording");
+/** Stopped from the indicator with Murmur not in front: the floating alert offers to go on (shell.rs). */
+export const showStoppedToast = (meetingId: string, subtitle: string, seconds: number) =>
+  invoke<void>("show_stopped_toast", { meetingId, subtitle, seconds });
+/** "Continua la gravació" on that alert. */
+export const onContinueRequest = (fn: (meetingId: string) => void) => listen<string>("continue-recording", (e) => fn(e.payload));
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language" | "tags">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[]; shares?: ShareLink[] };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language" | "tags">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[]; shares?: ShareLink[]; parts?: MeetingPart[] };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };
@@ -104,10 +116,11 @@ export const onOpenAbout = (fn: () => void) => listen("open-about", () => fn());
 /** View › Amplia el text / Redueix el text / Mida real: 1, -1, 0. */
 export const onTextZoom = (fn: (direction: -1 | 0 | 1) => void) => listen<-1 | 0 | 1>("text-zoom", (e) => fn(e.payload));
 /** The menu bar icon or the floating alert asks to start or stop recording. */
-export const onRecordRequest = (fn: (start: boolean, choice?: { language: Language; roomSpeakers: boolean }) => void) =>
+/** `from`: "indicator" when stopped from the recording indicator. */
+export const onRecordRequest = (fn: (start: boolean, choice?: { language: Language; roomSpeakers: boolean }, from?: string) => void) =>
   Promise.all([
     listen<{ language: Language; roomSpeakers: boolean } | null>("start-recording", (e) => fn(true, e.payload ?? undefined)),
-    listen("stop-recording", () => fn(false)),
+    listen<string | null>("stop-recording", (e) => fn(false, undefined, e.payload ?? undefined)),
   ]).then(
     (u) => () => u.forEach((f) => f()),
   );

@@ -5,6 +5,7 @@ import { isYou, speakerHue, toneOrder } from "@/components/SpeakerFlag";
 import * as backend from "./backend";
 import { namedSpeakers, renameInCover, talkTime, toneLabel } from "./cover";
 import { clock, duration, longDate, speakerIds, speakerName } from "./format";
+import { meetingWhen } from "./parts";
 import { locale, t, uiLanguage } from "./i18n";
 import { notesDoc } from "./notes";
 import type { Meeting, ShareLink, SharePart } from "./types";
@@ -159,7 +160,7 @@ function page(m: Meeting, parts: SharePart[], expiresAt: number | null, files: F
     v: 1,
     lang: uiLanguage(),
     title: m.title,
-    meta: [longDate(m.createdAt), duration(m.duration)],
+    meta: [meetingWhen(m), duration(m.duration)],
     labels: {
       cover: t("share:page.cover"),
       notes: t("export:notes"),

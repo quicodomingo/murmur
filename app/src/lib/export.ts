@@ -4,7 +4,8 @@ import type { HeadingLevel as HeadingLevelT, Paragraph as ParagraphT, TextRun as
 
 import * as backend from "./backend";
 import { namedSpeakers, renameInCover, talkTime, toneLabel } from "./cover";
-import { clock, longDate, speakerName } from "./format";
+import { clock, speakerName } from "./format";
+import { meetingWhen, pauseLabel, pauses } from "./parts";
 import { t } from "./i18n";
 import { docToMarkdown, notesDoc } from "./notes";
 import type { Meeting } from "./types";
@@ -53,7 +54,7 @@ export async function saveMarkdown(meeting: Meeting, dir: string): Promise<strin
 
 /** The summary (the cover, with the speakers' current names), the notes and the transcript. */
 export function toMarkdown(meeting: Meeting): string {
-  const lines = [`# ${meeting.title}`, "", longDate(meeting.createdAt), ""];
+  const lines = [`# ${meeting.title}`, "", meetingWhen(meeting), ""];
   const c = meeting.cover && renameInCover(meeting.cover, namedSpeakers(meeting));
   if (c) {
     lines.push(`## ${t("app:viewCover")}`, "");
@@ -77,7 +78,9 @@ export function toMarkdown(meeting: Meeting): string {
   const notes = docToMarkdown(notesDoc(meeting), 2);
   if (notes) lines.push(`## ${t("export:notes")}`, "", notes, "");
   lines.push(`## ${t("export:transcript")}`, "");
+  const breaks = pauses(meeting);
   for (const u of meeting.utterances) {
+    while (breaks.length && u.start >= breaks[0].at - 0.01) lines.push(`*${pauseLabel(breaks.shift()!)}*`, "");
     lines.push(`**[${clock(u.start)}] ${speakerName(meeting, u.speaker)}:** ${u.text}`, "");
   }
   return lines.join("\n").replace(/\n{3,}/g, "\n\n");
@@ -151,7 +154,7 @@ export async function toDocx(meeting: Meeting): Promise<ArrayBuffer> {
       {
         children: [
           new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(meeting.title)] }),
-          new Paragraph({ children: [new TextRun({ text: longDate(meeting.createdAt), color: "6E6E73" })] }),
+          new Paragraph({ children: [new TextRun({ text: meetingWhen(meeting), color: "6E6E73" })] }),
           ...(notes.length ? [new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("export:notes"))] }), ...notes] : []),
           new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("export:transcript"))] }),
           ...transcript,

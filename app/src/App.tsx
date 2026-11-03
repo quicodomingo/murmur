@@ -47,7 +47,8 @@ import { downloadModel, modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
 import { usePostProcess } from "@/lib/postprocess";
 import { MarkdownSwitch, RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
-import { hasAudio, playAt, stopUnless } from "@/lib/player";
+import { CONTINUE_MS } from "@/lib/parts";
+import { hasAudio, playAt, release, stopUnless } from "@/lib/player";
 import { stepTextZoom, useSettings } from "@/lib/settings";
 import { activeShares, expired, revokeShare } from "@/lib/share";
 import { notesDoc } from "@/lib/notes";
@@ -200,11 +201,27 @@ export default function App() {
   /** "Desa en Markdown", chosen for each meeting while it records; written once it's done. */
   const [markdown, setMarkdown] = useState<Record<string, boolean>>({});
   const startedAt = useRef(0);
+  /** Meeting time the recording started at: 0, or where a meeting that goes on picked up. */
+  const startOffset = useRef(0);
   /** A meeting made from an audio file (File › Open Audio…) while it goes through the engine. */
   const [importing, setImporting] = useState<{ id: string; done: number; total: number } | null>(null);
+  const importingRef = useRef(importing);
+  importingRef.current = importing;
 
   const meeting = (state.selectedId && state.open[state.selectedId]) || null;
   const recording = Object.values(state.open).find((m) => m.status === "recording") ?? null;
+  // For the engine's listeners, set up once.
+  const recordingRef = useRef(recording);
+  recordingRef.current = recording;
+  /** The meeting stopped last and when: "Continua" stays on its toolbar for a while (CONTINUE_MS). */
+  const [stoppedAt, setStoppedAt] = useState<{ id: string; at: number } | null>(null);
+  useEffect(() => {
+    if (!stoppedAt) return;
+    const timer = setTimeout(() => setStoppedAt(null), stoppedAt.at + CONTINUE_MS - Date.now());
+    return () => clearTimeout(timer);
+  }, [stoppedAt]);
+  /** The recording being stopped was stopped from the indicator: offer to go on in the floating alert. */
+  const stoppedFromIndicator = useRef(false);
 
   // The sidebar can show only the meetings with one tag. A new recording isn't tagged yet, so
   // starting one shows them all again.
@@ -258,8 +275,16 @@ export default function App() {
       },
       onLevel: setLevel,
       onDone: () => {
+        const rec = recordingRef.current;
+        const imported = importingRef.current?.id === rec?.id;
         dispatch({ type: "stopped" });
         setImporting(null);
+        if (rec && !imported) {
+          setStoppedAt({ id: rec.id, at: Date.now() });
+          if (stoppedFromIndicator.current)
+            backend.showStoppedToast(rec.id, `${rec.title} · ${duration(rec.duration)}`, CONTINUE_MS / 1000).catch(() => {});
+        }
+        stoppedFromIndicator.current = false;
       },
       onError: (message) => toast.error(message),
       onFinalPass: (e) => post.rustStageStarted(e.meetingId, e.stage, e.estimateSeconds),
@@ -306,7 +331,12 @@ export default function App() {
     const unlisten = [
       backend.onOpenSettings(() => setShowSettings(true)),
       backend.onOpenAbout(() => setShowAbout(true)),
-      backend.onRecordRequest((start, choice) => (start ? startRef.current(choice) : stopRef.current())),
+      backend.onRecordRequest((start, choice, from) => {
+        if (start) return startRef.current(choice);
+        stoppedFromIndicator.current = from === "indicator";
+        stopRef.current();
+      }),
+      backend.onContinueRequest((id) => continueRef.current(id)),
       backend.onCaptureRequest(() => captureRef.current()),
       backend.onOpenAudio(() => openAudioRef.current()),
       backend.onOpenedFiles(takeOpened),
@@ -409,7 +439,7 @@ export default function App() {
   useEffect(() => {
     // A file's time comes from how far the engine has gone (import-progress).
     if (!recording || isImport) return;
-    const id = setInterval(() => dispatch({ type: "tick", duration: (Date.now() - startedAt.current) / 1000 }), 500);
+    const id = setInterval(() => dispatch({ type: "tick", duration: startOffset.current + (Date.now() - startedAt.current) / 1000 }), 500);
     return () => clearInterval(id);
   }, [recording, isImport, dispatch]);
 
@@ -446,8 +476,9 @@ export default function App() {
     const finalText = language !== "ca-es" && modelInstalled("whisper");
     post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language });
     startedAt.current = Date.now();
+    startOffset.current = 0;
     try {
-      const path = await backend.startRecording({
+      const { audioPath: path } = await backend.startRecording({
         meetingId: m.id,
         mic: sources.mic,
         micDevice: settings.micDevice,
@@ -472,6 +503,84 @@ export default function App() {
   }, [dispatch, settings, updateSettings, post.planRecording, transcriptionReady, models.status, t]);
   startRef.current = (choice) => {
     if (!recording && !busy) start(choice);
+  };
+
+  /** Why "Continua" can't record into `m` now, if it can't: another recording, or this one is still finishing. */
+  const continueBlocked = (m: Meeting): string | null =>
+    recording && recording.id !== m.id
+      ? t("continueBlockedRecording")
+      : m.status === "processing" || state.finalPass[m.id]
+        ? t("continueBlockedFinishing")
+        : null;
+
+  /**
+   * "Continua": records again into a stopped meeting, with the same sources and language, from
+   * where it ended. The voices heard so far come back with their names, the audio goes on in
+   * the same file, and the transcript shows the pause.
+   */
+  const resume = async (m: Meeting) => {
+    if (!backend.isTauri()) {
+      toast.error(t("openAsApp"));
+      return;
+    }
+    if (recording || busy || m.status !== "done" || continueBlocked(m)) return;
+    const language = m.language ?? settings.language;
+    if (!models.status[language === "en" ? "english" : "transcription"]?.installed) {
+      toast.error(t("englishModelMissing"), { action: { label: t("settings"), onClick: () => setShowSettings(true) } });
+      return;
+    }
+    setBusy(true);
+    const wanted = m.sources ?? { mic: settings.mic, system: settings.system };
+    const sources = await ensurePermissions(wanted).catch(() => wanted);
+    if (!sources) {
+      setBusy(false);
+      return;
+    }
+    setStoppedAt(null);
+    // Its audio file is about to grow: the player loads it again afterwards.
+    release(m.id);
+    const finalText = language !== "ca-es" && modelInstalled("whisper");
+    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language, from: m.duration });
+    dispatch({ type: "resumed", id: m.id, part: { startedAt: Date.now(), at: m.duration } });
+    setMarkdown((list) => ({ ...list, [m.id]: settings.saveMarkdown && !!settings.markdownDir }));
+    startedAt.current = Date.now();
+    startOffset.current = m.duration;
+    try {
+      const started = await backend.startRecording({
+        meetingId: m.id,
+        mic: sources.mic,
+        micDevice: settings.micDevice,
+        system: sources.system,
+        saveAudio: settings.saveAudio,
+        recordingsDir: settings.recordingsDir,
+        maxSpeakers: settings.maxSpeakers,
+        threshold: settings.threshold,
+        verifySpeakers: settings.verifySpeakers,
+        roomSpeakers: settings.roomSpeakers,
+        language,
+        finalText,
+        guests: m.guests,
+        resume: { duration: m.duration, lines: m.utterances.map((u) => [u.start, u.end, u.speaker]), audioPath: m.audioPath ?? null },
+      });
+      // The engine measures the recording so far: the new part starts exactly after it.
+      startOffset.current = started.offset;
+      dispatch({ type: "resumedAt", id: m.id, at: started.offset });
+    } catch (e) {
+      dispatch({ type: "resumeFailed", id: m.id });
+      toast.error(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const continueRef = useRef((_id: string) => {});
+  continueRef.current = async (id) => {
+    const m = state.open[id] ?? (await backend.getMeeting(id).catch(() => null));
+    if (!m) return;
+    if (!state.open[id]) dispatch({ type: "opened", meeting: m });
+    dispatch({ type: "select", id });
+    const blocked = continueBlocked(m);
+    if (blocked) toast(blocked);
+    else void resume(m);
   };
 
   /**
@@ -513,7 +622,7 @@ export default function App() {
     const finalText = language !== "ca-es" && modelInstalled("whisper");
     post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language });
     try {
-      const audio = await backend.startRecording({
+      const { audioPath: audio } = await backend.startRecording({
         meetingId: m.id,
         mic: true,
         micDevice: null,
@@ -909,6 +1018,18 @@ export default function App() {
                   <ChevronDown className="size-3.5 text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-56">
+                  {meeting.status !== "recording" && (
+                    <>
+                      <DropdownMenuItem disabled={!!continueBlocked(meeting) || busy} onSelect={() => void resume(meeting)} className="items-start">
+                        <span className="mx-[3px] mt-[5px] size-2 shrink-0 rounded-full bg-mm-recording-dot" aria-hidden />
+                        <span className="flex flex-col">
+                          {t("continueMeeting")}
+                          {continueBlocked(meeting) && <span className="text-[12px] leading-snug text-muted-foreground">{continueBlocked(meeting)}</span>}
+                        </span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onSelect={() => copyMarkdown(meeting)}>
                     <Copy className="size-3.5" /> {t("copyMarkdown")}
                   </DropdownMenuItem>
@@ -1020,6 +1141,23 @@ export default function App() {
             ) : (
               meeting && (
                 <>
+                  {stoppedAt?.id === meeting.id && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {/* aria-disabled, not disabled: the tooltip says why. */}
+                        <button
+                          type="button"
+                          aria-disabled={!!continueBlocked(meeting) || busy}
+                          onClick={() => !continueBlocked(meeting) && void resume(meeting)}
+                          className="inline-flex h-7 items-center gap-1.5 rounded-[7px] border border-border px-2.5 text-[13px] hover:bg-mm-fill-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:hover:bg-transparent"
+                        >
+                          <span className="size-2 rounded-full bg-mm-recording-dot" aria-hidden />
+                          {t("continue")}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{continueBlocked(meeting) ?? t("continueHint")}</TooltipContent>
+                    </Tooltip>
+                  )}
                   <span className="text-[13px] text-text-secondary">{t("durationValue", { duration: duration(meeting.duration) })}</span>
                   {activeShares(meeting).length > 0 && (
                     <Tooltip>

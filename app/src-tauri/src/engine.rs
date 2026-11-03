@@ -143,7 +143,8 @@ impl Models {
             .unwrap_or_default()
     }
 
-    fn embed(&self, samples: &[f32]) -> Option<Vec<f32>> {
+    /// A voice print of `samples` (TitaNet, normalised), as live clustering compares them.
+    pub fn embed(&self, samples: &[f32]) -> Option<Vec<f32>> {
         let stream = self.embedder.create_stream()?;
         stream.accept_waveform(SAMPLE_RATE as i32, samples);
         stream.input_finished();
@@ -162,18 +163,27 @@ struct SpeakerClusters {
     max_speakers: usize,
     threshold: f32,
     sums: Vec<Vec<f32>>,
+    /// The speaker number of each cluster in `sums` (in order, unless the meeting goes on).
+    ids: Vec<usize>,
+    /// The number the next new speaker gets.
+    next: usize,
+    /// Index into `sums` of the last speaker heard.
     last: usize,
 }
 
 impl SpeakerClusters {
     fn assign(&mut self, emb: Option<Vec<f32>>, duration: f32) -> usize {
-        let Some(emb) = emb else { return self.last };
+        let id = |c: &Self, i: usize| c.ids.get(i).copied().unwrap_or(c.next);
+        let Some(emb) = emb else { return id(self, self.last) };
         let reliable = duration >= MIN_EMBED_S;
         if self.sums.is_empty() {
             if reliable {
                 self.sums.push(emb);
+                self.ids.push(self.next);
+                self.next += 1;
+                return self.ids[0];
             }
-            return 0;
+            return self.next;
         }
         let sims: Vec<f32> = self
             .sums
@@ -201,10 +211,12 @@ impl SpeakerClusters {
             add_into(&mut self.sums[best], &emb);
         } else {
             self.sums.push(emb);
+            self.ids.push(self.next);
+            self.next += 1;
             best = self.sums.len() - 1;
         }
         self.last = best;
-        best
+        id(self, best)
     }
 }
 
@@ -264,6 +276,16 @@ impl<'m> LiveSession<'m> {
         self.speakers.max_speakers = max.max(1);
     }
 
+    /// A meeting that goes on ("Continua"): the voices already heard on this channel, by speaker
+    /// number (from 0), so they keep their number; new voices are numbered from `next`.
+    pub fn known_speakers(&mut self, voices: Vec<(usize, Vec<f32>)>, next: usize) {
+        let (ids, sums) = voices.into_iter().unzip();
+        self.speakers.ids = ids;
+        self.speakers.sums = sums;
+        self.speakers.next = next;
+        self.speakers.last = 0;
+    }
+
     /// Turns the provisional text on or off (it costs about ten times the final text).
     pub fn set_partials(&mut self, on: bool) {
         self.partials = on;
@@ -298,6 +320,8 @@ impl<'m> LiveSession<'m> {
                 max_speakers,
                 threshold,
                 sums: vec![],
+                ids: vec![],
+                next: 0,
                 last: 0,
             },
             leftover: vec![],
@@ -417,5 +441,39 @@ impl<'m> LiveSession<'m> {
             channel: self.channel,
             text: self.models.transcribe(tail),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn voice(axis: usize) -> Vec<f32> {
+        let mut v = vec![0.0; 8];
+        v[axis] = 1.0;
+        v
+    }
+
+    #[test]
+    fn known_voices_keep_their_number() {
+        let mut c = SpeakerClusters { max_speakers: 5, threshold: 0.7, sums: vec![], ids: vec![], next: 0, last: 0 };
+        // Speakers 0 and 2 were heard before (1 had no long enough line); new voices start at 3.
+        c.ids = vec![0, 2];
+        c.sums = vec![voice(0), voice(2)];
+        c.next = 3;
+        assert_eq!(c.assign(Some(voice(2)), 3.0), 2);
+        assert_eq!(c.assign(Some(voice(0)), 3.0), 0);
+        assert_eq!(c.assign(Some(voice(5)), 3.0), 3);
+        assert_eq!(c.assign(Some(voice(5)), 3.0), 3);
+        // A short interjection that matches nobody stays with whoever spoke last.
+        assert_eq!(c.assign(Some(voice(6)), 0.5), 3);
+    }
+
+    #[test]
+    fn a_new_meeting_numbers_from_zero() {
+        let mut c = SpeakerClusters { max_speakers: 5, threshold: 0.7, sums: vec![], ids: vec![], next: 0, last: 0 };
+        assert_eq!(c.assign(Some(voice(1)), 0.5), 0);
+        assert_eq!(c.assign(Some(voice(1)), 3.0), 0);
+        assert_eq!(c.assign(Some(voice(4)), 3.0), 1);
     }
 }

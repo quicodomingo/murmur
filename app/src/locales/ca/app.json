@@ -80,5 +80,10 @@
   "importing": "Transcrivint",
   "stopImport": "Atura (es queda el que ja s'ha transcrit)",
   "glossaryOffer": "Vols afegir {{words}} al glossari? Així la transcripció ho escriurà bé la propera vegada.",
-  "glossaryAdd": "Afegeix"
+  "glossaryAdd": "Afegeix",
+  "continue": "Continua",
+  "continueHint": "Torna a gravar dins aquesta reunió",
+  "continueMeeting": "Continua la reunió",
+  "continueBlockedRecording": "Ara s'està gravant una altra reunió",
+  "continueBlockedFinishing": "Encara s'està acabant aquesta reunió"
 }

@@ -54,7 +54,12 @@ export type Meeting = {
   tags?: string[];
   /** Links it was shared with (lib/share.ts), newest first; expired ones are kept until withdrawn. */
   shares?: ShareLink[];
+  /** Each time it was recorded again after stopping ("Continua"), in order (lib/parts.ts). */
+  parts?: MeetingPart[];
 };
+
+/** Recording again into a meeting: when it started (epoch ms) and the meeting time it picked up at (s). */
+export type MeetingPart = { startedAt: number; at: number };
 
 /** What was shared (lib/share.ts). */
 export type SharePart = "cover" | "notes" | "transcript" | "screens" | "audio";

@@ -80,5 +80,10 @@
   "importing": "Transcribiendo",
   "stopImport": "Detener (se queda lo que ya se ha transcrito)",
   "glossaryOffer": "¿Quieres añadir {{words}} al glosario? Así la transcripción lo escribirá bien la próxima vez.",
-  "glossaryAdd": "Añadir"
+  "glossaryAdd": "Añadir",
+  "continue": "Continuar",
+  "continueHint": "Vuelve a grabar dentro de esta reunión",
+  "continueMeeting": "Continuar la reunión",
+  "continueBlockedRecording": "Ahora se está grabando otra reunión",
+  "continueBlockedFinishing": "Todavía se está terminando esta reunión"
 }

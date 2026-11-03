@@ -103,6 +103,15 @@ export function nextRate() {
 }
 
 /** Another meeting was opened, or this one deleted: stop. */
+/** The meeting's recording is changing ("Continua"): stop it and load it again next time. */
+export function release(meetingId: string) {
+  if (!audio || state.meetingId !== meetingId) return;
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+  set({ meetingId: null, playing: false, time: 0, duration: 0 });
+}
+
 export function stopUnless(meetingId: string | null) {
   if (!audio || state.meetingId === null || state.meetingId === meetingId) return;
   audio.pause();

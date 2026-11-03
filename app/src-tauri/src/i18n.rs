@@ -84,6 +84,7 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
 
         // Alerts. The app's name goes first: dismissed alerts are matched by it.
         "toast_detected" => ["Reunió detectada", "Reunión detectada", "Meeting detected"],
+        "toast_stopped" => ["Gravació aturada", "Grabación detenida", "Recording stopped"],
         "toast_mic_user" => ["{name} fa servir el micròfon", "{name} está usando el micrófono", "{name} is using the microphone"],
 
         // Audio.
@@ -153,6 +154,7 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
         "audio_open_failed" => ["No s'ha pogut obrir aquest àudio", "No se ha podido abrir este audio", "Couldn't open this audio"],
         "audio_empty" => ["L'àudio és buit", "El audio está vacío", "The audio is empty"],
         "audio_not_opus" => ["L'àudio no és Opus", "El audio no es Opus", "The audio isn't Opus"],
+        "audio_channels_changed" => ["La reunió es va gravar amb unes altres fonts d'àudio", "La reunión se grabó con otras fuentes de audio", "The meeting was recorded with other audio sources"],
         "audio_convert_failed" => ["No s'ha pogut convertir l'àudio", "No se ha podido convertir el audio", "Couldn't convert the audio"],
         "audio_delete_failed" => [
             "No s'ha pogut eliminar l'àudio: {error}",

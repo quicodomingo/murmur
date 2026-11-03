@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, Copy, Play, StickyNote } from "lucide-react";
+import { ArrowDown, Coffee, Copy, Play, StickyNote } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { ScreenThumbs } from "@/components/Screens";
 import { Flag, isYou, SpeakerFlag } from "@/components/SpeakerFlag";
-import { clock, longDate, speakerIds, speakerName } from "@/lib/format";
+import { clock, speakerIds, speakerName } from "@/lib/format";
+import { meetingWhen, pauseLabel, pauses } from "@/lib/parts";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
 import { hasAudio, playAt, usePlayer } from "@/lib/player";
 import type { Jump, State } from "@/lib/store";
@@ -60,6 +61,14 @@ export function Transcript(props: Props) {
   const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id), you: isYou(meeting, id) }));
   const anchors = noteAnchors(meeting);
   const screens = screenAnchors(meeting);
+  // Between two parts of a meeting that went on after stopping: before the first line of each part.
+  const pauseAt = new Map<number, ReturnType<typeof pauses>[number]>();
+  const trailingPauses: ReturnType<typeof pauses> = [];
+  for (const p of pauses(meeting)) {
+    const i = meeting.utterances.findIndex((u) => u.start >= p.at - 0.01);
+    if (i < 0) trailingPauses.push(p);
+    else if (!pauseAt.has(i)) pauseAt.set(i, p);
+  }
   // While the audio plays: the utterance being heard is marked, and the transcript follows it.
   const player = usePlayer();
   const listening = player.meetingId === meeting.id && (player.playing || player.time > 0);
@@ -137,7 +146,7 @@ export function Transcript(props: Props) {
         <article className={cn("mx-auto max-w-[680px]", props.compact ? "pb-16 pl-8 pr-4 pt-4" : "px-10 pb-24 pt-14")}>
           <TitleInput title={meeting.title} onChange={props.onTitle} compact={props.compact} />
           <p className="mt-1.5 text-[13px] text-muted-foreground">
-            {longDate(meeting.createdAt)}
+            {meetingWhen(meeting)}
             {speakers.length > 0 && ` · ${t("participants", { count: speakers.length })}`}
           </p>
           {props.tags}
@@ -153,12 +162,13 @@ export function Transcript(props: Props) {
           <div className="mt-10 flex flex-col gap-1">
             {meeting.utterances.map((u, i) => (
               <Fragment key={u.id}>
+                {pauseAt.has(i) && <PauseLine label={pauseLabel(pauseAt.get(i)!)} />}
                 <UtteranceRow
                   utterance={u}
                   flash={flash === u.id}
                   heard={heard === u.id}
                   onPlay={audio ? () => void playAt(meeting, u.start) : undefined}
-                  showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker}
+                  showFlag={i === 0 || meeting.utterances[i - 1].speaker !== u.speaker || pauseAt.has(i)}
                   notes={anchors.get(u.id) ?? []}
                   hoveredNote={props.hoveredNote}
                   onHoverNote={props.onHoverNote}
@@ -176,6 +186,10 @@ export function Transcript(props: Props) {
                 />
                 {screens.has(u.id) && <ScreenThumbs screens={screens.get(u.id)!} onRemove={props.onRemoveScreen} className="mb-2 mt-1 px-3" />}
               </Fragment>
+            ))}
+
+            {trailingPauses.map((p) => (
+              <PauseLine key={p.at} label={pauseLabel(p)} />
             ))}
 
             {live.map(([channel, text]) => {
@@ -203,6 +217,18 @@ export function Transcript(props: Props) {
           {t("backToLive")}
         </button>
       )}
+    </div>
+  );
+}
+
+/** Where a meeting stopped and went on later ("Continua"): the pause, with its clock times. */
+function PauseLine({ label }: { label: string }) {
+  return (
+    <div className="my-3 flex items-center gap-3 px-3 text-[12px] text-muted-foreground before:flex-1 before:border-t before:border-dashed before:border-mm-separator after:flex-1 after:border-t after:border-dashed after:border-mm-separator">
+      <span className="flex items-center gap-1.5">
+        <Coffee className="size-[13px]" aria-hidden />
+        {label}
+      </span>
     </div>
   );
 }

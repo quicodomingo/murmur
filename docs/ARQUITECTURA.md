@@ -106,6 +106,16 @@ L'app es diu Murmur. El codi i el crate es diuen `transcriptor`, el nom antic. I
 - **Desar** (`recorder.rs`): Ogg/Opus a 16 kHz. Amb una font, mono a 16 kbps (~7 MB/h). Amb dues, **estèreo a 24 kbps (~11 MB/h)**: micròfon a l'esquerra (ja sense eco) i sistema a la dreta. La transcripció de l'àudio descomprimit és pràcticament idèntica a l'original. Fitxer a `<app_data_dir>/recordings/<meeting_id>.ogg`. Opus es compila amb cmake.
 - **Escoltar** (`playback.rs`, `lib/player.ts`, `PlayerBar.tsx`): l'Ogg es descodifica, es barreja en mono i es passa a AAC a 48 kbps (~22 MB/h) amb `afconvert`. El `.m4a` va a `<app_cache_dir>/playback/` i es refà si l'Ogg és més nou. Clicar el minut d'una frase o de la portada la fa sonar d'allà, i la transcripció segueix la frase que sona. Sempre es desa en Ogg, que és més petit i manté els canals separats per tornar-los a analitzar.
 
+### Continuar una reunió (`lib/parts.ts`, `resume_meeting` a `lib.rs`)
+
+«Continua» torna a gravar dins una reunió aturada, amb les mateixes fonts i el mateix idioma. Continua sent una sola reunió en un sol eix de temps:
+
+- **Àudio:** `Recorder::resume` copia els paquets de l'Ogg en un fitxer nou com un sol flux (sense la marca de final), el posa al lloc de l'original i hi segueix l'àudio nou. La part nova comença on acaba l'àudio desat (`Recorder::seconds`), i el reproductor va seguit. Si la reunió no tenia l'àudio desat, la part nova tampoc no es desa (no quadraria amb el temps) i comença a la durada de la reunió.
+- **Temps:** el `Pipeline` suma `offset` a les frases. `meeting.parts` desa quan va començar cada part (hora de rellotge i segon de la reunió): la durada és la suma de les parts, la transcripció mostra la pausa amb les hores, i la data diu les franges («12:23 a 13:05 i 14:10 a 14:40»).
+- **Veus:** abans de prendre l'àudio nou (que espera a la cua), `resume_meeting` descodifica l'àudio desat i fa la mitjana de TitaNet de les frases més llargues de cada parlant. Les sessions en directe comencen amb aquestes veus i el seu número (`known_speakers`), i les veus noves es numeren a partir de l'últim. Sense àudio desat, només es reserven els números.
+- **En acabar:** la verificació de parlants torna a passar per tota la reunió (la pista de la passada final comença amb l'àudio desat i les frases d'abans; `Tapped::origin` diu en quin segon de la reunió comença cada pista). Whisper només reescriu les frases de la part nova (`FinalPlan::text_from`), la puntuació també, i el resum es torna a fer amb la reunió sencera.
+- **Quan:** el botó surt 10 minuts després d'aturar. Si s'ha aturat des de l'indicador i Murmur no és al davant, l'avís flotant «Gravació aturada» ofereix el mateix. No es pot continuar mentre s'està acabant la reunió (parlants, Whisper) ni mentre se'n grava una altra.
+
 ### Persistència i cerca (`db.rs`)
 
 - SQLite (`rusqlite` amb SQLite inclòs) a `<app_data_dir>/transcriptor.sqlite3`. Taules `meetings` i `utterances` (una fila per frase), i un índex **FTS5** (`search`, `unicode61 remove_diacritics 2`, que ignora els accents) sobre títols, frases (mantingut amb triggers) i blocs de notes.

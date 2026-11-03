@@ -12,6 +12,7 @@ import {
   type Cover,
   type Language,
   type Meeting,
+  type MeetingPart,
   type MeetingSummary,
   type PostStage,
   type Screen,
@@ -60,6 +61,12 @@ export type Action =
   | { type: "opened"; meeting: Meeting }
   | { type: "delete"; id: string }
   | { type: "new"; meeting: Meeting }
+  /** "Continua": the meeting records again, from `part.at` seconds. */
+  | { type: "resumed"; id: string; part: MeetingPart }
+  /** Where the engine says the new part starts (the recording so far, measured). */
+  | { type: "resumedAt"; id: string; at: number }
+  /** Recording again couldn't start: the meeting is as it was. */
+  | { type: "resumeFailed"; id: string }
   | { type: "select"; id: string }
   | { type: "jump"; meetingId: string; utteranceId?: string; t: number }
   | { type: "partial"; channel: Channel; text: string }
@@ -174,6 +181,25 @@ export function reducer(state: State, action: Action): State {
         open: { ...state.open, [action.meeting.id]: action.meeting },
         selectedId: action.meeting.id,
       };
+    case "resumed":
+      return updateMeeting({ ...state, selectedId: action.id }, action.id, (m) => ({
+        ...m,
+        status: "recording",
+        duration: action.part.at,
+        parts: [...(m.parts ?? []), action.part],
+      }));
+    case "resumedAt":
+      return updateMeeting(state, action.id, (m) => {
+        const parts = [...(m.parts ?? [])];
+        const last = parts.pop();
+        return last ? { ...m, parts: [...parts, { ...last, at: action.at }], duration: Math.max(m.duration, action.at) } : m;
+      });
+    case "resumeFailed":
+      return updateMeeting({ ...state, partial: NO_PARTIAL }, action.id, (m) => {
+        const parts = [...(m.parts ?? [])];
+        const last = parts.pop();
+        return { ...m, status: "done", parts, duration: last?.at ?? m.duration };
+      });
     case "select":
       return { ...state, selectedId: action.id };
     case "jump":
@@ -389,6 +415,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.screens !== next.screens && next.screens) meta.screens = next.screens;
   if (saved.tags !== next.tags && next.tags) meta.tags = next.tags;
   if (saved.shares !== next.shares && next.shares) meta.shares = next.shares;
+  if (saved.parts !== next.parts && next.parts) meta.parts = next.parts;
   if (Object.keys(meta).length) changes.meta = meta;
   if (saved.utterances !== next.utterances) {
     const before = new Map(saved.utterances.map((u) => [u.id, u]));

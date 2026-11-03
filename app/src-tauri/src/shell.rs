@@ -38,7 +38,8 @@ const CALENDAR_LATE_S: f64 = 60.0;
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Toast {
-    /// "detected": another app is using the microphone; "calendar": a meeting is about to start.
+    /// "detected": another app is using the microphone; "calendar": a meeting is about to start;
+    /// "stopped": a recording was stopped from the indicator, and can go on ("Continua").
     pub kind: &'static str,
     pub title: String,
     /// The app using the microphone (detected), or the video call service, if any (calendar).
@@ -48,6 +49,8 @@ pub struct Toast {
     pub seconds: u32,
     /// Changes with every alert, so the window restarts its countdown.
     pub id: u64,
+    /// The meeting that was stopped ("stopped").
+    pub meeting: Option<String>,
 }
 
 #[derive(Default)]
@@ -242,18 +245,40 @@ pub fn indicator_capture(app: AppHandle) {
     let _ = app.emit_to("main", "capture-request", ());
 }
 
-/// The indicator's stop button: the main window stops the recording.
+/// The indicator's stop button: the main window stops the recording (and, once it has, may
+/// offer to go on with `show_stopped_toast`).
 #[tauri::command]
 pub fn indicator_stop(app: AppHandle) {
-    let _ = app.emit_to("main", "stop-recording", ());
+    let _ = app.emit_to("main", "stop-recording", "indicator");
 }
 
-fn show_toast(app: &AppHandle, kind: &'static str, title: String, subtitle: String, start: Option<f64>, seconds: u32) {
+/// After stopping from the indicator, with Murmur not in front: "Gravació aturada", with
+/// "Continua la gravació" for `seconds`. `subtitle`: the meeting's title and length.
+#[tauri::command]
+pub fn show_stopped_toast(app: AppHandle, meeting_id: String, subtitle: String, seconds: u32) {
+    let focused = app.get_webview_window("main").is_some_and(|w| w.is_focused().unwrap_or(false) && w.is_visible().unwrap_or(false));
+    if !focused {
+        show_toast(&app, "stopped", tr!("toast_stopped").into(), subtitle, None, seconds, Some(meeting_id));
+    }
+}
+
+/// "Continua la gravació" on the alert: the main window records again into that meeting.
+#[tauri::command]
+pub fn toast_continue(app: AppHandle) {
+    let meeting = shell(&app).toast.lock().unwrap().as_ref().and_then(|t| t.meeting.clone());
+    hide_toast(&app);
+    show_main(&app);
+    if let Some(meeting) = meeting {
+        let _ = app.emit_to("main", "continue-recording", meeting);
+    }
+}
+
+fn show_toast(app: &AppHandle, kind: &'static str, title: String, subtitle: String, start: Option<f64>, seconds: u32, meeting: Option<String>) {
     let toast = {
         let shell = shell(app);
         let mut next = shell.next_id.lock().unwrap();
         *next += 1;
-        Toast { kind, title, subtitle, start, seconds, id: *next }
+        Toast { kind, title, subtitle, start, seconds, id: *next, meeting }
     };
     *shell(app).toast.lock().unwrap() = Some(toast.clone());
     if let Some(w) = app.get_webview_window("toast") {
@@ -438,7 +463,7 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
             if active && !calendar_shown {
                 let dismissed = shell.dismissed.lock().unwrap().clone();
                 if let Some(name) = users.difference(&previous).find(|n| !dismissed.iter().any(|d| d.starts_with(n.as_str()))) {
-                    show_toast(&app, "detected", tr!("toast_detected").into(), tr!("toast_mic_user", name = name), None, TOAST_SECONDS);
+                    show_toast(&app, "detected", tr!("toast_detected").into(), tr!("toast_mic_user", name = name), None, TOAST_SECONDS, None);
                 }
             }
             previous = users;
@@ -457,7 +482,7 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
         let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64() * 1000.0);
         // Until a minute after it starts, at least half a minute.
         let seconds = (((event.start - now) / 1000.0 + CALENDAR_LATE_S).max(30.0)) as u32;
-        show_toast(&app, "calendar", event.title, event.platform.unwrap_or_default(), Some(event.start), seconds);
+        show_toast(&app, "calendar", event.title, event.platform.unwrap_or_default(), Some(event.start), seconds, None);
     });
     Ok(())
 }

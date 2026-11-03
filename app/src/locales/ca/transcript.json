@@ -33,5 +33,6 @@
       "title": "Preparant el resum…",
       "hint": "El model de llenguatge local llegeix la transcripció. Pots continuar llegint i editant."
     }
-  }
+  },
+  "pause": "Pausa de {{from}} a {{to}} · {{duration}}"
 }

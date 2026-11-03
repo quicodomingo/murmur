@@ -9,6 +9,8 @@
 //!   with silence by wall clock, so both channels keep the same timeline. Only once everything
 //!   that arrived has been taken in: audio still waiting in the queue isn't silence.
 //! - Mic sentences that repeat what the system channel just said (leaked echo) are dropped.
+//! - A meeting that goes on ("Continua") starts at `offset` seconds: its sentences carry the
+//!   meeting's time, and its voices are the ones already heard (`known_speakers`).
 
 use std::collections::VecDeque;
 use std::fs::File;
@@ -53,6 +55,8 @@ struct Tap {
     writer: BufWriter<File>,
     path: PathBuf,
     spans: Vec<Span>,
+    /// Meeting time of the file's first sample: 0, or where a continued meeting picked up.
+    origin: f32,
 }
 
 /// What the final pass needs once recording stops, per tapped channel.
@@ -62,6 +66,8 @@ pub struct Tapped {
     pub spans: Vec<Span>,
     /// First speaker id of the tapped channel (0 for the mic, SYSTEM_SPEAKER_BASE for system).
     pub base: usize,
+    /// Meeting time of the file's first sample: spans are in meeting time, the audio starts here.
+    pub origin: f32,
 }
 
 /// Reads a tap file back as f32 samples.
@@ -95,6 +101,8 @@ pub struct Pipeline<'m> {
     record_system: Vec<f32>,
     /// Spelling for finished sentences (glossary.rs).
     glossary: Vec<String>,
+    /// Meeting time when this recording started: 0, or more for a meeting that goes on.
+    offset: f32,
 }
 
 impl<'m> Pipeline<'m> {
@@ -110,6 +118,42 @@ impl<'m> Pipeline<'m> {
     /// Words finished sentences should spell as given (Settings › Transcripció › Glossari).
     pub fn set_glossary(&mut self, terms: Vec<String>) {
         self.glossary = terms;
+    }
+
+    /// A meeting that goes on: its sentences start at `offset` seconds, and the final pass's audio
+    /// too, unless `earlier_audio` puts what was recorded before in front of it.
+    pub fn set_offset(&mut self, offset: f32) {
+        self.offset = offset;
+        for tap in &mut self.taps {
+            tap.origin = offset;
+        }
+    }
+
+    /// The meeting so far on `channel`, for the final pass to check the speakers of all of it:
+    /// its audio (from the start) and the sentences heard in it. Before any audio is pushed.
+    pub fn earlier_audio(&mut self, channel: Channel, samples: &[f32], spans: Vec<Span>) {
+        let Some(at) = self.taps.iter().position(|t| t.channel == channel) else {
+            return;
+        };
+        for chunk in samples.chunks(SAMPLE_RATE * 10) {
+            self.write_tap(channel, chunk);
+        }
+        if let Some(tap) = self.taps.get_mut(at) {
+            tap.spans = spans;
+            tap.origin = 0.0;
+        }
+    }
+
+    /// Voices already heard on `channel` (speaker number from the channel's base, voice print),
+    /// so they keep their number; new voices are numbered from `next`.
+    pub fn known_speakers(&mut self, channel: Channel, voices: Vec<(usize, Vec<f32>)>, next: usize) {
+        let session = match channel {
+            Channel::Mic => self.mic.as_mut(),
+            Channel::System => self.system.as_mut(),
+        };
+        if let Some(session) = session {
+            session.known_speakers(voices, next);
+        }
     }
 
     /// How many voices the microphone can have: 1 in a call with nobody else in the room.
@@ -135,7 +179,7 @@ impl<'m> Pipeline<'m> {
                 Channel::System => system,
             })
             .map(|(channel, path)| {
-                Ok(Tap { channel, writer: BufWriter::new(File::create(&path)?), path, spans: vec![] })
+                Ok(Tap { channel, writer: BufWriter::new(File::create(&path)?), path, spans: vec![], origin: 0.0 })
             })
             .collect::<Result<_>>()?;
         Ok(Self {
@@ -174,6 +218,7 @@ impl<'m> Pipeline<'m> {
             record_mic: vec![],
             record_system: vec![],
             glossary: vec![],
+            offset: 0.0,
         })
     }
 
@@ -247,7 +292,7 @@ impl<'m> Pipeline<'m> {
         for mut tap in std::mem::take(&mut self.taps) {
             tap.writer.flush()?;
             let base = if tap.channel == Channel::System { SYSTEM_SPEAKER_BASE } else { 0 };
-            tapped.push(Tapped { channel: tap.channel, path: tap.path, spans: tap.spans, base });
+            tapped.push(Tapped { channel: tap.channel, path: tap.path, spans: tap.spans, base, origin: tap.origin });
         }
         Ok((events, tapped))
     }
@@ -305,8 +350,12 @@ impl<'m> Pipeline<'m> {
     fn filter(&mut self, events: Vec<Event>) -> Vec<Event> {
         let mut out = Vec::with_capacity(events.len());
         for mut event in events {
-            if let Event::Final { text, .. } = &mut event {
+            if let Event::Final { text, start, end, .. } = &mut event {
                 *text = crate::glossary::correct(text, &self.glossary);
+                if self.offset > 0.0 {
+                    *start = ((*start + self.offset) * 100.0).round() / 100.0;
+                    *end = ((*end + self.offset) * 100.0).round() / 100.0;
+                }
             }
             if let Event::Final {
                 channel,

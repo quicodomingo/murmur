@@ -106,7 +106,8 @@ async fn start_recording(
     final_text: bool,
     file: Option<String>,
     guests: Vec<String>,
-) -> Result<Option<String>, String> {
+    resume: Option<Resume>,
+) -> Result<Started, String> {
     {
         // An opened file ends on its own, without stop_recording: once its worker is done, the
         // slot is free.
@@ -185,9 +186,20 @@ async fn start_recording(
     } else {
         None
     };
+    // A meeting that goes on carries on in its own recording, if it has one; without it, the new
+    // part isn't saved either (its audio wouldn't line up with the meeting's time).
+    let earlier_audio = resume.as_ref().and_then(|r| r.audio_path.as_deref()).and_then(|p| recording_path(p).ok());
+    let audio_path = match &resume {
+        Some(_) => earlier_audio.clone(),
+        None => audio_path,
+    };
     let recorder = match &audio_path {
         Some(path) => Some(
-            match recorder::Recorder::create(path, Pipeline::record_channels(mic, system)) {
+            match if earlier_audio.is_some() {
+                recorder::Recorder::resume(path, Pipeline::record_channels(mic, system))
+            } else {
+                recorder::Recorder::create(path, Pipeline::record_channels(mic, system))
+            } {
                 Ok(r) => r,
                 Err(e) => {
                     let _ = stop_tx.send(());
@@ -228,12 +240,19 @@ async fn start_recording(
             .collect(),
         None => vec![],
     };
+    // Where the new part starts: after the recording so far, or the meeting's length without one.
+    let offset = match (&resume, &recorder) {
+        (Some(_), Some(rec)) => rec.seconds(),
+        (Some(r), None) => r.duration,
+        (None, _) => 0.0,
+    };
     // The user's glossary, plus the calendar event's guests for this meeting.
     let glossary = glossary::with_guests(&with_db(&app, |db| db.glossary()).unwrap_or_default(), &guests);
     let plan = FinalPlan {
         speakers: verify_speakers.then_some((speakers_channel, max_speakers)),
         language: final_language,
         glossary: glossary.clone(),
+        text_from: offset,
     };
     let stopped = Arc::new(AtomicBool::new(false));
     let stopped_worker = stopped.clone();
@@ -258,6 +277,11 @@ async fn start_recording(
             }
         };
         pipeline.set_glossary(glossary);
+        if let Some(resume) = &resume {
+            pipeline.set_offset(offset);
+            // Audio that arrives meanwhile waits in the queue.
+            resume_meeting(&mut pipeline, &models, resume, earlier_audio.as_deref(), mic, system, verify_speakers.then_some(speakers_channel));
+        }
         // A call with nobody else in the room: the microphone is only the user.
         let mut room_now = room_speakers;
         if mic && system && !room_now {
@@ -347,7 +371,82 @@ async fn start_recording(
         audio,
         worker,
     });
-    Ok(audio_path.map(|p| p.to_string_lossy().into_owned()))
+    Ok(Started { audio_path: audio_path.map(|p| p.to_string_lossy().into_owned()), offset })
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Started {
+    /// Where the audio is being saved, if it is.
+    audio_path: Option<String>,
+    /// Meeting time the new sentences start at: 0, or where a continued meeting picks up.
+    offset: f32,
+}
+
+/// "Continua": recording again into a meeting that was stopped, with the same sources.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Resume {
+    /// Its length so far, in seconds: where the new part starts when there's no recording.
+    duration: f32,
+    /// Its sentences so far: start, end (seconds) and speaker.
+    lines: Vec<(f32, f32, usize)>,
+    /// Its recording, if it was saved: the new audio goes on in the same file.
+    audio_path: Option<String>,
+}
+
+/// Most sentences per speaker used for their voice print when a meeting goes on.
+const RESUME_VOICE_LINES: usize = 8;
+
+/// Before a continued meeting takes in new audio: the voices heard so far (from its recording),
+/// so they come back with their number, and, for the speaker check at the end, the audio and
+/// sentences so far on `check` (the whole meeting is checked again).
+fn resume_meeting(pipeline: &mut Pipeline, models: &Models, resume: &Resume, earlier: Option<&std::path::Path>, mic: bool, system: bool, check: Option<Channel>) {
+    let decoded = match earlier.map(playback::decode_channels) {
+        Some(Ok(d)) => d,
+        Some(Err(e)) => {
+            log::error!("continued meeting: {e:#}");
+            vec![]
+        }
+        None => vec![],
+    };
+    for (on, channel) in [(mic, Channel::Mic), (system, Channel::System)] {
+        if !on {
+            continue;
+        }
+        let base = if channel == Channel::System { engine::SYSTEM_SPEAKER_BASE } else { 0 };
+        let lines: Vec<&(f32, f32, usize)> = resume.lines.iter().filter(|l| (l.2 >= engine::SYSTEM_SPEAKER_BASE) == (channel == Channel::System)).collect();
+        let next = lines.iter().map(|l| l.2 - base + 1).max().unwrap_or(0);
+        // In a call the system is on the right; a recording of one source has one channel.
+        let samples = decoded.get(if channel == Channel::System && decoded.len() > 1 { 1 } else { 0 });
+        let mut voices = vec![];
+        if let Some(samples) = samples {
+            let mut speakers: Vec<usize> = lines.iter().map(|l| l.2).collect();
+            speakers.sort();
+            speakers.dedup();
+            for speaker in speakers {
+                let mut theirs: Vec<&&(f32, f32, usize)> = lines.iter().filter(|l| l.2 == speaker && l.1 - l.0 >= 1.0).collect();
+                theirs.sort_by(|a, b| (b.1 - b.0).total_cmp(&(a.1 - a.0)));
+                let mut sum: Option<Vec<f32>> = None;
+                for l in theirs.into_iter().take(RESUME_VOICE_LINES) {
+                    let (a, b) = ((l.0 * SAMPLE_RATE as f32) as usize, (l.1 * SAMPLE_RATE as f32) as usize);
+                    let Some(emb) = samples.get(a..b.min(samples.len())).and_then(|s| models.embed(s)) else { continue };
+                    match sum.as_mut() {
+                        Some(acc) => acc.iter_mut().zip(&emb).for_each(|(x, y)| *x += y),
+                        None => sum = Some(emb),
+                    }
+                }
+                if let Some(sum) = sum {
+                    voices.push((speaker - base, sum));
+                }
+            }
+            if check == Some(channel) {
+                let spans = lines.iter().map(|l| diarize::Span { start: l.0, end: l.1 }).collect();
+                pipeline.earlier_audio(channel, samples, spans);
+            }
+        }
+        pipeline.known_speakers(channel, voices, next);
+    }
 }
 
 /// How far an opened file has gone through the engine, in seconds.
@@ -525,6 +624,8 @@ struct FinalPlan {
     language: Option<String>,
     /// Spelling for Whisper's text (glossary.rs).
     glossary: Vec<String>,
+    /// Whisper only writes again the sentences from here on (a continued meeting's new part).
+    text_from: f32,
 }
 
 /// After a recording: re-check who spoke when, then improve the text with Whisper.
@@ -546,7 +647,12 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
             };
             let samples = pipeline::read_tap(&tapped.path)?;
             started("speakers", samples.len() as f32 / SAMPLE_RATE as f32 * DIARIZE_RTF_ESTIMATE);
-            let assignments = diarize::verify(&models_dir(), &samples, &tapped.spans, tapped.base, max_speakers, gate::wait)?;
+            // Spans are in meeting time; the tap's audio starts at its origin.
+            let spans: Vec<diarize::Span> = tapped.spans.iter().map(|s| diarize::Span { start: s.start - tapped.origin, end: s.end - tapped.origin }).collect();
+            let mut assignments = diarize::verify(&models_dir(), &samples, &spans, tapped.base, max_speakers, gate::wait)?;
+            for (a, s) in assignments.iter_mut().zip(&tapped.spans) {
+                a.start = s.start;
+            }
             let _ = app.emit(
                 "final-pass-speakers",
                 FinalPassSpeakers {
@@ -565,16 +671,24 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
     if let Some(language) = &plan.language {
         gate::wait();
         let result = (|| -> anyhow::Result<()> {
-            let channels: Vec<&pipeline::Tapped> = tapped.iter().filter(|t| !t.spans.is_empty()).collect();
+            // Only the new part of a continued meeting, in the tap's own time.
+            let new_spans = |t: &pipeline::Tapped| -> Vec<diarize::Span> {
+                t.spans.iter().filter(|s| s.start >= plan.text_from).map(|s| diarize::Span { start: s.start - t.origin, end: s.end - t.origin }).collect()
+            };
+            let channels: Vec<(&pipeline::Tapped, Vec<diarize::Span>)> =
+                tapped.iter().map(|t| (t, new_spans(t))).filter(|(_, spans)| !spans.is_empty()).collect();
             if channels.is_empty() {
                 return Ok(());
             }
-            let speech: f32 = channels.iter().flat_map(|t| &t.spans).map(|s| s.end - s.start).sum();
+            let speech: f32 = channels.iter().flat_map(|(_, spans)| spans).map(|s| s.end - s.start).sum();
             started("text", 5.0 + speech * retranscribe::RTF_ESTIMATE);
             let jobs: Vec<(&std::path::Path, &[diarize::Span])> =
-                channels.iter().map(|t| (t.path.as_path(), t.spans.as_slice())).collect();
+                channels.iter().map(|(t, spans)| (t.path.as_path(), spans.as_slice())).collect();
             let results = retranscribe::transcribe(&models_dir(), language, &jobs, &plan.glossary, |_| {})?;
-            for (tapped, texts) in channels.iter().zip(results) {
+            for ((tapped, _), mut texts) in channels.iter().zip(results) {
+                for text in &mut texts {
+                    text.start = ((text.start + tapped.origin) * 100.0).round() / 100.0;
+                }
                 let _ = app.emit(
                     "final-pass-text",
                     FinalPassText { meeting_id: meeting_id.clone(), base: tapped.base, texts },
@@ -634,12 +748,13 @@ async fn retranscribe_meeting(app: AppHandle, meeting_id: String, audio_path: St
                     path,
                     spans: c.spans.into_iter().map(|(start, end)| diarize::Span { start, end }).collect(),
                     base: c.base,
+                    origin: 0.0,
                 });
             }
             Ok(tapped)
         })();
         match tapped {
-            Ok(tapped) => final_pass(app, meeting_id, tapped, FinalPlan { speakers: None, language: Some(language), glossary }),
+            Ok(tapped) => final_pass(app, meeting_id, tapped, FinalPlan { speakers: None, language: Some(language), glossary, text_from: 0.0 }),
             Err(e) => {
                 let _ = app.emit("final-pass-done", FinalPassDone { meeting_id, error: Some(tr!("final_pass_error", error = format!("{e:#}"))) });
             }
@@ -1476,6 +1591,8 @@ pub fn run() {
             shell::current_toast,
             shell::dismiss_toast,
             shell::toast_start,
+            shell::toast_continue,
+            shell::show_stopped_toast,
             shell::set_meeting_detection,
             shell::set_calendar_watch,
             shell::set_indicator,

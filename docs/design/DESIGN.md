@@ -71,12 +71,14 @@ Per organitzar les reunions (per client, projecte…). Totes grises, sense color
 ### Barra d'eines
 - **Píndola de gravació:** fons `recordingPill`, dues barres de 4×14 pt (`recordingLevel`) animades com un nivell d'àudio (escala vertical 0,45 → 1, 0,9 s, desfasades mig cicle), el text "Gravant", el temporitzador en xifres tabulars i un botó rodó d'aturar.
 - **Exporta:** botó principal, `accent` amb text `onAccent`, 600 de pes.
+- **Continua:** durant 10 minuts després d'aturar, abans de la durada. Botó amb vora (`separator`), sense fons, amb el punt de gravació (`recordingDot`): no competeix amb Exporta. Indicació: «Torna a gravar dins aquesta reunió». Més tard, «Continua la reunió» és el primer del menú del títol, amb el mateix punt; desactivat si es grava una altra reunió o encara s'està acabant aquesta, amb el motiu a la línia de sota (vegeu `docs/mockups/continuar.html`).
 - **Portada / Transcripció:** control segmentat (`segmentedTrack`, `segmentedSelected`).
 
 ### Transcripció en directe
 - Cada intervenció: etiqueta del parlant (fons `speakerNTint`, text `speakerNText`, 12 pt semibold) + marca de temps (`timestamp`).
 - El text que encara s'està reconeixent va en `textSecondary`, seguit d'un cursor de 2×18 pt (`caret`) que parpelleja cada segon.
 - Notes: cada nota porta la seva marca de temps a l'esquerra en `timestamp`.
+- **Pausa** (una reunió que ha continuat): línia discontínua (`separator`) a banda i banda d'una tassa i «Pausa de 13:05 a 14:10 · 1 h 5 min», 12 pt en `textSecondary`. La primera frase de després torna a portar l'etiqueta del parlant.
 
 ### Parlants
 - Colors: `speaker1` violeta, `speaker2` corall (ambre a Formigó), `speaker3` turquesa, `speaker4` magenta. **"Tu" sempre és `you`** (l'accent del tema). Els colors es reparteixen per ordre: primer la gent de la sala i després la de la trucada. Així no se'n repeteix cap fins al cinquè parlant.
@@ -123,7 +125,8 @@ Sota cada botó de començar a gravar, l'idioma de la reunió i si sou més gent
 Panell flotant a dalt a la dreta, sota la barra de menús (amplada 470, radi 16, ombra suau, `toastBackground`). Tenen un botó rodó de tancar a la cantonada superior esquerra.
 - **Comença d'aquí a 2 minuts:** icona de calendari, títol de la reunió · hora · plataforma. Depèn del calendari connectat.
 - **Reunió detectada:** punt vermell amb halo, "*App* fa servir el micròfon".
-- Un sol botó, sempre **Comença a gravar**, amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable al botó: l'idioma i la gent a la sala van sota el text (vegeu Opcions de començar), en menús natius perquè la finestra és petita.
+- **Gravació aturada:** si s'ha aturat des de l'indicador i Murmur no és al davant. Títol de la reunió · durada, i el botó **Continua la gravació**; la barra compta els 10 minuts que es pot continuar.
+- Un sol botó, **Comença a gravar** (o Continua la gravació), amb un punt de gravació (`recordingDot`), `accent` / `onAccent`. Sense desplegable al botó: l'idioma i la gent a la sala van sota el text (vegeu Opcions de començar), en menús natius perquè la finestra és petita.
 - A sota, una barra de compte enrere de 3 pt (`toastProgress` sobre `toastBorder`); quan s'acaba, l'avís desapareix sol.
 
 ### Novetats de Murmur

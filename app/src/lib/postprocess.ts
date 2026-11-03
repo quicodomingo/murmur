@@ -51,11 +51,15 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
 
   /** Language of each meeting being recorded or finished, until its stages are done. */
   const languages = useRef(new Map<string, Language>());
+  /** A meeting that went on ("Continua"): punctuation only from here (seconds); the rest has it. */
+  const newFrom = useRef(new Map<string, number>());
 
   /** A recording starts: remember what Rust will do when it stops (speakers, Whisper). */
-  const planRecording = useCallback((id: string, opts: { verifySpeakers: boolean; finalText: boolean; language: Language }) => {
+  const planRecording = useCallback((id: string, opts: { verifySpeakers: boolean; finalText: boolean; language: Language; from?: number }) => {
     const rust: PostStage[] = [...(opts.verifySpeakers ? (["speakers"] as const) : []), ...(opts.finalText ? (["text"] as const) : [])];
     languages.current.set(id, opts.language);
+    if (opts.from) newFrom.current.set(id, opts.from);
+    else newFrom.current.delete(id);
     plans.current.set(id, [...rust, ...optionalStages(rust, opts.language)]);
   }, []);
 
@@ -75,15 +79,16 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
   );
 
   const run = useCallback(
-    async (id: string, stages: PostStage[], steps: PostStage[]) => {
+    /** `from`: punctuate only the lines from here (seconds), the new part of a meeting that went on. */
+    async (id: string, stages: PostStage[], steps: PostStage[], from = 0) => {
       let meeting: Meeting | undefined = latest.current.open[id];
       for (const stage of stages) {
         if (!meeting) break;
         if (stage === "punctuation") {
-          const words = meeting.utterances.reduce((n, u) => n + u.text.split(/\s+/).length, 0);
+          const words = meeting.utterances.filter((u) => u.start >= from).reduce((n, u) => n + u.text.split(/\s+/).length, 0);
           dispatch({ type: "postStage", id, stage, steps, estimateSeconds: 2 + words / 800 });
           try {
-            const sent: Meeting["utterances"] = meeting.utterances;
+            const sent: Meeting["utterances"] = meeting.utterances.filter((u) => u.start >= from);
             const texts = await backend.punctuate(
               sent.map((u) => u.text),
               sent.map((u) => u.speaker),
@@ -149,6 +154,8 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
       const language = languages.current.get(id) ?? config.current.language;
       plans.current.delete(id);
       languages.current.delete(id);
+      const from = newFrom.current.get(id) ?? 0;
+      newFrom.current.delete(id);
       const rust = planned.filter((s) => s === "speakers" || s === "text");
       // Settings or models may have changed while recording: check again.
       const rest = optionalStages(rust, language);
@@ -157,7 +164,7 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
         dispatch({ type: "postDone", id });
         return;
       }
-      run(id, rest, steps);
+      run(id, rest, steps, from);
     },
     [dispatch, run],
   );

@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import * as backend from "@/lib/backend";
 import { coverOutdated, namedSpeakers, renameInCover, talkTime, toneLabel } from "@/lib/cover";
-import { clock, duration, longDate, speakerIds } from "@/lib/format";
+import { clock, duration, speakerIds } from "@/lib/format";
+import { meetingWhen } from "@/lib/parts";
 import { locale, t } from "@/lib/i18n";
 import type { PostProcess } from "@/lib/store";
 import type { Cover as CoverData, LlmProgress, Meeting } from "@/lib/types";
@@ -77,7 +78,7 @@ export function Cover(props: Props) {
 function meta(m: Meeting): string {
   const weekday = new Date(m.createdAt).toLocaleDateString(locale(), { weekday: "long" });
   const people = speakerIds(m).filter((id) => m.utterances.some((u) => u.speaker === id)).length;
-  const parts = [t("cover:weekdayDate", { weekday: `${weekday[0].toUpperCase()}${weekday.slice(1)}`, date: longDate(m.createdAt) }), duration(m.duration)];
+  const parts = [t("cover:weekdayDate", { weekday: `${weekday[0].toUpperCase()}${weekday.slice(1)}`, date: meetingWhen(m) }), duration(m.duration)];
   if (people) parts.push(t("cover:meta.participants", { count: people }));
   return parts.join(" · ");
 }

@@ -1,4 +1,5 @@
-import { clock, defaultSpeakerNames, duration, longDate, speakerIds, speakerName } from "./format";
+import { clock, defaultSpeakerNames, duration, speakerIds, speakerName } from "./format";
+import { meetingWhen } from "./parts";
 import { locale, t, UI_LANGUAGES, uiLanguage, type UiLanguage } from "./i18n";
 import { notesDoc, notesFromDoc } from "./notes";
 import type { Cover, Language, LlmResult, LlmTask, Meeting } from "./types";
@@ -168,7 +169,7 @@ export const coverLanguageFor = (m: Meeting, pref: CoverLanguagePref): UiLanguag
 export function coverDocument(m: Meeting, lng?: UiLanguage): string {
   const names = [...new Set(m.utterances.map((u) => speakerName(m, u.speaker, lng)))];
   const lines = [
-    t("cover:header", { date: longDate(m.createdAt, lng), duration: duration(m.duration, lng), names: names.join(", "), lng }),
+    t("cover:header", { date: meetingWhen(m, lng), duration: duration(m.duration, lng), names: names.join(", "), lng }),
     "",
   ];
   const turns: { speaker: number; start: number; text: string[] }[] = [];

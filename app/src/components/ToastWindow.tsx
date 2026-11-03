@@ -13,7 +13,7 @@ import type { Language } from "@/lib/types";
 import { MEETING_LANGUAGES, type StartChoice } from "./StartOptions";
 
 /** What Rust shows in the floating alert (shell.rs `Toast`). */
-type Toast = { kind: "detected" | "calendar"; title: string; subtitle: string; start: number | null; seconds: number; id: number };
+type Toast = { kind: "detected" | "calendar" | "stopped"; title: string; subtitle: string; start: number | null; seconds: number; id: number };
 
 /** "Starts in 2 minutes", "Starts now", "Started". */
 function startsIn(t: TFunction<"toast">, start: number, now: number): string {
@@ -31,7 +31,8 @@ function calendarLines(t: TFunction<"toast">, toast: Toast, now: number): [strin
 
 /**
  * The floating alert under the menu bar (its own transparent window, label "toast"): one button,
- * always "Start recording", and a countdown bar after which it goes away on its own.
+ * "Start recording" (or, for a recording stopped from the indicator, "Continua la gravació"),
+ * and a countdown bar after which it goes away on its own.
  */
 export function ToastWindow() {
   const { t } = useTranslation("toast");
@@ -77,6 +78,7 @@ export function ToastWindow() {
   if (!toast) return null;
   // The countdown re-renders every 100 ms, which also keeps "in N minutes" current.
   const [title, subtitle] = toast.kind === "calendar" ? calendarLines(t, toast, Date.now()) : [toast.title, toast.subtitle];
+  const stopped = toast.kind === "stopped";
   return (
     <div className="relative ml-6 mt-3.5 w-[470px]" role="alertdialog" aria-labelledby="toast-title" aria-describedby="toast-text">
       <button
@@ -89,7 +91,7 @@ export function ToastWindow() {
       </button>
       <div className="overflow-hidden rounded-2xl bg-mm-toast-background text-mm-toast-text shadow-[0_8px_24px_rgb(0_0_0/0.22),0_0_0_1px_var(--mm-toast-border)]">
         <div className="flex items-center gap-3.5 py-3.5 pl-[18px] pr-3.5">
-          {toast.kind === "calendar" ? (
+          {stopped ? null : toast.kind === "calendar" ? (
             <CalendarDays className="size-[22px] shrink-0 text-mm-toast-secondary" strokeWidth={1.7} aria-hidden />
           ) : (
             <span className="grid size-[22px] shrink-0 place-items-center" aria-hidden>
@@ -103,16 +105,16 @@ export function ToastWindow() {
             <div id="toast-text" className="truncate text-[13px] text-mm-toast-secondary">
               {subtitle}
             </div>
-            <ToastChoice value={choice} onChange={(c) => setChoice((v) => ({ ...v, ...c }))} englishReady={englishReady} />
+            {!stopped && <ToastChoice value={choice} onChange={(c) => setChoice((v) => ({ ...v, ...c }))} englishReady={englishReady} />}
           </div>
           <button
             type="button"
-            onClick={() => invoke("toast_start", { choice })}
+            onClick={() => (stopped ? invoke("toast_continue") : invoke("toast_start", { choice }))}
             className="flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-mm-accent pl-2.5 pr-3.5 text-[14px] font-semibold text-mm-on-accent hover:opacity-90"
           >
             {/* A record dot: the logo's two bars read as "pause" on a button. */}
             <span className="size-3 rounded-full bg-mm-recording-dot" aria-hidden />
-            {t("startRecording")}
+            {stopped ? t("continueRecording") : t("startRecording")}
           </button>
         </div>
         <div className="h-[3px] bg-mm-toast-border" aria-hidden>

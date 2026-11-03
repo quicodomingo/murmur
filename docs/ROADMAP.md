@@ -114,6 +114,9 @@ Entre reunions (bloc 5):
 - [ ] Canviar l'idioma durant la gravació (canvi de model en directe, l'àudio d'aquells segons espera a la cua).
 - [ ] Endevinar l'idioma amb els primers 20–30 s (Whisper) i suggerir-ne el canvi; suggerir «Som més a la sala» si el micròfon sent veus diferents.
 - [x] Exportar totes les captures d'una reunió a una carpeta.
+- [x] Continuar una reunió aturada (`docs/mockups/continuar.html`): «Continua» a la barra d'eines durant 10 minuts (i a l'avís flotant si s'ha aturat des de l'indicador) i «Continua la reunió» al menú del títol. Una sola reunió: la pausa surt a la transcripció, la durada és la suma de les parts, l'àudio va al mateix `.ogg`, les veus de la primera part tornen amb el seu nom, i en acabar es verifiquen els parlants de tota la reunió i Whisper només passa per la part nova.
+- [ ] Ajuntar dues reunions ja fetes en una.
+- [ ] Continuar una reunió des de l'avís del calendari (la mateixa reunió que torna a començar).
 - [x] Etiquetes per organitzar les reunions (per client, projecte…): sota el títol, filtre a la barra lateral (també per a la cerca) i reanomenar, ajuntar o esborrar amb el clic dret.
 - [ ] Etiquetes automàtiques pel domini dels convidats del calendari: proposar-la la primera vegada i recordar «@acme.com és Acme» (esbós a `docs/mockups/etiquetes.html`, pantalla 4).
 - [x] Compartir una reunió amb un enllaç (portada, notes i transcripció, amb contrasenya i caducitat opcionals), xifrada al Mac i publicada al Worker de Cloudflare de cada usuari (`share/`, docs/COMPARTIR.md).

@@ -10,5 +10,6 @@
   },
   "speaker": "Parlant {{n}}",
   "you": "Tu",
-  "room": "Sala {{n}}"
+  "room": "Sala {{n}}",
+  "timeRange": "{{from}} a {{to}}"
 }

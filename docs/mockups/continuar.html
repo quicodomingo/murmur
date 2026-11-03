@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ca" data-theme="acid" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Continuar una reunió</title>
+<link rel="stylesheet" href="../../app/src/murmur-theme.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding-bottom: 40px; background: var(--mm-fill-subtle); color: var(--mm-text-primary); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  [data-mode="dark"] body { background: #000; }
+  .i { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .stage { width: 1120px; margin: 24px auto 0; position: relative; }
+  .window { width: 1120px; height: 640px; background: var(--mm-background); border-radius: 12px; overflow: hidden; display: flex; box-shadow: 0 20px 50px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); position: relative; }
+
+  /* Sidebar */
+  nav { width: 240px; flex: none; background: var(--mm-sidebar); border-right: 1px solid var(--mm-separator); display: flex; flex-direction: column; }
+  .head { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 18px; }
+  .lights { display: flex; gap: 8px; } .lights i { width: 12px; height: 12px; border-radius: 50%; background: var(--mm-separator); }
+  .brand { font-size: 12px; font-weight: 700; letter-spacing: -.02em; display: flex; align-items: center; gap: 6px; }
+  .logo { width: 18px; height: 18px; border-radius: 5px; background: var(--mm-logo-background); display: flex; align-items: center; justify-content: center; gap: 2px; }
+  .logo b { width: 2.5px; height: 9px; border-radius: 1px; background: var(--mm-logo-bar-1); } .logo b + b { background: var(--mm-logo-bar-2); height: 6px; }
+  .new { margin: 0 12px 4px; height: 32px; border-radius: 8px; background: var(--mm-new-meeting); color: var(--mm-on-new-meeting); display: flex; align-items: center; gap: 8px; padding: 0 10px; font-weight: 600; }
+  .new span { flex: 1; } .new kbd { font: 500 11px inherit; opacity: .6; }
+  .search { margin: 8px 12px 0; height: 28px; border-radius: 6px; background: var(--mm-search-field); display: flex; align-items: center; gap: 6px; padding: 0 8px; color: var(--mm-text-secondary); }
+  .scroll { flex: 1; overflow: hidden; padding: 12px 8px 0; }
+  h3 { margin: 0; padding: 0 8px 4px; font-size: 11px; font-weight: 600; color: var(--mm-text-secondary); }
+  .row { position: relative; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border-radius: 6px; }
+  .row .t { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .row small { font-size: 11px; color: var(--mm-text-secondary); font-variant-numeric: tabular-nums; }
+  .row.sel { background: var(--mm-sidebar-selection); font-weight: 500; }
+  .row.sel::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--mm-sidebar-selection-bar); }
+  .rec { display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--mm-recording-label); }
+  .rec i { width: 8px; height: 8px; border-radius: 50%; background: var(--mm-recording-dot); }
+  .group { margin-bottom: 12px; }
+  .foot { height: 44px; border-top: 1px solid var(--mm-separator); display: flex; align-items: center; padding: 0 8px 0 14px; font-size: 11px; color: var(--mm-text-secondary); }
+  .foot span { flex: 1; }
+
+  /* Main */
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+  .toolbar { height: 52px; flex: none; border-bottom: 1px solid var(--mm-separator); display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+  .ttl { display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 6px; font-size: 14px; font-weight: 600; }
+  .ttl.on { background: var(--mm-fill-subtle); }
+  .ttl svg { color: var(--mm-text-secondary); }
+  .seg { display: flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; }
+  .seg b { font-weight: 400; padding: 2px 12px; border-radius: 5px; color: var(--mm-text-secondary); }
+  .seg b.on { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+  .sp { flex: 1; }
+  .dur { font-size: 13px; color: var(--mm-text-secondary); }
+  .btn { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 7px; font-size: 13px; }
+  .btn.line { box-shadow: inset 0 0 0 1px var(--mm-separator); }
+  .btn.export { background: var(--mm-accent); color: var(--mm-on-accent); font-weight: 600; padding: 0 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mm-recording-dot); flex: none; }
+  .tip { position: absolute; top: 46px; right: 166px; background: var(--mm-text-primary); color: var(--mm-background); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; z-index: 4; }
+  .pill { height: 30px; display: flex; align-items: center; gap: 10px; border-radius: 15px; background: var(--mm-recording-pill); color: var(--mm-on-recording-pill); padding: 0 3px 0 12px; box-shadow: 0 0 0 1px var(--mm-recording-pill-border); }
+  .pill .lv { display: flex; gap: 3px; align-items: center; height: 14px; }
+  .pill .lv i { width: 4px; height: 14px; border-radius: 2px; background: var(--mm-recording-level); }
+  .pill .lv i + i { transform: scaleY(.55); }
+  .pill .tm { opacity: .7; font-variant-numeric: tabular-nums; }
+  .pill .st { width: 24px; height: 24px; border-radius: 50%; background: rgb(255 255 255 / .2); display: grid; place-items: center; }
+  .pill .st b { width: 10px; height: 10px; border-radius: 2px; background: currentColor; }
+
+  .body { flex: 1; overflow: hidden; }
+  article { max-width: 680px; margin: 0 auto; padding: 40px 40px; width: 100%; }
+  h1 { margin: 0; font-size: 30px; line-height: 1.2; letter-spacing: -.015em; }
+  .meta { margin: 6px 0 0; color: var(--mm-text-secondary); }
+  .utt { margin-top: 28px; display: flex; flex-direction: column; gap: 18px; font-size: 16px; line-height: 1.65; }
+  .u .who { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .flag { font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 5px; }
+  .s1 { background: var(--mm-speaker-1-tint); color: var(--mm-speaker-1-text); }
+  .s2 { background: var(--mm-speaker-2-tint); color: var(--mm-speaker-2-text); }
+  .you { background: var(--mm-you); color: var(--mm-on-you); }
+  .ts { font-size: 12px; color: var(--mm-timestamp); font-variant-numeric: tabular-nums; }
+  .u p { margin: 0; }
+  .u p .live { color: var(--mm-text-secondary); }
+  .caret { display: inline-block; width: 2px; height: 18px; background: var(--mm-caret); vertical-align: -3px; margin-left: 2px; }
+  .muted { color: var(--mm-text-secondary); }
+
+  /* The pause between two parts */
+  .pause { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--mm-text-secondary); margin: 4px 0; }
+  .pause::before, .pause::after { content: ""; flex: 1; border-top: 1px dashed var(--mm-separator); }
+  .pause span { display: flex; align-items: center; gap: 6px; }
+
+  /* Menus */
+  .menu { position: absolute; top: 44px; left: 10px; width: 262px; background: var(--mm-background); border-radius: 8px; box-shadow: 0 10px 30px rgb(0 0 0 / .16), 0 0 0 1px var(--mm-separator); padding: 4px; z-index: 6; font-size: 13px; }
+  [data-mode="dark"] .menu { background: var(--mm-field); }
+  .menu div { height: 28px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 5px; }
+  .menu div small { margin-left: auto; font-size: 11px; opacity: .6; }
+  .menu .f { background: var(--mm-fill-subtle); }
+  .menu .d { color: var(--mm-recording-label); }
+  .menu .sub { color: var(--mm-text-secondary); font-size: 12px; height: auto; padding: 0 8px 6px 30px; line-height: 1.35; }
+  .menu hr { border: 0; border-top: 1px solid var(--mm-separator); margin: 4px 0; }
+
+  /* Floating toast (ToastWindow), top right of the screen */
+  .toast { position: absolute; top: -8px; right: -486px; width: 470px; background: var(--mm-toast-background); color: var(--mm-toast-text); border-radius: 16px; box-shadow: 0 12px 34px rgb(0 0 0 / .22), 0 0 0 1px var(--mm-toast-border); overflow: hidden; }
+  .toast .in { display: flex; gap: 12px; padding: 18px 16px 14px 28px; align-items: center; }
+  .toast .x { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--mm-toast-border); display: grid; place-items: center; color: var(--mm-toast-secondary); }
+  .toast .tx { flex: 1; min-width: 0; }
+  .toast .tx b { display: block; font-size: 13px; }
+  .toast .tx span { font-size: 12px; color: var(--mm-toast-secondary); }
+  .toast .go { height: 30px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border-radius: 8px; background: var(--mm-accent); color: var(--mm-on-accent); font-weight: 600; white-space: nowrap; }
+  .toast .bar { height: 3px; background: var(--mm-toast-border); }
+  .toast .bar i { display: block; height: 100%; width: 72%; background: var(--mm-toast-progress); }
+  .wide { width: 1620px; }
+
+  .cap { width: 1120px; margin: 36px auto 0; font-size: 13px; color: var(--mm-text-secondary); }
+  .cap b { color: var(--mm-text-primary); }
+  .cap.wide { width: 1120px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="share" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/></symbol>
+  <symbol id="audio" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M10 18v-5l4-1v4"/></symbol>
+  <symbol id="lang" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="cup" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM6 2v2M10 2v2M14 2v2"/></symbol>
+  <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+</svg>
+
+<template id="win">
+<div class="window">
+  <nav>
+    <div class="head"><span class="lights"><i></i><i></i><i></i></span><span class="brand"><span class="logo"><b></b><b></b></span>murmur</span></div>
+    <div class="new"><svg class="i"><use href="#plus"/></svg><span>Nova reunió</span><kbd>⌘N</kbd></div>
+    <div class="search"><svg class="i"><use href="#search"/></svg><span>Cerca</span></div>
+    <div class="scroll">
+      <section class="group">
+        <h3>Avui</h3>
+        <div class="row sel"><span class="t">Revisió del llançament</span><span data-side><small>42:10</small></span></div>
+        <div class="row"><span class="t">Daily de producte</span><small>14:52</small></div>
+      </section>
+      <section class="group">
+        <h3>Aquesta setmana</h3>
+        <div class="row"><span class="t">Seguiment pressupost Q4</span><small>28:45</small></div>
+        <div class="row"><span class="t">Retro de l'equip</span><small>51:02</small></div>
+        <div class="row"><span class="t">Kickoff nova web</span><small>1:04:30</small></div>
+      </section>
+    </div>
+    <div class="foot"><span>Tot es queda en aquest Mac</span><svg class="i" style="width:16px;height:16px"><use href="#gear"/></svg></div>
+  </nav>
+  <main>
+    <div class="toolbar" data-toolbar></div>
+    <div class="body">
+      <article>
+        <h1>Revisió del llançament</h1>
+        <p class="meta" data-meta>Dimarts, 3 de novembre de 2026 · 3 participants</p>
+        <div class="utt" data-utt></div>
+      </article>
+    </div>
+  </main>
+</div>
+</template>
+
+<div id="out"></div>
+
+<script>
+  const ttl = (open) => `<span class="ttl${open ? " on" : ""}">Revisió del llançament <svg class="i" style="width:13px;height:13px"><use href="#down"/></svg></span>`;
+  const seg = `<div class="seg"><b>Portada</b><b class="on">Transcripció</b></div>`;
+  const right = (extra = "", dur = "42 min") => `<span class="sp"></span>${extra}<span class="dur">Durada ${dur}</span><span class="btn export">Exporta <svg class="i" style="width:13px;height:13px"><use href="#share"/></svg></span>`;
+  const cont = `<span class="btn line"><span class="dot"></span>Continua</span>`;
+  const pill = (t) => `<span class="sp"></span><div class="pill"><span class="lv"><i></i><i></i></span><span style="font-weight:500">Gravant</span><span class="tm">${t}</span><span class="st"><b></b></span></div>`;
+
+  const u = (cls, who, ts, text) => `<div class="u"><div class="who"><span class="flag ${cls}">${who}</span><span class="ts">${ts}</span></div><p>${text}</p></div>`;
+  const before = [
+    u("s1", "Marta", "41:02", "Llavors, si tanquem el disseny aquesta setmana, el dilluns ja podem començar amb les proves amb clients."),
+    u("s2", "Jordi (Acme)", "41:40", "Per nosaltres perfecte. Ho parlem després de dinar amb el pressupost davant."),
+  ].join("");
+  const pause = `<div class="pause"><span><svg class="i" style="width:13px;height:13px"><use href="#cup"/></svg>Pausa de 13:05 a 14:10 · 1 h 5 min</span></div>`;
+  const after = (live) => [
+    u("s2", "Jordi (Acme)", "42:14", "Ja hi som. He mirat els números i la part de proves ens quadra si la fem en dues setmanes."),
+    u("s1", "Marta", "42:31", live ? `D'acord, doncs <span class="live">ho deixem així i el dimecres us passo els textos</span><span class="caret"></span>` : "D'acord, doncs ho deixem així i el dimecres us passo els textos en anglès."),
+  ].join("");
+
+  const states = {
+    a: {
+      cap: "<b>1. Acabes d'aturar.</b> Durant 10 minuts, «Continua» és a la barra d'eines, al costat de la durada (amb el punt de gravació, sense fons: no ha de competir amb Exporta). En passar-hi el ratolí: «Torna a gravar dins aquesta reunió». Si aturar s'ha fet des de l'indicador i Murmur no és al davant, surt també l'avís flotant de la dreta, amb el mateix botó i la barra que compta els 10 minuts. Un clic torna a gravar amb les mateixes fonts i el mateix idioma, sense preguntar res.",
+      toolbar: ttl() + seg + right(cont),
+      tip: "Torna a gravar dins aquesta reunió",
+      utt: before,
+      toast: true,
+    },
+    b: {
+      cap: "<b>2. Més tard (per exemple, després de dinar).</b> El botó ja no hi és, però al menú del títol hi ha «Continua la reunió», el primer de tot. Està desactivat si s'està gravant una altra reunió o si encara s'està acabant aquesta (parlants, Whisper), amb el motiu a la línia de sota.",
+      toolbar: ttl(true) + seg + right(),
+      utt: before,
+      menu: true,
+    },
+    c: {
+      cap: "<b>3. Tornes a gravar.</b> La gravació segueix al mateix temps de la reunió (42:14), i entre les dues parts hi ha la línia de la pausa, amb les hores de rellotge. Les veus de la primera part ja són conegudes: la Marta i en Jordi tornen amb el seu nom i el seu color des de la primera frase. La barra lateral mostra REC a la mateixa reunió, no en una de nova.",
+      toolbar: ttl() + pill("42:38"),
+      utt: before + pause + after(true),
+      rec: true,
+    },
+    d: {
+      cap: "<b>4. En acabar.</b> Una sola reunió: la durada és la suma de les parts (sense la pausa), el reproductor va seguit, la línia de la pausa es queda, i la portada es torna a fer amb la reunió sencera. La data diu les dues franges.",
+      toolbar: ttl() + seg + right("", "1 h 12 min"),
+      meta: "Dimarts, 3 de novembre de 2026 · 12:23 a 13:05 i 14:10 a 14:40 · 3 participants",
+      utt: before + pause + after(false),
+      side: "1:12:20",
+    },
+  };
+
+  const params = new URLSearchParams(location.search);
+  const only = params.get("s");
+  if (params.get("mode")) document.documentElement.dataset.mode = params.get("mode");
+  for (const [k, s] of Object.entries(states)) {
+    if (only && only !== k) continue;
+    const cap = document.createElement("p"); cap.className = "cap"; cap.innerHTML = s.cap; out.append(cap);
+    const stage = document.createElement("div"); stage.className = "stage";
+    const w = win.content.cloneNode(true);
+    w.querySelector("[data-toolbar]").innerHTML = s.toolbar;
+    w.querySelector("[data-utt]").innerHTML = s.utt;
+    if (s.meta) w.querySelector("[data-meta]").textContent = s.meta;
+    if (s.rec) w.querySelector("[data-side]").innerHTML = `<span class="rec"><i></i>REC</span>`;
+    if (s.side) w.querySelector("[data-side]").innerHTML = `<small>${s.side}</small>`;
+    if (s.tip) { const t = document.createElement("div"); t.className = "tip"; t.textContent = s.tip; w.querySelector("main").append(t); }
+    if (s.menu) {
+      const m = document.createElement("div"); m.className = "menu";
+      m.innerHTML = `<div class="f"><span class="dot" style="margin:0 3px"></span>Continua la reunió</div>
+        <hr>
+        <div><svg class="i"><use href="#copy"/></svg>Copia en Markdown</div>
+        <div><svg class="i"><use href="#folder"/></svg>Mostra l'àudio a Finder</div>
+        <div><svg class="i"><use href="#audio"/></svg>Exporta l'àudio…</div>
+        <div><svg class="i"><use href="#lang"/></svg>Torna a transcriure en<small>›</small></div>
+        <hr>
+        <div class="d"><svg class="i"><use href="#trash"/></svg>Esborra la reunió<small>⌘⌫</small></div>`;
+      w.querySelector("main").append(m);
+    }
+    stage.append(w);
+    if (s.toast) {
+      stage.style.marginLeft = "calc(50% - 560px - 250px)";
+      const t = document.createElement("div"); t.className = "toast";
+      t.innerHTML = `<span class="x"><svg class="i" style="width:10px;height:10px"><use href="#x"/></svg></span>
+        <div class="in"><div class="tx"><b>Gravació aturada</b><span>Revisió del llançament · 42 min</span></div><span class="go"><span class="dot"></span>Continua la gravació</span></div>
+        <div class="bar"><i></i></div>`;
+      stage.append(t);
+    }
+    out.append(stage);
+  }
+</script>
+</body>
+</html>

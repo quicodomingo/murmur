@@ -80,5 +80,10 @@
   "importing": "Transcribing",
   "stopImport": "Stop (keeps what's been transcribed)",
   "glossaryOffer": "Add {{words}} to the glossary? The transcription will spell it right next time.",
-  "glossaryAdd": "Add"
+  "glossaryAdd": "Add",
+  "continue": "Continue",
+  "continueHint": "Record again within this meeting",
+  "continueMeeting": "Continue Meeting",
+  "continueBlockedRecording": "Another meeting is being recorded",
+  "continueBlockedFinishing": "This meeting is still being finished"
 }

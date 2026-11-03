@@ -1,12 +1,16 @@
 //! Saves the meeting audio as Ogg/Opus at 16 kHz: mono at 16 kbps (≈ 7 MB/h) or stereo — one
 //! channel per source, mic left and system right — at 24 kbps (≈ 11 MB/h).
+//!
+//! "Continua" records into the same file: `resume` copies what's there as one stream (without
+//! its end mark) and carries on after it, so the meeting stays one recording on one timeline.
 
 use crate::i18n::tr;
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow};
+use ogg::reading::PacketReader;
 use ogg::writing::{PacketWriteEndInfo, PacketWriter};
 use opus::{Application, Bitrate, Channels, Encoder};
 
@@ -79,6 +83,49 @@ impl Recorder {
         })
     }
 
+    /// Carries on the recording at `path` (made by `create` with as many channels): its packets are
+    /// copied into a new file, which then replaces it, and new audio follows them.
+    pub fn resume(path: &Path, channels: usize) -> Result<Self> {
+        let mut reader = PacketReader::new(BufReader::new(File::open(path).context(tr!("meeting_audio_missing"))?));
+        let head = reader.read_packet()?.ok_or_else(|| anyhow!(tr!("audio_empty")))?;
+        if !head.data.starts_with(b"OpusHead") || head.data.len() < 19 {
+            return Err(anyhow!(tr!("audio_not_opus")));
+        }
+        if head.data[9] as usize != channels {
+            return Err(anyhow!(tr!("audio_channels_changed")));
+        }
+        let pre_skip = u16::from_le_bytes([head.data[10], head.data[11]]) as u64;
+        // The comment header: `create` writes its own.
+        reader.read_packet()?;
+
+        let mut new = Self::create(&path.with_extension("ogg.part"), channels)?;
+        new.pre_skip = pre_skip;
+        let mut last = pre_skip;
+        let mut pending: Option<(Vec<u8>, u64, bool)> = None;
+        while let Some(packet) = reader.read_packet()? {
+            if let Some((data, granule, end_page)) = pending.take() {
+                let end = if end_page { PacketWriteEndInfo::EndPage } else { PacketWriteEndInfo::NormalPacket };
+                new.writer.write_packet(data, SERIAL, end, granule).context(tr!("audio_write_failed"))?;
+            }
+            last = packet.absgp_page();
+            pending = Some((packet.data.clone(), packet.absgp_page(), packet.last_in_page()));
+        }
+        // The last packet closed the stream: now it only closes a page.
+        if let Some((data, granule, _)) = pending {
+            new.writer.write_packet(data, SERIAL, PacketWriteEndInfo::EndPage, granule).context(tr!("audio_write_failed"))?;
+        }
+        use std::io::Write;
+        new.writer.inner_mut().flush()?;
+        std::fs::rename(path.with_extension("ogg.part"), path).context(tr!("audio_write_failed"))?;
+        new.samples_written = last.saturating_sub(pre_skip) / GRANULE_PER_SAMPLE;
+        Ok(new)
+    }
+
+    /// Seconds of audio in the file so far, as it plays back (after the encoder's delay).
+    pub fn seconds(&self) -> f32 {
+        (self.samples_written as f32 - self.pre_skip as f32 / GRANULE_PER_SAMPLE as f32).max(0.0) / SAMPLE_RATE as f32
+    }
+
     /// `samples` are interleaved when recording more than one channel.
     pub fn push(&mut self, samples: &[f32]) -> Result<()> {
         self.pending.extend_from_slice(samples);
@@ -120,5 +167,43 @@ impl Recorder {
             .write_packet(self.packet[..n].to_vec(), SERIAL, end, granule)
             .context(tr!("audio_write_failed"))?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tone(seconds: f32, channels: usize, freq: f32) -> Vec<f32> {
+        let n = (seconds * SAMPLE_RATE as f32) as usize;
+        (0..n).flat_map(|i| std::iter::repeat_n((i as f32 * freq * std::f32::consts::TAU / SAMPLE_RATE as f32).sin() * 0.3, channels)).collect()
+    }
+
+    #[test]
+    fn resume_carries_on_in_the_same_stream() {
+        let dir = std::env::temp_dir().join(format!("murmur-recorder-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("meeting.ogg");
+        for channels in [1, 2] {
+            let mut rec = Recorder::create(&path, channels).unwrap();
+            rec.push(&tone(2.0, channels, 440.0)).unwrap();
+            rec.finish().unwrap();
+            let first = crate::playback::decode_channels(&path).unwrap()[0].len();
+
+            let mut rec = Recorder::resume(&path, channels).unwrap();
+            assert_eq!((rec.seconds() * SAMPLE_RATE as f32).round() as usize, first);
+            rec.push(&tone(3.0, channels, 220.0)).unwrap();
+            rec.finish().unwrap();
+
+            let both = crate::playback::decode_channels(&path).unwrap();
+            assert_eq!(both.len(), channels);
+            // The first part, then the second, and the closing frame of padding (up to 20 ms).
+            let added = both[0].len() - first;
+            assert!((3 * SAMPLE_RATE..=3 * SAMPLE_RATE + FRAME).contains(&added), "{added}");
+            assert!(!path.with_extension("ogg.part").exists());
+            // A recording with other sources can't go on.
+            assert!(Recorder::resume(&path, 3 - channels).is_err());
+        }
+        std::fs::remove_dir_all(&dir).ok();
     }
 }
