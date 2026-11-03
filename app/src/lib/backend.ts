@@ -52,7 +52,7 @@ export const startRecording = (opts: {
   file?: string;
   /** The calendar event's guests: their names join the glossary for this meeting (glossary.rs). */
   guests?: string[];
-}) => invoke<string | null>("start_recording", { file: null, guests: [], ...opts });
+}) => invoke<string | null>("start_recording", { ...opts, file: opts.file ?? null, guests: opts.guests ?? [] });
 
 /** Audio files File › Open Audio… offers (import.rs EXTENSIONS). */
 export const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "ogg", "opus", "mp4", "mov"];
