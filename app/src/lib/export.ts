@@ -106,14 +106,17 @@ function runs(d: Docx, nodes: JSONContent[] = []): TextRunT[] {
   });
 }
 
+/** Tab in the notes: half an inch per step, like Word's own. */
+const indent = (node: JSONContent) => (node.attrs?.indent ? { left: 720 * node.attrs.indent } : undefined);
+
 function notesParagraphs(d: Docx, node: JSONContent, level = 0): ParagraphT[] {
   const { Paragraph, TextRun, HeadingLevel } = d;
   const headings: (typeof HeadingLevelT)[keyof typeof HeadingLevelT][] = [HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_4];
   switch (node.type) {
     case "heading":
-      return [new Paragraph({ heading: headings[(node.attrs?.level ?? 1) - 1], children: runs(d, node.content) })];
+      return [new Paragraph({ heading: headings[(node.attrs?.level ?? 1) - 1], indent: indent(node), children: runs(d, node.content) })];
     case "paragraph":
-      return node.content?.length ? [new Paragraph({ children: runs(d, node.content) })] : [];
+      return node.content?.length ? [new Paragraph({ indent: indent(node), children: runs(d, node.content) })] : [];
     case "bulletList":
     case "orderedList":
     case "taskList":

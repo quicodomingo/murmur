@@ -142,6 +142,8 @@ L'app es diu Murmur. El codi i el crate es diuen `transcriptor`, el nom antic. I
 
 Editor Tiptap 3 (títols, negreta, cursiva, subratllat, ratllat, llistes i tasques, amb dreceres de Markdown). Es desa com a JSON de Tiptap (`meeting.notesDoc`) perquè **cada bloc porta `attrs.t`**, el minut de la reunió en què s'hi va escriure. L'exportació a Markdown és pròpia (`docToMarkdown`).
 
+El sagnat (extensió `Indent`) és un atribut `indent` (0 a 6) dels paràgrafs i títols de primer nivell, no un caràcter de tabulació: així el paràgraf sencer queda sagnat, també quan ocupa més d'una línia. Tab el puja, i Maj+Tab o el retrocés a l'inici de la línia el baixen. Dins d'una llista, Tab niua l'element. Tab mai surt de l'editor; Maj+Tab sí, quan no hi ha res per desfer, perquè amb el teclat se'n pugui sortir. Al Word és un sagnat esquerre; al Markdown, que no té paràgrafs sagnats, quatre espais no separables per pas; a la pàgina compartida, `data-indent` (la CSP no admet estils en línia).
+
 ### Indicador de gravació, mode compacte i captures
 
 - **Indicador** (`shell.rs`, finestra `indicator`, `IndicatorWindow.tsx`): una píndola a la vora dreta mentre es grava, amb el nivell, «obre Murmur» i «atura».

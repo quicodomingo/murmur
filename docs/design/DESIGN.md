@@ -77,7 +77,7 @@ Per organitzar les reunions (per client, projecte…). Totes grises, sense color
 ### Transcripció en directe
 - Cada intervenció: etiqueta del parlant (fons `speakerNTint`, text `speakerNText`, 12 pt semibold) + marca de temps (`timestamp`).
 - El text que encara s'està reconeixent va en `textSecondary`, seguit d'un cursor de 2×18 pt (`caret`) que parpelleja cada segon.
-- Notes: cada nota porta la seva marca de temps a l'esquerra en `timestamp`.
+- Notes: cada nota porta la seva marca de temps a l'esquerra en `timestamp`. Tab sagna el paràgraf o el títol 1,5 em per pas (fins a 6), i totes les línies del paràgraf queden alineades; la marca de temps es queda al marge. Maj+Tab i el retrocés a l'inici de la línia el desfan. A les llistes, Tab niua l'element.
 - **Pausa** (una reunió que ha continuat): línia discontínua (`separator`) a banda i banda d'una tassa i «Pausa de 13:05 a 14:10 · 1 h 5 min», 12 pt en `textSecondary`. La primera frase de després torna a portar l'etiqueta del parlant.
 
 ### Parlants

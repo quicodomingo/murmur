@@ -184,6 +184,14 @@
 .notes-editor ol { list-style: decimal; padding-left: 1.4em; }
 .notes-editor li > p { margin: 0; }
 .notes-editor ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.notes-editor [data-indent="1"] { padding-left: 1.5em; }
+.notes-editor [data-indent="2"] { padding-left: 3em; }
+.notes-editor [data-indent="3"] { padding-left: 4.5em; }
+.notes-editor [data-indent="4"] { padding-left: 6em; }
+.notes-editor [data-indent="5"] { padding-left: 7.5em; }
+.notes-editor [data-indent="6"] { padding-left: 9em; }
+/* A paragraph indented before it became a list item or a quote: the list or quote decides. */
+.notes-editor :is(li, blockquote) [data-indent] { padding-left: 0; }
 .notes-editor ul[data-type="taskList"] li { display: flex; gap: 0.5em; align-items: flex-start; }
 .notes-editor ul[data-type="taskList"] li > label { margin-top: 0.2em; }
 .notes-editor ul[data-type="taskList"] li > label input { accent-color: var(--mm-toggle-on); width: 14px; height: 14px; }

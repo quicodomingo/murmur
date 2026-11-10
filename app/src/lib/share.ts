@@ -69,8 +69,8 @@ export async function disconnectShare() {
 
 type Run = { t?: string; b?: true; i?: true; u?: true; s?: true; code?: true; href?: string; br?: true };
 type Block =
-  | { type: "h"; level: number; runs: Run[] }
-  | { type: "p"; at?: string; runs: Run[] }
+  | { type: "h"; level: number; indent?: number; runs: Run[] }
+  | { type: "p"; at?: string; indent?: number; runs: Run[] }
   | { type: "quote"; blocks: Block[] }
   | { type: "ul" | "ol" | "todo"; items: { at?: string; checked?: boolean; runs: Run[]; children: Block[] }[] };
 
@@ -96,9 +96,9 @@ function blocks(nodes: JSONContent[] = []): Block[] {
   return nodes.flatMap((n): Block[] => {
     switch (n.type) {
       case "heading":
-        return [{ type: "h", level: n.attrs?.level ?? 1, runs: runs(n.content) }];
+        return [{ type: "h", level: n.attrs?.level ?? 1, indent: n.attrs?.indent || undefined, runs: runs(n.content) }];
       case "paragraph":
-        return n.content?.length ? [{ type: "p", at: stamp(n), runs: runs(n.content) }] : [];
+        return n.content?.length ? [{ type: "p", at: stamp(n), indent: n.attrs?.indent || undefined, runs: runs(n.content) }] : [];
       case "blockquote":
         return [{ type: "quote", blocks: blocks(n.content) }];
       case "bulletList":

@@ -153,6 +153,13 @@ button.at:focus-visible { outline: 2px solid var(--mm-text-primary); outline-off
 .notes h3, .notes h4, .notes h5 { margin: 18px 0 6px; font-weight: 600; }
 .notes h3 { font-size: 18px; } .notes h4 { font-size: 16px; } .notes h5 { font-size: 15px; }
 .notes p { margin: 0 0 10px; }
+.notes [data-indent="1"] { padding-left: 24px; }
+.notes [data-indent="2"] { padding-left: 48px; }
+.notes [data-indent="3"] { padding-left: 72px; }
+.notes [data-indent="4"] { padding-left: 96px; }
+.notes [data-indent="5"] { padding-left: 120px; }
+.notes [data-indent="6"] { padding-left: 144px; }
+.notes :is(li, blockquote) [data-indent] { padding-left: 0; }
 .notes ul, .notes ol { margin: 0 0 10px; padding-left: 22px; }
 .notes ul.todo { list-style: none; padding-left: 4px; }
 .notes ul.todo > li::before { content: "☐ "; color: var(--mm-text-secondary); }

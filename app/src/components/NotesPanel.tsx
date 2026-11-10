@@ -9,7 +9,7 @@ import { Bold, Heading1, Heading2, Heading3, Italic, List, ListChecks, ListOrder
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { t as translate } from "@/lib/i18n";
-import { BlockTime } from "@/lib/notes";
+import { BlockTime, Indent } from "@/lib/notes";
 import { ResizeHandle } from "@/components/SidePanel";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,7 @@ export function NotesPanel(props: Props) {
         // A function, so it follows a language change without recreating the editor.
         Placeholder.configure({ placeholder: () => translate("notes:placeholder") }),
         BlockTime.configure({ now: () => nowRef.current }),
+        Indent,
       ],
       content: doc,
       onUpdate: ({ editor }) => onChange(editor.getJSON()),

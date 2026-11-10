@@ -256,13 +256,16 @@ function runs(list = []) {
   });
 }
 
+// Tab in the notes; the page's CSP has no inline styles, so the step is a CSS rule.
+const indent = (b) => (b.indent ? { "data-indent": String(Math.min(6, b.indent)) } : {});
+
 function blocks(list = []) {
   return list.map((b) => {
     switch (b.type) {
       case "h":
-        return el(`h${Math.min(5, (b.level ?? 1) + 2)}`, {}, runs(b.runs));
+        return el(`h${Math.min(5, (b.level ?? 1) + 2)}`, indent(b), runs(b.runs));
       case "p":
-        return el("p", {}, at(b.at), runs(b.runs));
+        return el("p", indent(b), at(b.at), runs(b.runs));
       case "quote":
         return el("blockquote", {}, blocks(b.blocks));
       case "ul":
@@ -374,7 +377,7 @@ function mdBlocks(list = [], depth = 0) {
       case "h":
         return [`${"#".repeat(Math.min(6, (b.level ?? 1) + 2))} ${mdRuns(b.runs)}`, ""];
       case "p":
-        return [`${stamp(b.at)}${mdRuns(b.runs)}`, ""];
+        return [`${"\u00a0".repeat(4 * (b.indent ?? 0))}${stamp(b.at)}${mdRuns(b.runs)}`, ""];
       case "quote":
         return mdBlocks(b.blocks).map((l) => (l ? `> ${l}` : l));
       case "ul":

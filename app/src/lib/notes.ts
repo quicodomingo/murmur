@@ -55,6 +55,72 @@ export const BlockTime = Extension.create<{ now: () => number }>({
   },
 });
 
+/** How far a paragraph or heading can be indented with Tab. */
+export const MAX_INDENT = 6;
+const INDENTED = ["paragraph", "heading"];
+
+/**
+ * Tab indents and Shift-Tab outdents. In a list it nests the item (or un-nests it); elsewhere it
+ * indents the selected paragraphs and headings, one step per press. Backspace at the start of an
+ * indented line outdents it first. Tab never leaves the editor; Shift-Tab does when there's nothing
+ * left to outdent, so the keyboard can still get out.
+ */
+export const Indent = Extension.create({
+  name: "indent",
+  // Before the editor's own Backspace (which would join the line with the one above).
+  priority: 200,
+  addGlobalAttributes() {
+    return [
+      {
+        types: INDENTED,
+        attributes: {
+          indent: {
+            default: 0,
+            parseHTML: (el) => Math.min(MAX_INDENT, Number(el.getAttribute("data-indent")) || 0),
+            renderHTML: (attrs) => (attrs.indent ? { "data-indent": attrs.indent } : {}),
+          },
+        },
+      },
+    ];
+  },
+  addKeyboardShortcuts() {
+    const shift = (by: number) => {
+      const { state, view } = this.editor;
+      const { from, to } = state.selection;
+      const tr = state.tr;
+      state.doc.nodesBetween(from, to, (node, pos) => {
+        if (!INDENTED.includes(node.type.name)) return;
+        // Paragraphs inside list items move with their item.
+        if (state.doc.resolve(pos).depth > 0) return false;
+        const indent = Math.max(0, Math.min(MAX_INDENT, (node.attrs.indent ?? 0) + by));
+        if (indent !== node.attrs.indent) tr.setNodeMarkup(pos, undefined, { ...node.attrs, indent });
+        return false;
+      });
+      if (!tr.docChanged) return false;
+      view.dispatch(tr);
+      return true;
+    };
+    const item = () => (this.editor.isActive("taskItem") ? "taskItem" : this.editor.isActive("listItem") ? "listItem" : null);
+    const inList = () => item() != null;
+    return {
+      Tab: () => {
+        const type = item();
+        if (type) this.editor.commands.sinkListItem(type);
+        else shift(1);
+        return true;
+      },
+      // In a list, the list's own Shift-Tab lifts the item.
+      "Shift-Tab": () => (inList() ? false : shift(-1)),
+      Backspace: () => {
+        const { selection } = this.editor.state;
+        const parent = selection.$from.parent;
+        if (!selection.empty || selection.$from.parentOffset > 0 || !parent.attrs.indent || inList()) return false;
+        return shift(-1);
+      },
+    };
+  },
+});
+
 const text = (node: JSONContent): string =>
   node.text ?? (node.content ?? []).map(text).join(node.type === "paragraph" ? "" : " ");
 
@@ -106,6 +172,8 @@ function inline(nodes: JSONContent[] = []): string {
 }
 
 const stamp = (node: JSONContent) => (node.attrs?.t != null ? `[${clock(node.attrs.t)}] ` : "");
+/** Markdown has no indented paragraphs (leading spaces make code): non-breaking spaces show it. */
+const indentPad = (node: JSONContent) => "\u00a0".repeat(4 * (node.attrs?.indent ?? 0));
 
 function block(node: JSONContent, depth = 0, headingOffset = 0): string[] {
   const pad = "  ".repeat(depth);
@@ -113,7 +181,7 @@ function block(node: JSONContent, depth = 0, headingOffset = 0): string[] {
     case "heading":
       return [`${"#".repeat((node.attrs?.level ?? 1) + headingOffset)} ${inline(node.content)}`, ""];
     case "paragraph":
-      return node.content?.length ? [`${stamp(node)}${inline(node.content)}`, ""] : [];
+      return node.content?.length ? [`${indentPad(node)}${stamp(node)}${inline(node.content)}`, ""] : [];
     case "blockquote":
       return (node.content ?? []).flatMap((c) => block(c, 0, headingOffset)).map((l) => (l ? `> ${l}` : l));
     case "bulletList":
