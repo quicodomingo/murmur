@@ -6,6 +6,12 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.11.1": [
+      {
+        "title": "Sagnats a les notes",
+        "text": "Prem Tab per sagnar un paràgraf i Maj+Tab per desfer-ho. A les llistes, Tab fica un element dins de l'anterior. El sagnat es manté al Word, al Markdown i a l'enllaç compartit."
+      }
+    ],
     "0.11.0": [
       {
         "title": "Continua una reunió",

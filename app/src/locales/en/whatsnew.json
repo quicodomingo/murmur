@@ -6,6 +6,12 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.11.1": [
+      {
+        "title": "Indents in notes",
+        "text": "Press Tab to indent a paragraph and Shift+Tab to undo it. In lists, Tab nests an item under the one above. Indents carry over to Word, Markdown and shared links."
+      }
+    ],
     "0.11.0": [
       {
         "title": "Continue a meeting",

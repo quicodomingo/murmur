@@ -6,6 +6,12 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.11.1": [
+      {
+        "title": "Sangrías en las notas",
+        "text": "Pulsa Tab para sangrar un párrafo y Mayús+Tab para deshacerlo. En las listas, Tab mete un elemento dentro del anterior. La sangría se mantiene en Word, en Markdown y en el enlace compartido."
+      }
+    ],
     "0.11.0": [
       {
         "title": "Continúa una reunión",
