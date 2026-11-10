@@ -11,6 +11,7 @@ Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur 
 | [`docs/design/DESIGN.md`](docs/design/DESIGN.md) | El disseny: marca, temes, components, mides |
 | [`docs/TRADUCCIONS.md`](docs/TRADUCCIONS.md) | Com s'escriuen i es tradueixen els textos de la interfície |
 | [`docs/PUBLICAR.md`](docs/PUBLICAR.md) | Com es publica una versió de l'app o d'un model |
+| [`docs/LANDING.md`](docs/LANDING.md) | Els textos i les captures per a la pàgina de descàrrega |
 
 | Carpeta | Què hi ha |
 |---|---|
@@ -18,7 +19,7 @@ Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur 
 | `app/src-tauri/src/` | Motor en Rust: àudio, transcripció, parlants, base de dades, model de llenguatge |
 | `app/whisper/` | `murmur-whisper`, el procés a part que fa la passada final amb Whisper |
 | `share/` | El Worker de Cloudflare dels enllaços compartits ([`docs/COMPARTIR.md`](docs/COMPARTIR.md)) |
-| `bench/`, `mvp/`, `tools/` | Banc de proves, primer prototip i scripts d'exportació de models (Python, amb `uv`) |
+| `bench/`, `mvp/`, `tools/` | Banc de proves, primer prototip, scripts d'exportació de models (Python, amb `uv`) i les captures de la landing (`tools/landing-captures/`) |
 
 ## Ordres
 
