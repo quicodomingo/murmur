@@ -85,5 +85,12 @@
   "continueHint": "Vuelve a grabar dentro de esta reunión",
   "continueMeeting": "Continuar la reunión",
   "continueBlockedRecording": "Ahora se está grabando otra reunión",
-  "continueBlockedFinishing": "Todavía se está terminando esta reunión"
+  "continueBlockedFinishing": "Todavía se está terminando esta reunión",
+  "exportContent": {
+    "all": "Todo…",
+    "summary": "Resumen y notas…",
+    "transcript": "Transcripción…"
+  },
+  "exportDocxSub": "Documento de Word (.docx)",
+  "exportMarkdownSub": "Markdown (.md)"
 }

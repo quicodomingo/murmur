@@ -152,7 +152,7 @@
     "punctuationModel": "Model de puntuació de Softcatalà",
     "markdownGroup": "Markdown",
     "saveMarkdown": "Desa cada reunió en Markdown",
-    "saveMarkdownHint": "En acabar, Murmur hi escriu el resum, les notes i la transcripció en un fitxer .md. Mentre graves, ho pots canviar per a aquella reunió des de la barra de dalt.",
+    "saveMarkdownHint": "En acabar, Murmur hi escriu la reunió en un fitxer .md. Mentre graves, ho pots canviar per a aquella reunió des de la barra de dalt.",
     "markdownFolder": "Carpeta dels Markdown",
     "markdownNoFolder": "Encara no n'has triat cap",
     "markdownFolderDialog": "Carpeta per als Markdown de les reunions",
@@ -162,7 +162,14 @@
     "glossaryPlaceholder": "WordPress, Guillem Puig…",
     "glossaryAdd": "Afegeix",
     "glossaryRemove": "Treu «{{term}}» del glossari",
-    "glossaryEmpty": "Encara no hi ha cap paraula. També pots afegir-les en corregir una frase de la transcripció."
+    "glossaryEmpty": "Encara no hi ha cap paraula. També pots afegir-les en corregir una frase de la transcripció.",
+    "markdownContent": "Què hi desa",
+    "markdownContents": {
+      "all": "Tot",
+      "summary": "Resum i notes",
+      "transcript": "Transcripció"
+    },
+    "markdownContentHint": "Si una reunió no té resum, s'hi desa tot."
   },
   "intelligence": {
     "cover": "Resum",

@@ -8,6 +8,12 @@
   "releases": {
     "0.11.1": [
       {
+        "title": "Exporta solo lo que quieras",
+        "text": "En Word y Markdown puedes exportarlo todo, solo el resumen y las notas o solo la transcripción. El Word ahora lleva también el resumen. Y para los Markdown que se guardan solos, eliges qué incluyen.",
+        "link": "transcription",
+        "linkLabel": "Abre la configuración"
+      },
+      {
         "title": "Sangrías en las notas",
         "text": "Pulsa Tab para sangrar un párrafo y Mayús+Tab para deshacerlo. En las listas, Tab mete un elemento dentro del anterior. La sangría se mantiene en Word, en Markdown y en el enlace compartido."
       }

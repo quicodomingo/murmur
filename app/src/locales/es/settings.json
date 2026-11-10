@@ -152,7 +152,7 @@
     "punctuationModel": "Modelo de puntuación de Softcatalà",
     "markdownGroup": "Markdown",
     "saveMarkdown": "Guardar cada reunión en Markdown",
-    "saveMarkdownHint": "Al terminar, Murmur escribe el resumen, las notas y la transcripción en un archivo .md. Mientras grabas, puedes cambiarlo para esa reunión desde la barra de arriba.",
+    "saveMarkdownHint": "Al terminar, Murmur escribe la reunión en un archivo .md. Mientras grabas, puedes cambiarlo para esa reunión desde la barra de arriba.",
     "markdownFolder": "Carpeta de los Markdown",
     "markdownNoFolder": "Aún no has elegido ninguna",
     "markdownFolderDialog": "Carpeta para los Markdown de las reuniones",
@@ -162,7 +162,14 @@
     "glossaryPlaceholder": "WordPress, Guillem Puig…",
     "glossaryAdd": "Añadir",
     "glossaryRemove": "Quitar «{{term}}» del glosario",
-    "glossaryEmpty": "Todavía no hay ninguna palabra. También puedes añadirlas al corregir una frase de la transcripción."
+    "glossaryEmpty": "Todavía no hay ninguna palabra. También puedes añadirlas al corregir una frase de la transcripción.",
+    "markdownContent": "Qué guarda",
+    "markdownContents": {
+      "all": "Todo",
+      "summary": "Resumen y notas",
+      "transcript": "Transcripción"
+    },
+    "markdownContentHint": "Si una reunión no tiene resumen, se guarda todo."
   },
   "intelligence": {
     "cover": "Resumen",

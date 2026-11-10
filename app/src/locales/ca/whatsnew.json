@@ -8,6 +8,12 @@
   "releases": {
     "0.11.1": [
       {
+        "title": "Exporta només el que vulguis",
+        "text": "Al Word i al Markdown pots exportar-ho tot, només el resum i les notes o només la transcripció. El Word ara porta també el resum. I per als Markdown que es desen sols, tries què hi va.",
+        "link": "transcription",
+        "linkLabel": "Obre la configuració"
+      },
+      {
         "title": "Sagnats a les notes",
         "text": "Prem Tab per sagnar un paràgraf i Maj+Tab per desfer-ho. A les llistes, Tab fica un element dins de l'anterior. El sagnat es manté al Word, al Markdown i a l'enllaç compartit."
       }

@@ -38,7 +38,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import * as backend from "@/lib/backend";
 import { currentEvent, guestNames } from "@/lib/calendar";
 import { clock, duration } from "@/lib/format";
-import { exportMeeting, saveMarkdown, toMarkdown, type ExportFormat } from "@/lib/export";
+import { exportMeeting, saveMarkdown, toMarkdown, type ExportContent, type ExportFormat } from "@/lib/export";
 import { defaultTitle } from "@/lib/cover";
 import { locale, t as translate } from "@/lib/i18n";
 import { cloudModelName, coverEngine, loadCloudModels, useCloud } from "@/lib/cloud";
@@ -134,6 +134,9 @@ function ToolbarButton({ label, onClick, active, children }: { label: string; on
     </Tooltip>
   );
 }
+
+/** The choices in Export › Word / Markdown, for a meeting with a cover. */
+const EXPORT_CONTENTS: ExportContent[] = ["all", "summary", "transcript"];
 
 export default function App() {
   const { t } = useTranslation("app");
@@ -669,11 +672,11 @@ export default function App() {
       if (!on || !m || m.status !== "done" || state.finalPass[id]) continue;
       setMarkdown(({ [id]: _done, ...rest }) => rest);
       if (!dir || !m.utterances.length) continue;
-      saveMarkdown(m, dir)
+      saveMarkdown(m, dir, settings.markdownContent)
         .then((path) => toast(t("markdownSaved"), { action: { label: t("showInFinder"), onClick: () => revealItemInDir(path).catch(() => {}) } }))
         .catch((e) => toast.error(t("markdownFailed", { error: String(e) })));
     }
-  }, [markdown, state.open, state.finalPass, settings.markdownDir, t]);
+  }, [markdown, state.open, state.finalPass, settings.markdownDir, settings.markdownContent, t]);
 
   const stop = useCallback(async () => {
     setBusy(true);
@@ -692,8 +695,8 @@ export default function App() {
     if (recording && !busy) stop();
   };
 
-  const doExport = (m: Meeting, format: ExportFormat) =>
-    exportMeeting(m, format)
+  const doExport = (m: Meeting, format: ExportFormat, content?: ExportContent) =>
+    exportMeeting(m, format, content)
       .then((done) => done && toast(t("exported")))
       .catch((e) => toast.error(String(e)));
 
@@ -1182,17 +1185,37 @@ export default function App() {
                         {t("export")} <Share className="size-[13px]" strokeWidth={2} />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-52">
+                    <DropdownMenuContent align="end" className="min-w-60">
                       <DropdownMenuItem onSelect={() => setShowShare(true)}>
                         <Link2 className="size-3.5" /> {t("share:menu")}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => doExport(meeting, "docx")}>
-                        <FileDown className="size-3.5" /> {t("exportDocx")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => doExport(meeting, "md")}>
-                        <FileText className="size-3.5" /> {t("exportMarkdown")}
-                      </DropdownMenuItem>
+                      {(["docx", "md"] as const).map((format) => {
+                        const Icon = format === "docx" ? FileDown : FileText;
+                        const label = t(format === "docx" ? "exportDocx" : "exportMarkdown");
+                        // Without a cover there's nothing to summarize: the file has everything.
+                        if (!meeting.cover) {
+                          return (
+                            <DropdownMenuItem key={format} onSelect={() => doExport(meeting, format)}>
+                              <Icon className="size-3.5" /> {label}
+                            </DropdownMenuItem>
+                          );
+                        }
+                        return (
+                          <DropdownMenuSub key={format}>
+                            <DropdownMenuSubTrigger>
+                              <Icon className="size-3.5" /> {t(format === "docx" ? "exportDocxSub" : "exportMarkdownSub")}
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="min-w-44">
+                              {EXPORT_CONTENTS.map((content) => (
+                                <DropdownMenuItem key={content} onSelect={() => doExport(meeting, format, content)}>
+                                  {t(`exportContent.${content}`)}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                        );
+                      })}
                       {!!meeting.screens?.length && (
                         <DropdownMenuItem onSelect={() => exportScreens(meeting)}>
                           <Images className="size-3.5" /> {t("exportScreens", { count: meeting.screens.length })}

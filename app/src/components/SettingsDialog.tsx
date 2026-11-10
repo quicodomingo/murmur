@@ -801,6 +801,20 @@ function TranscriptionTab({ settings, onChange }: { settings: Settings; onChange
             }}
           />
         </Row>
+        <div className="px-3 py-2.5">
+          <div className="text-[13px]" id="markdown-content-label">
+            {t("transcription.markdownContent")}
+          </div>
+          <div className="mt-2 flex">
+            <Segmented
+              value={settings.markdownContent}
+              options={(["all", "summary", "transcript"] as const).map((value) => ({ value, label: t(`transcription.markdownContents.${value}`) }))}
+              onChange={(markdownContent) => onChange({ markdownContent })}
+              labelledBy="markdown-content-label"
+            />
+          </div>
+          <div className="mt-1.5 break-words text-[11px] leading-snug text-muted-foreground">{t("transcription.markdownContentHint")}</div>
+        </div>
         <Row label={t("transcription.markdownFolder")} hint={settings.markdownDir ?? t("transcription.markdownNoFolder")}>
           <button
             type="button"

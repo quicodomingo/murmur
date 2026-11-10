@@ -11,6 +11,16 @@ import { docToMarkdown, notesDoc } from "./notes";
 import type { Meeting } from "./types";
 
 export type ExportFormat = "md" | "docx";
+/**
+ * What goes in the file: the summary (the cover and the notes), the transcript, or everything. A
+ * meeting without a cover has nothing to summarize, so it always exports everything.
+ */
+export type ExportContent = "summary" | "transcript" | "all";
+
+const parts = (meeting: Meeting, content: ExportContent) => {
+  const c = meeting.cover ? content : "all";
+  return { summary: c !== "transcript", transcript: c !== "summary" };
+};
 
 const filter = (format: ExportFormat): { name: string; extensions: string[] } =>
   format === "md" ? { name: "Markdown", extensions: ["md"] } : { name: t("export:wordDocument"), extensions: ["docx"] };
@@ -18,9 +28,9 @@ const filter = (format: ExportFormat): { name: string; extensions: string[] } =>
 const safeName = (title: string) => title.replace(/[/\\?%*:|"<>]/g, "-").trim() || "Murmur";
 
 /** Asks where to save, then writes the file. Returns false if the user cancelled. */
-export async function exportMeeting(meeting: Meeting, format: ExportFormat): Promise<boolean> {
+export async function exportMeeting(meeting: Meeting, format: ExportFormat, content: ExportContent = "all"): Promise<boolean> {
   const bytes =
-    format === "md" ? new TextEncoder().encode(toMarkdown(meeting)) : new Uint8Array(await toDocx(meeting));
+    format === "md" ? new TextEncoder().encode(toMarkdown(meeting, content)) : new Uint8Array(await toDocx(meeting, content));
   const fileName = `${safeName(meeting.title)}.${format}`;
 
   if (!backend.isTauri()) {
@@ -42,20 +52,21 @@ export async function exportMeeting(meeting: Meeting, format: ExportFormat): Pro
  * "Desa en Markdown": the meeting written to the chosen folder once it's done, named
  * "2026-10-27 Title.md" so the folder sorts by date. Saving again replaces the file.
  */
-export async function saveMarkdown(meeting: Meeting, dir: string): Promise<string> {
+export async function saveMarkdown(meeting: Meeting, dir: string, content: ExportContent = "all"): Promise<string> {
   const d = new Date(meeting.createdAt);
   const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const path = `${dir.replace(/\/+$/, "")}/${day} ${safeName(meeting.title)}.md`;
-  await backend.writeExport(path, new TextEncoder().encode(toMarkdown(meeting)));
+  await backend.writeExport(path, new TextEncoder().encode(toMarkdown(meeting, content)));
   return path;
 }
 
 // --- Markdown ------------------------------------------------------------------------------
 
 /** The summary (the cover, with the speakers' current names), the notes and the transcript. */
-export function toMarkdown(meeting: Meeting): string {
+export function toMarkdown(meeting: Meeting, content: ExportContent = "all"): string {
+  const include = parts(meeting, content);
   const lines = [`# ${meeting.title}`, "", meetingWhen(meeting), ""];
-  const c = meeting.cover && renameInCover(meeting.cover, namedSpeakers(meeting));
+  const c = include.summary && meeting.cover && renameInCover(meeting.cover, namedSpeakers(meeting));
   if (c) {
     lines.push(`## ${t("app:viewCover")}`, "");
     if (c.excerpt) lines.push(c.excerpt, "");
@@ -75,8 +86,9 @@ export function toMarkdown(meeting: Meeting): string {
       for (const p of c.parts) lines.push(`**[${clock(p.t)}] ${p.title}**`, ...p.points.map((x) => `- ${x}`), "");
     }
   }
-  const notes = docToMarkdown(notesDoc(meeting), 2);
+  const notes = include.summary ? docToMarkdown(notesDoc(meeting), 2) : "";
   if (notes) lines.push(`## ${t("export:notes")}`, "", notes, "");
+  if (!include.transcript) return lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
   lines.push(`## ${t("export:transcript")}`, "");
   const breaks = pauses(meeting);
   for (const u of meeting.utterances) {
@@ -135,20 +147,60 @@ function notesParagraphs(d: Docx, node: JSONContent, level = 0): ParagraphT[] {
   }
 }
 
-export async function toDocx(meeting: Meeting): Promise<ArrayBuffer> {
+/** The cover as Word paragraphs, laid out like the Markdown one. */
+function coverParagraphs(d: Docx, meeting: Meeting): ParagraphT[] {
+  const { HeadingLevel, Paragraph, TextRun } = d;
+  const c = meeting.cover && renameInCover(meeting.cover, namedSpeakers(meeting));
+  if (!c) return [];
+  const heading = (text: string) => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun(text)] });
+  const bullet = (children: TextRunT[]) => new Paragraph({ bullet: { level: 0 }, children });
+  const labelled = (label: string, text: string) =>
+    new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: `${label}: `, bold: true }), new TextRun(text)] });
+  const out: ParagraphT[] = [new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("app:viewCover"))] })];
+  if (c.excerpt) out.push(new Paragraph({ spacing: { after: 120 }, children: [new TextRun(c.excerpt)] }));
+  if (c.tone) out.push(labelled(t("cover:tone"), `${toneLabel(c.tone.label)}. ${c.tone.reason}`.trim()));
+  const talk = talkTime(meeting);
+  if (talk.length > 1) {
+    out.push(labelled(t("cover:talk"), talk.map((s) => `${s.name} ${s.share < 0.01 ? "<1" : Math.round(s.share * 100)}%`).join(", ")));
+  }
+  if (c.summary?.length) out.push(heading(t("cover:summary")), ...c.summary.map((s) => bullet([new TextRun(s)])));
+  if (c.decisions?.length) {
+    out.push(heading(t("cover:decisions")), ...c.decisions.map((x) => bullet([new TextRun(`${x.t != null ? `[${clock(x.t)}] ` : ""}${x.text}`)])));
+  }
+  if (c.tasks?.length) {
+    const who = (task: (typeof c.tasks)[number]) => [task.owner, task.when].filter(Boolean).join(", ");
+    out.push(
+      heading(t("cover:tasks")),
+      ...c.tasks.map((task) => new Paragraph({ children: [new TextRun(`${task.done ? "☑" : "☐"} ${task.text}${who(task) ? ` (${who(task)})` : ""}`)] })),
+    );
+  }
+  if (c.parts?.length) {
+    out.push(heading(t("cover:parts")));
+    for (const p of c.parts) {
+      out.push(new Paragraph({ children: [new TextRun({ text: `[${clock(p.t)}] ${p.title}`, bold: true })] }), ...p.points.map((x) => bullet([new TextRun(x)])));
+    }
+  }
+  return out;
+}
+
+export async function toDocx(meeting: Meeting, content: ExportContent = "all"): Promise<ArrayBuffer> {
   const d = await import("docx");
   const { Document, HeadingLevel, Packer, Paragraph, TextRun } = d;
-  const transcript = meeting.utterances.map(
-    (u) =>
-      new Paragraph({
-        spacing: { after: 120 },
-        children: [
-          new TextRun({ text: `[${clock(u.start)}] ${speakerName(meeting, u.speaker)}: `, bold: true }),
-          new TextRun(u.text),
-        ],
-      }),
-  );
-  const notes = notesParagraphs(d, notesDoc(meeting));
+  const include = parts(meeting, content);
+  const breaks = pauses(meeting);
+  const transcript = meeting.utterances.flatMap((u) => [
+    ...(breaks.length && u.start >= breaks[0].at - 0.01
+      ? [new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: pauseLabel(breaks.shift()!), italics: true, color: "6E6E73" })] })]
+      : []),
+    new Paragraph({
+      spacing: { after: 120 },
+      children: [
+        new TextRun({ text: `[${clock(u.start)}] ${speakerName(meeting, u.speaker)}: `, bold: true }),
+        new TextRun(u.text),
+      ],
+    }),
+  ]);
+  const notes = include.summary ? notesParagraphs(d, notesDoc(meeting)) : [];
   const doc = new Document({
     creator: "Murmur",
     title: meeting.title,
@@ -158,9 +210,11 @@ export async function toDocx(meeting: Meeting): Promise<ArrayBuffer> {
         children: [
           new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(meeting.title)] }),
           new Paragraph({ children: [new TextRun({ text: meetingWhen(meeting), color: "6E6E73" })] }),
+          ...(include.summary ? coverParagraphs(d, meeting) : []),
           ...(notes.length ? [new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("export:notes"))] }), ...notes] : []),
-          new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("export:transcript"))] }),
-          ...transcript,
+          ...(include.transcript
+            ? [new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(t("export:transcript"))] }), ...transcript]
+            : []),
         ],
       },
     ],

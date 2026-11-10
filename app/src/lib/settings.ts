@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { applyAppearance, type Mode, type Theme } from "./appearance";
 import { isTauri, setUiLanguage } from "./backend";
 import type { CoverLanguagePref } from "./cover";
+import type { ExportContent } from "./export";
 import { applyLanguage, resolveLanguage, type UiLanguagePref } from "./i18n";
 import type { ShareExpiry } from "./share";
 import type { CloudProvider, Language } from "./types";
@@ -40,6 +41,8 @@ export type Settings = {
   saveMarkdown: boolean;
   /** Folder for those Markdown files; null = not chosen yet. */
   markdownDir: string | null;
+  /** What those files hold: the summary and notes, the transcript, or everything. */
+  markdownContent: ExportContent;
   /** Who writes the cover: the local model, or Claude or OpenAI with the user's key (lib/cloud.ts). */
   coverEngine: "local" | CloudProvider;
   /** The model chosen for each provider; missing = its default (lib/cloud.ts). */
@@ -104,6 +107,7 @@ export const DEFAULT_SETTINGS: Settings = {
   saveMarkdown: false,
   textZoom: 1,
   markdownDir: null,
+  markdownContent: "all",
   coverEngine: "local",
   cloudModels: {},
   shareExpiry: "7d",

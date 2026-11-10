@@ -85,5 +85,12 @@
   "continueHint": "Torna a gravar dins aquesta reunió",
   "continueMeeting": "Continua la reunió",
   "continueBlockedRecording": "Ara s'està gravant una altra reunió",
-  "continueBlockedFinishing": "Encara s'està acabant aquesta reunió"
+  "continueBlockedFinishing": "Encara s'està acabant aquesta reunió",
+  "exportContent": {
+    "all": "Tot…",
+    "summary": "Resum i notes…",
+    "transcript": "Transcripció…"
+  },
+  "exportDocxSub": "Document de Word (.docx)",
+  "exportMarkdownSub": "Markdown (.md)"
 }

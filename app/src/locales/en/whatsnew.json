@@ -8,6 +8,12 @@
   "releases": {
     "0.11.1": [
       {
+        "title": "Export just what you need",
+        "text": "For Word and Markdown you can export everything, just the summary and notes, or just the transcript. Word files now include the summary too. And for Markdown saved automatically, you choose what goes in.",
+        "link": "transcription",
+        "linkLabel": "Open Settings"
+      },
+      {
         "title": "Indents in notes",
         "text": "Press Tab to indent a paragraph and Shift+Tab to undo it. In lists, Tab nests an item under the one above. Indents carry over to Word, Markdown and shared links."
       }

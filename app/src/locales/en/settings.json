@@ -152,7 +152,7 @@
     "punctuationModel": "Softcatalà punctuation model",
     "markdownGroup": "Markdown",
     "saveMarkdown": "Save Each Meeting as Markdown",
-    "saveMarkdownHint": "When it ends, Murmur writes the summary, notes and transcript to a .md file. While recording, you can change it for that meeting from the top bar.",
+    "saveMarkdownHint": "When it ends, Murmur writes the meeting to a .md file. While recording, you can change it for that meeting from the top bar.",
     "markdownFolder": "Markdown Folder",
     "markdownNoFolder": "None chosen yet",
     "markdownFolderDialog": "Folder for the meetings' Markdown files",
@@ -162,7 +162,14 @@
     "glossaryPlaceholder": "WordPress, Guillem Puig…",
     "glossaryAdd": "Add",
     "glossaryRemove": "Remove “{{term}}” from the glossary",
-    "glossaryEmpty": "No words yet. You can also add them when you correct a sentence in the transcript."
+    "glossaryEmpty": "No words yet. You can also add them when you correct a sentence in the transcript.",
+    "markdownContent": "What it saves",
+    "markdownContents": {
+      "all": "Everything",
+      "summary": "Summary and notes",
+      "transcript": "Transcript"
+    },
+    "markdownContentHint": "If a meeting has no summary, everything is saved."
   },
   "intelligence": {
     "cover": "Summary",
