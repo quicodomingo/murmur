@@ -36,7 +36,7 @@ import { Transcript } from "@/components/Transcript";
 import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as backend from "@/lib/backend";
-import { currentEvent, guestNames } from "@/lib/calendar";
+import { currentEvent, guestNames, useCalendarSync } from "@/lib/calendar";
 import { clock, duration } from "@/lib/format";
 import { exportMeeting, saveMarkdown, toMarkdown, type ExportContent, type ExportFormat } from "@/lib/export";
 import { defaultTitle } from "@/lib/cover";
@@ -161,6 +161,22 @@ export default function App() {
   const [view, setView] = useStoredState("transcriptor.view.v1", { cover: true });
   const models = useModels();
   const cloud = useCloud();
+  const calendarSync = useCalendarSync();
+  const openCalendarSettings = () => {
+    setSettingsTab("calendar");
+    setShowSettings(true);
+  };
+  // The calendar sync went on with the settings closed: say how it ended.
+  const wasSyncing = useRef(false);
+  useEffect(() => {
+    if (wasSyncing.current && !calendarSync.syncing && !showSettings) {
+      const count = calendarSync.calendars?.length ?? 0;
+      const open = { label: t("settings"), onClick: () => openCalendarSettings() };
+      if (count) toast(t("calendarSynced", { count }), { action: open });
+      else toast(t("calendarSyncEmpty"), { action: open });
+    }
+    wasSyncing.current = calendarSync.syncing;
+  }, [calendarSync.syncing]);
   // The models' names, for the cover ("Generat amb Claude Opus 5.5").
   const cloudProvider = settings.coverEngine === "local" ? null : settings.coverEngine;
   const cloudConnected = !!cloudProvider && !!cloud.status[cloudProvider];
@@ -1001,6 +1017,7 @@ export default function App() {
             onStartChoice={updateSettings}
             englishReady={englishReady}
             onSettings={() => setShowSettings(true)}
+            onCalendarSettings={openCalendarSettings}
             onDelete={removeById}
             tagFilter={tagFilter}
             onTagFilter={setTagFilter}
@@ -1346,6 +1363,17 @@ export default function App() {
       )}
       {!recording && <UpdatesDialog run={updates.run} manual={updates.manual} onClose={() => {}} />}
       {onboarding.open && <Onboarding open onClose={closeOnboarding} onChange={updateSettings} startAtModels={onboarding.atModels} />}
+      {calendarSync.syncing && !showSettings && !showSidebar && (
+        <button
+          type="button"
+          onClick={openCalendarSettings}
+          className="fixed bottom-3 left-3 z-40 flex h-7 items-center gap-2 rounded-full bg-popover px-3 text-[12px] text-muted-foreground shadow-md ring-1 ring-foreground/10 duration-200 animate-in fade-in-0 slide-in-from-bottom-1 hover:text-foreground motion-reduce:animate-none"
+          role="status"
+        >
+          <span className="size-3 animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
+          {t("settings:calendar.syncing")}
+        </button>
+      )}
       <Toaster position="bottom-center" />
     </TooltipProvider>
   );

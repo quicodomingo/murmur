@@ -92,5 +92,8 @@
     "transcript": "Transcripció…"
   },
   "exportDocxSub": "Document de Word (.docx)",
-  "exportMarkdownSub": "Markdown (.md)"
+  "exportMarkdownSub": "Markdown (.md)",
+  "calendarSynced_one": "Calendari connectat: {{count}} calendari",
+  "calendarSynced_other": "Calendari connectat: {{count}} calendaris",
+  "calendarSyncEmpty": "macOS encara no ha carregat cap calendari. Torna-ho a mirar d'aquí a una estona."
 }

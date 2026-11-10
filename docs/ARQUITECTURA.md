@@ -156,6 +156,7 @@ El sagnat (extensió `Indent`) és un atribut `indent` (0 a 6) dels paràgrafs i
 
 - Llegeix el Calendari de macOS, que inclou els comptes de Google, iCloud i Exchange afegits al sistema. La integració directa amb Google demanaria OAuth i la verificació de Google; només caldria per a Windows.
 - Permís propi (`NSCalendarsFullAccessUsageDescription` i l'entitlement `personal-information.calendars`).
+- Just després de connectar-lo, macOS encara carrega els comptes i la llista de calendaris pot sortir buida. `syncCalendars` (`lib/calendar.ts`) la torna a demanar cada segon, fins a un minut, fora de la finestra de configuració: si es tanca, continua, el peu de la barra lateral ho indica, i en acabar un avís diu quants calendaris ha trobat. La finestra, en tornar-se a obrir, en recull l'estat (`useCalendarSync`).
 - Cada 20 s, `shell.rs` busca una reunió que comenci d'aquí a 2 minuts o menys (o fa menys d'1 minut) i mostra l'avís, un cop per esdeveniment. Per defecte, només esdeveniments amb convidats o enllaç de videotrucada.
 - En començar a gravar, la reunió agafa el títol i els convidats de l'esdeveniment en curs (`lib/calendar.ts`, columna `guests`). El menú de cada parlant els ofereix com a noms.
 

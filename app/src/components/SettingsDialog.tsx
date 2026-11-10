@@ -15,6 +15,7 @@ import type { CfAccount, ShareSetupStep } from "@/lib/backend";
 import { locale, systemLanguage, UI_LANGUAGE_NAMES, UI_LANGUAGES, type UiLanguagePref } from "@/lib/i18n";
 import { cloudModel, connectCloud, coverEngine, disconnectCloud, KEYS_URL, loadCloudModels, PROVIDERS, useCloud } from "@/lib/cloud";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
+import { syncCalendars, useCalendarSync } from "@/lib/calendar";
 import { spellingNote } from "@/lib/glossary";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
@@ -265,34 +266,31 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
   const [access, setAccess] = useState<backend.Access | null>(null);
   const [calendars, setCalendars] = useState<backend.CalendarInfo[]>([]);
   /** Just connected: macOS is still loading the accounts, so the list may come empty at first. */
-  const [syncing, setSyncing] = useState(false);
+  const sync = useCalendarSync();
   const alive = useRef(true);
   const refresh = () => {
     if (!backend.isTauri()) return;
     backend
       .calendarAccess()
       .then(async (a) => {
+        if (!alive.current) return;
         setAccess(a);
-        if (a === "granted") setCalendars(await backend.listCalendars());
+        if (a === "granted") {
+          const list = await backend.listCalendars();
+          if (alive.current) setCalendars(list);
+        }
       })
       .catch(() => {});
   };
+  // The background sync found them (maybe while this window was closed).
+  useEffect(() => {
+    if (sync.calendars?.length) setCalendars(sync.calendars);
+  }, [sync.calendars]);
   const connect = async () => {
     onChange({ calendarEnabled: true });
     const a = await backend.requestCalendarAccess().catch(() => "denied" as const);
-    setAccess(a);
-    if (a !== "granted") return;
-    setSyncing(true);
-    // Ask again every second until the calendars show up (20 s at most).
-    for (let i = 0; i < 20 && alive.current; i++) {
-      const list = await backend.listCalendars().catch(() => []);
-      if (list.length) {
-        setCalendars(list);
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-    if (alive.current) setSyncing(false);
+    if (alive.current) setAccess(a);
+    if (a === "granted") syncCalendars();
   };
   useEffect(() => {
     alive.current = true;
@@ -390,7 +388,7 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
         </div>
         <div className="divide-y divide-border rounded-[10px] border border-border bg-background">
           {calendars.length === 0 &&
-            (syncing ? (
+            (sync.syncing ? (
               <div className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-[13px] text-muted-foreground" role="status">
                 <span className="size-3.5 animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
                 {t("calendar.syncing")}

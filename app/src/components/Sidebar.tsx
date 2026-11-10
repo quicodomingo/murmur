@@ -8,6 +8,7 @@ import { clock, DAY_GROUPS, dayGroupId, dayGroupLabel, duration } from "@/lib/fo
 import type { MeetingSummary, SearchHit } from "@/lib/types";
 import { LogoIcon } from "@/components/Logo";
 import { isTauri } from "@/lib/backend";
+import { useCalendarSync } from "@/lib/calendar";
 import { t as translate } from "@/lib/i18n";
 import { activeShares } from "@/lib/share";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,8 @@ type Props = {
   onStartChoice: (change: Partial<StartChoice>) => void;
   englishReady: boolean;
   onSettings: () => void;
+  /** The Calendari tab, from the sync indicator. */
+  onCalendarSettings: () => void;
   /** Right click › Delete meeting… (asks for confirmation). */
   onDelete: (id: string) => void;
   /** Only the meetings with this tag (list and search). */
@@ -52,9 +55,10 @@ const HITS_PER_MEETING = 3;
 const TAGS_SHOWN = 5;
 const TAGS_OPEN_KEY = "murmur.sidebar.tagsOpen";
 
-export function Sidebar({ meetings, selectedId, canCreate, importingId, search, onSelect, onOpenHit, onNew, startChoice, onStartChoice, englishReady, onSettings, onDelete, tagFilter, onTagFilter, onRenameTag, onDeleteTag }: Props) {
+export function Sidebar({ meetings, selectedId, canCreate, importingId, search, onSelect, onOpenHit, onNew, startChoice, onStartChoice, englishReady, onSettings, onCalendarSettings, onDelete, tagFilter, onTagFilter, onRenameTag, onDeleteTag }: Props) {
   const { t } = useTranslation("sidebar");
   const { t: tt } = useTranslation("tags");
+  const calendarSync = useCalendarSync();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const searching = query.trim().length > 0;
@@ -188,7 +192,20 @@ export function Sidebar({ meetings, selectedId, canCreate, importingId, search, 
         )}
       </div>
       <div className="flex h-11 items-center border-t border-sidebar-border pl-3.5 pr-2 text-muted-foreground">
-        <span className="flex-1 text-[11px]">{t("localOnly")}</span>
+        {calendarSync.syncing ? (
+          // Connecting the calendar goes on with the settings closed.
+          <button
+            type="button"
+            onClick={onCalendarSettings}
+            role="status"
+            className="-ml-1.5 mr-1 flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[11px] hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+          >
+            <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
+            <span className="truncate">{t("settings:calendar.syncing")}</span>
+          </button>
+        ) : (
+          <span className="flex-1 text-[11px]">{t("localOnly")}</span>
+        )}
         <button type="button" onClick={onSettings} aria-label={t("settings")} title={t("settingsShortcut")} className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10">
           <Settings className="size-4" />
         </button>

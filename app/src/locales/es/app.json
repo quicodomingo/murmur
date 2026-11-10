@@ -92,5 +92,8 @@
     "transcript": "Transcripción…"
   },
   "exportDocxSub": "Documento de Word (.docx)",
-  "exportMarkdownSub": "Markdown (.md)"
+  "exportMarkdownSub": "Markdown (.md)",
+  "calendarSynced_one": "Calendario conectado: {{count}} calendario",
+  "calendarSynced_other": "Calendario conectado: {{count}} calendarios",
+  "calendarSyncEmpty": "macOS aún no ha cargado ningún calendario. Vuelve a mirarlo dentro de un rato."
 }
