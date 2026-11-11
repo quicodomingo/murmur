@@ -4,5 +4,6 @@
   "guestsLabel": "Invitados: «{{name}}» es…",
   "rename": "Renombrar «{{name}}»…",
   "newSpeaker": "Nuevo hablante…",
-  "nameLabel": "Nombre del hablante"
+  "nameLabel": "Nombre del hablante",
+  "mergeInto": "Todas las frases de «{{name}}» son de…"
 }

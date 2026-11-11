@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Pencil, Plus, UserRound } from "lucide-react";
+import { Check, Merge, Pencil, Plus, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -8,6 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { locale } from "@/lib/i18n";
@@ -59,12 +62,17 @@ type Props = {
   version: number;
   onReassign: (speaker: number, version: number) => void;
   onRename: (speaker: number, name: string, version: number) => void;
+  /** Every line of this speaker belongs to `to`. */
+  onMerge: (to: number, version: number) => void;
   /** Guests of the calendar event: picking one names this speaker after them. */
   guests?: string[] | null;
 };
 
-/** Speaker flag that opens a native-style menu to reassign the utterance or rename the speaker. */
-export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, guests: invited }: Props) {
+/**
+ * Speaker flag that opens a native-style menu to reassign the utterance, move all of this
+ * speaker's lines to another one, or rename the speaker.
+ */
+export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, onMerge, guests: invited }: Props) {
   // Meetings saved before calendars had no guests (null from the database).
   const { t } = useTranslation("speakers");
   const guests = invited ?? [];
@@ -94,6 +102,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
   // Guests who aren't a speaker's name yet.
   const taken = new Set(speakers.map((s) => s.name.toLocaleLowerCase(locale())));
   const unnamed = guests.filter((g) => !taken.has(g.toLocaleLowerCase(locale())));
+  const others = speakers.filter((s) => s.id !== speaker);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -101,7 +110,7 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
           <Flag speaker={speaker} name={name} you={speakers.find((s) => s.id === speaker)?.you} order={order} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-56">
+      <DropdownMenuContent align="start" className="min-w-64">
         {speakers.map((s) => (
           <DropdownMenuItem key={s.id} onSelect={() => s.id !== speaker && onReassign(s.id, version)}>
             <span className="size-2 rounded-full" style={{ background: speakerTone(s.id, s.you, order).solid }} />
@@ -122,6 +131,22 @@ export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, 
           </>
         )}
         <DropdownMenuSeparator />
+        {others.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Merge className="size-3.5" />
+              {t("mergeInto", { name })}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-44">
+              {others.map((s) => (
+                <DropdownMenuItem key={s.id} onSelect={() => onMerge(s.id, version)}>
+                  <span className="size-2 rounded-full" style={{ background: speakerTone(s.id, s.you, order).solid }} />
+                  {s.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuItem onSelect={() => setRenaming({ id: speaker, version })}>
           <Pencil className="size-3.5" />
           {t("rename", { name })}

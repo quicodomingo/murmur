@@ -4,6 +4,7 @@ import type { JSONContent } from "@tiptap/core";
 
 import * as backend from "./backend";
 import { coverLanguage, coverOutdated, meetingBasis, renamedSpeakers, renameInCover } from "./cover";
+import { defaultSpeakerNames, speakerName } from "./format";
 import { notesFromDoc } from "./notes";
 import {
   SYSTEM_SPEAKER_BASE,
@@ -76,6 +77,8 @@ export type Action =
   | { type: "title"; id: string; title: string }
   /** `version`: the meeting's `speakersVersion` the user saw when they started the action. */
   | { type: "rename"; id: string; speaker: number; name: string; version: number }
+  /** Every line of `from` belongs to `to`: one person the speaker detection split in two. */
+  | { type: "merge"; id: string; from: number; to: number; version: number }
   | { type: "reassign"; id: string; utteranceId: string; speaker: number; version: number }
   | { type: "edit"; id: string; utteranceId: string; text: string }
   | { type: "notes"; id: string; doc: JSONContent }
@@ -310,6 +313,8 @@ export function reducer(state: State, action: Action): State {
         const basis = m.cover.basis && !coverOutdated(m) ? meetingBasis(next, coverLanguage(m.cover)) : m.cover.basis;
         return { ...next, cover: { ...cover, basis } };
       });
+    case "merge":
+      return updateMeeting(state, action.id, (m) => mergeSpeakers(m, currentSpeaker(m, action.from, action.version), currentSpeaker(m, action.to, action.version)));
     case "reassign":
       return updateMeeting(state, action.id, (m) => ({
         ...m,
@@ -395,6 +400,26 @@ export function relabel(m: Meeting, base: number, assignments: Assignment[]): Me
 }
 
 /** A speaker number chosen on an older numbering, translated to the current one. */
+/**
+ * Moves every line of `from` to `to` and drops the name of `from`. The lines count as set by
+ * hand (`speakerLocked`), so the final pass keeps them together; the cover takes the name of `to`.
+ */
+export function mergeSpeakers(m: Meeting, from: number, to: number): Meeting {
+  if (from === to) return m;
+  const { [from]: _gone, ...speakerNames } = m.speakerNames;
+  const next: Meeting = {
+    ...m,
+    speakerNames,
+    utterances: m.utterances.map((u) => (u.speaker === from ? { ...u, speaker: to, speakerLocked: true } : u)),
+  };
+  if (!m.cover) return next;
+  const now = speakerName(next, to);
+  const olds = m.speakerNames[from] ? [m.speakerNames[from]] : defaultSpeakerNames(m, from);
+  const cover = renameInCover(m.cover, olds.filter((old) => old && old !== now).map((old) => [old, now] as [string, string]));
+  const basis = m.cover.basis && !coverOutdated(m) ? meetingBasis(next, coverLanguage(m.cover)) : m.cover.basis;
+  return { ...next, cover: { ...cover, basis } };
+}
+
 function currentSpeaker(m: Meeting, speaker: number, version: number): number {
   return version < (m.speakersVersion ?? 0) ? (m.speakerRemap?.[speaker] ?? speaker) : speaker;
 }

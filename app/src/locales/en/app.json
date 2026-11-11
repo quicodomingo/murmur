@@ -96,5 +96,9 @@
   "exportMarkdownSub": "Markdown (.md)",
   "calendarSynced_one": "Calendar connected: {{count}} calendar",
   "calendarSynced_other": "Calendar connected: {{count}} calendars",
-  "calendarSyncEmpty": "macOS hasn't loaded any calendars yet. Check again in a while."
+  "calendarSyncEmpty": "macOS hasn't loaded any calendars yet. Check again in a while.",
+  "speakerReassigned": "Line assigned to {{name}}",
+  "speakerMergeRest_one": "And {{name}}'s other line",
+  "speakerMergeRest_other": "And {{name}}'s other {{count}}",
+  "speakersMerged": "All of {{from}}'s lines are now {{to}}'s"
 }

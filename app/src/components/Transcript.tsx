@@ -28,6 +28,7 @@ type Props = {
   onTitle: (title: string) => void;
   onReassign: (utteranceId: string, speaker: number, version: number) => void;
   onRename: (speaker: number, name: string, version: number) => void;
+  onMerge: (from: number, to: number, version: number) => void;
   onEdit: (utteranceId: string, text: string) => void;
   onRemoveScreen?: (s: Screen) => void;
   /** The meeting's tags (MeetingTags), unless they're on the cover, the bigger panel. */
@@ -180,6 +181,7 @@ export function Transcript(props: Props) {
                       version={meeting.speakersVersion ?? 0}
                       onReassign={(s, version) => props.onReassign(u.id, s, version)}
                       onRename={props.onRename}
+                      onMerge={(to, version) => props.onMerge(u.speaker, to, version)}
                     />
                   }
                   onEdit={(text) => props.onEdit(u.id, text)}

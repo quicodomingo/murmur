@@ -96,5 +96,9 @@
   "exportMarkdownSub": "Markdown (.md)",
   "calendarSynced_one": "Calendario conectado: {{count}} calendario",
   "calendarSynced_other": "Calendario conectado: {{count}} calendarios",
-  "calendarSyncEmpty": "macOS aún no ha cargado ningún calendario. Vuelve a mirarlo dentro de un rato."
+  "calendarSyncEmpty": "macOS aún no ha cargado ningún calendario. Vuelve a mirarlo dentro de un rato.",
+  "speakerReassigned": "Frase asignada a {{name}}",
+  "speakerMergeRest_one": "Y la otra de {{name}}",
+  "speakerMergeRest_other": "Y las otras {{count}} de {{name}}",
+  "speakersMerged": "Todas las frases de {{from}} son ahora de {{to}}"
 }

@@ -37,7 +37,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as backend from "@/lib/backend";
 import { currentEvent, guestNames, useCalendarSync } from "@/lib/calendar";
-import { clock, duration } from "@/lib/format";
+import { clock, duration, speakerIds, speakerName } from "@/lib/format";
 import { exportMeeting, saveMarkdown, toMarkdown, type ExportContent, type ExportFormat } from "@/lib/export";
 import { defaultTitle } from "@/lib/cover";
 import { locale, t as translate } from "@/lib/i18n";
@@ -897,6 +897,12 @@ export default function App() {
         tags={tagsOf(meeting, "mt-2")}
       />
     );
+  /** Every line of `from` to `to`, with a notice (the meeting on screen). */
+  const mergeSpeakers = (from: number, to: number, version: number) => {
+    if (!meeting) return;
+    dispatch({ type: "merge", id: meeting.id, from, to, version });
+    toast(t("speakersMerged", { from: speakerName(meeting, from), to: speakerName(meeting, to) }));
+  };
   const renderTranscript = (compact: boolean) =>
     meeting && (
       <Transcript
@@ -909,8 +915,24 @@ export default function App() {
         hoveredNote={hoveredNote}
         onHoverNote={setHoveredNote}
         onTitle={(title) => dispatch({ type: "title", id: meeting.id, title })}
-        onReassign={(utteranceId, speaker, version) => dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker, version })}
-        onRename={(speaker, name, version) => dispatch({ type: "rename", id: meeting.id, speaker, name, version })}
+        onReassign={(utteranceId, speaker, version) => {
+          const from = meeting.utterances.find((u) => u.id === utteranceId)?.speaker;
+          dispatch({ type: "reassign", id: meeting.id, utteranceId, speaker, version });
+          // The detection may have split one person in two: offer to move the rest of their lines.
+          const rest = meeting.utterances.filter((u) => u.speaker === from && u.id !== utteranceId).length;
+          if (from === undefined || !rest || meeting.status === "recording") return;
+          const fromName = speakerName(meeting, from);
+          toast(t("speakerReassigned", { name: speakerName(meeting, speaker) }), {
+            action: { label: t("speakerMergeRest", { name: fromName, count: rest }), onClick: () => mergeSpeakers(from, speaker, version) },
+          });
+        }}
+        onRename={(speaker, name, version) => {
+          // A name another speaker already has: they're the same person.
+          const same = speakerIds(meeting).find((id) => id !== speaker && speakerName(meeting, id).toLocaleLowerCase() === name.toLocaleLowerCase());
+          if (same !== undefined) mergeSpeakers(speaker, same, version);
+          else dispatch({ type: "rename", id: meeting.id, speaker, name, version });
+        }}
+        onMerge={mergeSpeakers}
         onEdit={(utteranceId, text) => {
           const before = meeting.utterances.find((u) => u.id === utteranceId)?.text ?? "";
           dispatch({ type: "edit", id: meeting.id, utteranceId, text });

@@ -168,6 +168,7 @@ El sagnat (extensió `Indent`) és un atribut `indent` (0 a 6) dels paràgrafs i
 - **To:** es desa com un identificador fix (`constructive`, `tense`…) i es tradueix en mostrar-lo. Les portades antigues en català es continuen llegint.
 - **Tasques:** només accions que algú demana o es compromet a fer. Es poden marcar, editar, assignar, eliminar i afegir; en tornar a generar, es conserven les afegides a mà i les marcades.
 - **Noms:** reanomenar un parlant canvia el nom dins la portada (`renameInCover`), també mentre es genera. Els noms per defecte («Parlant 1», «Tu») es reconeixen en els tres idiomes.
+- **Ajuntar parlants:** quan la detecció parteix una persona en dues, `mergeSpeakers` (`lib/store.ts`, acció `merge`) passa totes les frases d'un parlant a l'altre, marcades com a canviades a mà (`speakerLocked`) perquè la passada final no les torni a separar, n'esborra el nom i canvia el nom vell pel nou a la portada. Es fa des del menú del parlant, des de l'avís que surt en canviar el parlant d'una sola frase, o reanomenant un parlant amb el nom d'un altre.
 - **Desactualitzada:** la portada desa una empremta del que ha llegit (`basis`). Si després canvien noms, parlants, text o notes, avisa i ofereix tornar-la a generar.
 - «PDF o envia…» obre el tauler d'impressió de macOS sobre una còpia de la portada (`.mm-print`), en mode clar.
 

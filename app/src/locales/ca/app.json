@@ -96,5 +96,9 @@
   "exportMarkdownSub": "Markdown (.md)",
   "calendarSynced_one": "Calendari connectat: {{count}} calendari",
   "calendarSynced_other": "Calendari connectat: {{count}} calendaris",
-  "calendarSyncEmpty": "macOS encara no ha carregat cap calendari. Torna-ho a mirar d'aquí a una estona."
+  "calendarSyncEmpty": "macOS encara no ha carregat cap calendari. Torna-ho a mirar d'aquí a una estona.",
+  "speakerReassigned": "Frase assignada a {{name}}",
+  "speakerMergeRest_one": "I l'altra de {{name}}",
+  "speakerMergeRest_other": "I les altres {{count}} de {{name}}",
+  "speakersMerged": "Totes les frases de {{from}} són ara de {{to}}"
 }

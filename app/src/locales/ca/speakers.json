@@ -4,5 +4,6 @@
   "guestsLabel": "Convidats: «{{name}}» és…",
   "rename": "Reanomena «{{name}}»…",
   "newSpeaker": "Nou parlant…",
-  "nameLabel": "Nom del parlant"
+  "nameLabel": "Nom del parlant",
+  "mergeInto": "Totes les frases de «{{name}}» són de…"
 }

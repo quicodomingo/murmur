@@ -102,6 +102,7 @@ Entre reunions (bloc 5):
 
 - [x] Calendari de macOS (inclou Google, iCloud i Exchange afegits al sistema): triar calendaris, avís «Comença d'aquí a 2 minuts» i títol de la reunió.
 - [x] Connectar el calendari continua en segon pla si es tanca la configuració (indicador al peu de la barra lateral i avís en acabar).
+- [x] Ajuntar dos parlants que són la mateixa persona: des del menú del parlant, des de l'avís en canviar una frase o posant-li el nom de l'altre.
 - [x] Noms dels parlants a partir dels convidats de l'esdeveniment (menú del parlant).
 - [x] Indicador de gravació, mode compacte de notes i captures de pantalla manuals.
 - [x] Actualitzacions de l'app i dels models en obrir Murmur (repositori `quicodomingo/murmur-releases`), descàrregues amb comprovació d'espai i SHA-256. Versió 0.2.0.

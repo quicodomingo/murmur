@@ -84,6 +84,7 @@ Per organitzar les reunions (per client, projecte…). Totes grises, sense color
 - Colors: `speaker1` violeta, `speaker2` corall (ambre a Formigó), `speaker3` turquesa, `speaker4` magenta. **"Tu" sempre és `you`** (l'accent del tema). Els colors es reparteixen per ordre: primer la gent de la sala i després la de la trucada. Així no se'n repeteix cap fins al cinquè parlant.
 - Al gràfic "Qui ha parlat", cada segment és el color sòlid; a les etiquetes i tasques, el tint amb el text fosc corresponent.
 - Més de quatre parlants: repeteix la paleta en ordre.
+- **Menú de l'etiqueta del parlant:** els parlants (per a aquella frase, amb un punt del seu color i ✓ a l'actual); els convidats del calendari sense parlant; «Totes les frases de «Parlant 3» són de…» › (els altres parlants, amb el seu punt), per ajuntar-ne dos que són la mateixa persona; Reanomena…; Nou parlant…. Si una frase passa a un altre parlant, un avís ofereix «I les altres 4 de Parlant 3». Reanomenar un parlant amb el nom d'un altre els ajunta.
 
 ### Portada
 Estructura igual que la teva maqueta original: metadades, títol, entradeta, nota "Generat en aquest ordinador", targetes de To i Qui ha parlat, Resum, Decisions, Tasques i Parts. Els minuts enllaçats fan servir `timestamp`. El punt del To fa servir el color de text en clar i l'accent en fosc.
