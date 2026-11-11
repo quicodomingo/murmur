@@ -6,6 +6,18 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.11.3": [
+      {
+        "title": "Summary and transcript, as two files",
+        "text": "If you save each meeting as Markdown with “Everything”, you now get two files: one with the summary and notes, and another with the transcript.",
+        "link": "transcription",
+        "linkLabel": "Open Settings"
+      },
+      {
+        "title": "Calendar connects in the background",
+        "text": "When you connect your calendar, you can close Settings while macOS loads your accounts. An indicator at the bottom of the sidebar tells you when it's done."
+      }
+    ],
     "0.11.1": [
       {
         "title": "Export just what you need",

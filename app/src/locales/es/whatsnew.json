@@ -6,6 +6,18 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.11.3": [
+      {
+        "title": "El resumen y la transcripción, en dos archivos",
+        "text": "Si guardas cada reunión en Markdown con la opción «Todo», ahora salen dos archivos: uno con el resumen y las notas, y otro con la transcripción.",
+        "link": "transcription",
+        "linkLabel": "Abre la configuración"
+      },
+      {
+        "title": "El calendario se conecta en segundo plano",
+        "text": "Al conectar el calendario, puedes cerrar la configuración mientras macOS carga las cuentas. Un indicador al pie de la barra lateral te avisa cuando ha terminado."
+      }
+    ],
     "0.11.1": [
       {
         "title": "Exporta solo lo que quieras",

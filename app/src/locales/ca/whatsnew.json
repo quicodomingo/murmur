@@ -6,6 +6,18 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.11.3": [
+      {
+        "title": "El resum i la transcripció, en dos fitxers",
+        "text": "Si desas cada reunió en Markdown amb l'opció «Tot», ara en surten dos fitxers: un amb el resum i les notes, i un altre amb la transcripció.",
+        "link": "transcription",
+        "linkLabel": "Obre la configuració"
+      },
+      {
+        "title": "El calendari es connecta en segon pla",
+        "text": "En connectar el calendari, pots tancar la configuració mentre macOS carrega els comptes. Un indicador al peu de la barra lateral et diu quan ha acabat."
+      }
+    ],
     "0.11.1": [
       {
         "title": "Exporta només el que vulguis",
