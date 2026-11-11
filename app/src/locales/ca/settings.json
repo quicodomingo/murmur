@@ -152,7 +152,7 @@
     "punctuationModel": "Model de puntuació de Softcatalà",
     "markdownGroup": "Markdown",
     "saveMarkdown": "Desa cada reunió en Markdown",
-    "saveMarkdownHint": "En acabar, Murmur hi escriu la reunió en un fitxer .md. Mentre graves, ho pots canviar per a aquella reunió des de la barra de dalt.",
+    "saveMarkdownHint": "En acabar, Murmur hi escriu la reunió en Markdown (.md). Mentre graves, ho pots canviar per a aquella reunió des de la barra de dalt.",
     "markdownFolder": "Carpeta dels Markdown",
     "markdownNoFolder": "Encara no n'has triat cap",
     "markdownFolderDialog": "Carpeta per als Markdown de les reunions",
@@ -169,7 +169,7 @@
       "summary": "Resum i notes",
       "transcript": "Transcripció"
     },
-    "markdownContentHint": "Si una reunió no té resum, s'hi desa tot."
+    "markdownContentHint": "«Tot» desa dos fitxers: el resum amb les notes i la transcripció. Si una reunió no té resum, s'hi desa tot en un de sol."
   },
   "intelligence": {
     "cover": "Resum",

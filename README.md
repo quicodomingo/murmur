@@ -37,7 +37,7 @@ It started as a tool for meetings in **Catalan**, where most transcription servi
 - **Tags** to organise meetings. Filter by them in the sidebar, search them, and rename, merge or delete them with a right click.
 - **Calendar.** Murmur reminds you two minutes before a meeting starts, and the recording takes the event's title and guests. It works with any calendar added to macOS: iCloud, Google, Exchange.
 - **Share with a link.** Choose what goes in (summary, notes, transcript, screenshots, audio), when the link expires and whether it has a password. Murmur encrypts it on your Mac and publishes it to your own Cloudflare account, which is free and is set up from the app.
-- **Markdown in your folder.** Pick a folder and Murmur saves each meeting there when it ends: everything, just the summary and notes, or just the transcript. You can turn it on or off for each meeting while recording.
+- **Markdown in your folder.** Pick a folder and Murmur saves each meeting there when it ends: everything (the summary with the notes and the transcript, as two files), just the summary and notes, or just the transcript. You can turn it on or off for each meeting while recording.
 - **Search** across all your meetings, plus export to Markdown, Word, PDF, audio (.m4a) and screenshots. For Word and Markdown you choose everything, the summary or the transcript.
 - **Interface** in Catalan, Spanish and English, with three colour themes and light and dark modes.
 

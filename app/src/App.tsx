@@ -689,7 +689,7 @@ export default function App() {
       setMarkdown(({ [id]: _done, ...rest }) => rest);
       if (!dir || !m.utterances.length) continue;
       saveMarkdown(m, dir, settings.markdownContent)
-        .then((path) => toast(t("markdownSaved"), { action: { label: t("showInFinder"), onClick: () => revealItemInDir(path).catch(() => {}) } }))
+        .then((paths) => toast(t("markdownSaved", { count: paths.length }), { action: { label: t("showInFinder"), onClick: () => revealItemInDir(paths[0]).catch(() => {}) } }))
         .catch((e) => toast.error(t("markdownFailed", { error: String(e) })));
     }
   }, [markdown, state.open, state.finalPass, settings.markdownDir, settings.markdownContent, t]);

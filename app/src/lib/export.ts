@@ -52,12 +52,24 @@ export async function exportMeeting(meeting: Meeting, format: ExportFormat, cont
  * "Desa en Markdown": the meeting written to the chosen folder once it's done, named
  * "2026-10-27 Title.md" so the folder sorts by date. Saving again replaces the file.
  */
-export async function saveMarkdown(meeting: Meeting, dir: string, content: ExportContent = "all"): Promise<string> {
+/**
+ * Writes the meeting to `dir` as Markdown. With a summary, each part goes to its own file, so
+ * "all" writes two: "<day> <title> - Summary.md" (summary and notes) and "... - Transcript.md".
+ * Without one, a single file with everything. Returns the paths written.
+ */
+export async function saveMarkdown(meeting: Meeting, dir: string, content: ExportContent = "all"): Promise<string[]> {
   const d = new Date(meeting.createdAt);
   const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const path = `${dir.replace(/\/+$/, "")}/${day} ${safeName(meeting.title)}.md`;
-  await backend.writeExport(path, new TextEncoder().encode(toMarkdown(meeting, content)));
-  return path;
+  const base = `${dir.replace(/\/+$/, "")}/${day} ${safeName(meeting.title)}`;
+  const include = parts(meeting, content);
+  const files: [string, ExportContent][] = !meeting.cover
+    ? [[`${base}.md`, "all"]]
+    : [
+        ...(include.summary ? [[`${base} - ${safeName(t("app:viewCover"))}.md`, "summary"] as [string, ExportContent]] : []),
+        ...(include.transcript ? [[`${base} - ${safeName(t("app:viewTranscript"))}.md`, "transcript"] as [string, ExportContent]] : []),
+      ];
+  for (const [path, part] of files) await backend.writeExport(path, new TextEncoder().encode(toMarkdown(meeting, part)));
+  return files.map(([path]) => path);
 }
 
 // --- Markdown ------------------------------------------------------------------------------

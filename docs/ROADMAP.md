@@ -13,7 +13,7 @@ Ordre de treball: **1 → 2 → 3**; els blocs 4–6 s'intercalen quan calgui.
 - [x] Exportar a fitxer: Markdown i .docx.
 - [x] Desar cada reunió en Markdown (resum, notes i transcripció) a una carpeta triada, amb un interruptor a la barra de dalt mentre es grava.
 - [x] ⌘+ / ⌘− / ⌘0 per ampliar o reduir el text de les notes (també al menú Visualització).
-- [x] Exportar a Word o Markdown tot, només el resum i les notes o només la transcripció (el Word porta també el resum), i triar-ho per al Markdown que es desa sol.
+- [x] Exportar a Word o Markdown tot, només el resum i les notes o només la transcripció (el Word porta també el resum), i triar-ho per al Markdown que es desa sol (amb «Tot», el resum i la transcripció en dos fitxers).
 - [x] Tab i Maj+Tab per sagnar paràgrafs a les notes (i niuar elements de llista), també als exports i a l'enllaç compartit.
 - [x] Selector de micròfon a la configuració.
 - [x] Primer commit al repositori.

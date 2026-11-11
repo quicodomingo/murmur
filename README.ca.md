@@ -37,7 +37,7 @@ Va néixer per a reunions en **català**, on la majoria de serveis de transcripc
 - **Etiquetes** per ordenar les reunions. Les pots filtrar a la barra lateral i cercar-les, i amb el clic dret les reanomenes, les ajuntes o les esborres.
 - **Calendari.** Murmur t'avisa dos minuts abans que comenci una reunió, i la gravació agafa el títol i els convidats de l'esdeveniment. Funciona amb qualsevol calendari afegit a macOS: iCloud, Google o Exchange.
 - **Compartir amb un enllaç.** Tries què hi surt (resum, notes, transcripció, captures, àudio), quan caduca l'enllaç i si porta contrasenya. Murmur ho xifra al Mac i ho publica al teu compte de Cloudflare, que és gratuït i es configura des de l'app.
-- **Markdown a la teva carpeta.** Tria una carpeta i Murmur hi desa cada reunió quan acaba: tot, només el resum i les notes o només la transcripció. Mentre graves, ho pots activar o desactivar per a aquella reunió.
+- **Markdown a la teva carpeta.** Tria una carpeta i Murmur hi desa cada reunió quan acaba: tot (el resum amb les notes i la transcripció, en dos fitxers), només el resum i les notes o només la transcripció. Mentre graves, ho pots activar o desactivar per a aquella reunió.
 - **Cerca** a totes les reunions, i exportació a Markdown, Word, PDF, àudio (.m4a) i captures. Al Word i al Markdown tries si hi va tot, el resum o la transcripció.
 - **Interfície** en català, castellà i anglès, amb tres temes de color i mode clar i fosc.
 
