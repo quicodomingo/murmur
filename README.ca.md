@@ -27,6 +27,7 @@ Va néixer per a reunions en **català**, on la majoria de serveis de transcripc
 - **El micròfon i la trucada, per separat.** Murmur grava el micròfon i l'àudio del sistema (Zoom, Meet, Teams…) en dos canals i n'elimina l'eco. Per això funciona també amb altaveus, no només amb auriculars. Mai no grava la pantalla: només en fa una captura quan tu la demanes.
 - **Parlants.** Les veus s'agrupen en directe. En acabar, una segona passada per tota la gravació comprova qui ha dit cada cosa. Pots canviar «Parlant 1» pel nom real o triar-lo entre els convidats de l'esdeveniment del calendari, i si una mateixa persona surt com a dos parlants, els ajuntes amb un clic.
 - **Passada final amb Whisper.** Quan la reunió és en una sola llengua, Whisper large-v3-turbo la torna a escoltar quan atures la gravació. Reescriu el text amb puntuació, majúscules i noms propis. No toca les frases que hagis corregit a mà.
+- **Puntuació de Softcatalà.** Quan la reunió barreja català i castellà, o no tens Whisper, el model de puntuació de Softcatalà hi posa punts, comes i majúscules en acabar. És opcional (126 MB) i es descarrega des de Configuració › Transcripció.
 - **Continuar una reunió.** Si atures massa d'hora o feu una pausa, «Continua» torna a gravar dins la mateixa reunió. La pausa queda marcada a la transcripció, les veus de la primera part tornen amb el seu nom i el resum es fa amb tota la reunió.
 - **Glossari.** Afegeix-hi els noms, les marques i les sigles que la transcripció escriu malament (WordPress, Softcatalà, el nom d'un client) i Murmur els escriurà bé, en directe i en acabar. Quan corregeixes un nom a mà, et proposa afegir-lo. En una reunió del calendari hi compten també els noms dels convidats, i el resum els escriu igual.
 - **Barra flotant mentre graves.** Una píndola petita a la vora de la pantalla queda al davant de la trucada. Mostra el nivell de l'àudio, torna a obrir Murmur, atura la gravació i fa captures de la pantalla compartida. Cada captura queda lligada al moment de la conversa: surt al costat del que s'estava dient i dins la part corresponent del resum. Si cliques la píndola, Murmur es converteix en una finestra estreta de notes al costat de la trucada.
@@ -72,6 +73,7 @@ El primer cop que l'obres, Murmur descarrega els models de veu i et demana aques
 | Català i castellà, en directe | Conformer-Transducer ca-es | Projecte AINA (BSC), a partir d'NVIDIA | CC BY 4.0 |
 | Anglès, en directe | Parakeet TDT-CTC 110M | NVIDIA | CC BY 4.0 |
 | Passada final | Whisper large-v3-turbo (whisper.cpp) | OpenAI | MIT |
+| Puntuació en català | fullstop-catalan-punctuation-prediction | Softcatalà | MIT |
 | Detecció de veu | Silero VAD | Silero | MIT |
 | Parlants, en directe | TitaNet small | NVIDIA NeMo | Apache 2.0 |
 | Parlants, passada final | pyannote segmentation 3.0 + ERes2Net | pyannote, 3D-Speaker | MIT, Apache 2.0 |

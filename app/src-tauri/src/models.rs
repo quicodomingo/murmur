@@ -81,11 +81,11 @@ pub const PUNCTUATION: OptionalModel = OptionalModel {
     id: "punctuation",
     dir: "punct-ca",
     required: false,
-    // Converted with tools/export_punctuation.py. Kept in a private repo (quicodomingo/murmur-punctuation)
-    // until Softcatalà confirms its licence, so the app can't download it yet.
+    // Softcatalà's model (MIT), converted with tools/export_punctuation.py and published at
+    // huggingface.co/quicodomingo/murmur-models.
     files: &[
-        ModelFile { name: "model.int8.onnx", url: None, bytes: 126_172_226, sha256: "5485384fd69e3d5b7f260c6779bf857c8f82d222e3582f15240bbe5a3a8257ca" },
-        ModelFile { name: "tokenizer.json", url: None, bytes: 2_296_937, sha256: "e986e7d59bd59b4a712a312548eb7cc450c40696f9f4bc1d88f7bba7cacb7b4b" },
+        ModelFile { name: "model.int8.onnx", url: Some("https://huggingface.co/quicodomingo/murmur-models/resolve/main/punct-ca/model.int8.onnx"), bytes: 126_172_226, sha256: "5485384fd69e3d5b7f260c6779bf857c8f82d222e3582f15240bbe5a3a8257ca" },
+        ModelFile { name: "tokenizer.json", url: Some("https://huggingface.co/quicodomingo/murmur-models/resolve/main/punct-ca/tokenizer.json"), bytes: 2_296_937, sha256: "e986e7d59bd59b4a712a312548eb7cc450c40696f9f4bc1d88f7bba7cacb7b4b" },
     ],
 };
 

@@ -27,6 +27,7 @@ Nació para reuniones en **catalán**, donde la mayoría de servicios de transcr
 - **El micrófono y la llamada, por separado.** Murmur graba el micrófono y el audio del sistema (Zoom, Meet, Teams…) en dos canales y elimina el eco. Por eso funciona también con altavoces, no solo con auriculares. Nunca graba la pantalla: solo hace una captura cuando tú la pides.
 - **Hablantes.** Las voces se agrupan en directo. Al terminar, una segunda pasada por toda la grabación comprueba quién ha dicho cada cosa. Puedes cambiar «Hablante 1» por el nombre real o elegirlo entre los invitados del evento del calendario, y si una misma persona sale como dos hablantes, los juntas con un clic.
 - **Pasada final con Whisper.** Cuando la reunión es en una sola lengua, Whisper large-v3-turbo la vuelve a escuchar cuando detienes la grabación. Reescribe el texto con puntuación, mayúsculas y nombres propios. No toca las frases que hayas corregido a mano.
+- **Puntuación de Softcatalà.** Cuando la reunión mezcla catalán y castellano, o no tienes Whisper, el modelo de puntuación de Softcatalà le pone puntos, comas y mayúsculas al terminar. Es opcional (126 MB) y se descarga desde Configuración › Transcripción.
 - **Continuar una reunión.** Si detienes demasiado pronto o hacéis una pausa, «Continuar» vuelve a grabar dentro de la misma reunión. La pausa queda marcada en la transcripción, las voces de la primera parte vuelven con su nombre y el resumen se hace con toda la reunión.
 - **Glosario.** Añade los nombres, marcas y siglas que la transcripción escribe mal (WordPress, Softcatalà, el nombre de un cliente) y Murmur los escribirá bien, en directo y al terminar. Cuando corriges un nombre a mano, te propone añadirlo. En una reunión del calendario también cuentan los nombres de los invitados, y el resumen los escribe igual.
 - **Barra flotante mientras grabas.** Una píldora pequeña en el borde de la pantalla se queda delante de la llamada. Muestra el nivel del audio, vuelve a abrir Murmur, detiene la grabación y hace capturas de la pantalla compartida. Cada captura queda ligada al momento de la conversación: aparece junto a lo que se estaba diciendo y dentro de la parte correspondiente del resumen. Si haces clic en la píldora, Murmur se convierte en una ventana estrecha de notas al lado de la llamada.
@@ -72,6 +73,7 @@ La primera vez que la abres, Murmur descarga los modelos de voz y te pide estos 
 | Catalán y castellano, en directo | Conformer-Transducer ca-es | Projecte AINA (BSC), a partir de NVIDIA | CC BY 4.0 |
 | Inglés, en directo | Parakeet TDT-CTC 110M | NVIDIA | CC BY 4.0 |
 | Pasada final | Whisper large-v3-turbo (whisper.cpp) | OpenAI | MIT |
+| Puntuación en catalán | fullstop-catalan-punctuation-prediction | Softcatalà | MIT |
 | Detección de voz | Silero VAD | Silero | MIT |
 | Hablantes, en directo | TitaNet small | NVIDIA NeMo | Apache 2.0 |
 | Hablantes, pasada final | pyannote segmentation 3.0 + ERes2Net | pyannote, 3D-Speaker | MIT, Apache 2.0 |

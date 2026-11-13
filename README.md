@@ -27,6 +27,7 @@ It started as a tool for meetings in **Catalan**, where most transcription servi
 - **Your mic and the call, separately.** Murmur records your microphone and the system audio (Zoom, Meet, Teams…) as two channels and removes the echo, so it works with speakers too, not just headphones. It never records the screen: it only takes a screenshot when you ask for one.
 - **Speakers.** Voices are grouped live. When the meeting ends, a second pass over the whole recording checks who said what. Rename “Speaker 1” to a real name, or pick one from the calendar event's guests, and if one person shows up as two speakers, merge them in one click.
 - **Final pass with Whisper.** For single-language meetings, Whisper large-v3-turbo listens again after you stop and rewrites the text with punctuation, capitals and proper names. It doesn't touch the lines you corrected by hand.
+- **Softcatalà's punctuation.** When the meeting mixes Catalan and Spanish, or you don't have Whisper, Softcatalà's punctuation model adds full stops, commas and capitals when it finishes. It's optional (126 MB) and downloads from Settings › Transcription.
 - **Continue a meeting.** If you stop too early or take a break, "Continue" records again within the same meeting. The break is marked in the transcript, the voices from the first part come back with their names, and the summary covers the whole meeting.
 - **Glossary.** Add the names, brands and acronyms the transcription gets wrong (WordPress, Softcatalà, a client's name) and Murmur will spell them right, live and when it finishes. When you correct a name by hand, it offers to add it. In a calendar meeting the guests' names count too, and the summary spells them the same way.
 - **Floating bar while you record.** A small pill on the edge of the screen stays on top of your call: it shows the audio level, brings Murmur back, stops the recording and takes a screenshot of the shared screen. Each screenshot is tied to the moment of the conversation, so it appears next to what was being said, and in the right part of the summary. Click the pill to turn Murmur into a narrow notes window beside the call.
@@ -72,6 +73,7 @@ The first time you open it, Murmur downloads the speech models and asks for thes
 | Catalan and Spanish, live | Conformer-Transducer ca-es | Projecte AINA (BSC), from NVIDIA | CC BY 4.0 |
 | English, live | Parakeet TDT-CTC 110M | NVIDIA | CC BY 4.0 |
 | Final pass | Whisper large-v3-turbo (whisper.cpp) | OpenAI | MIT |
+| Catalan punctuation | fullstop-catalan-punctuation-prediction | Softcatalà | MIT |
 | Voice activity | Silero VAD | Silero | MIT |
 | Speakers, live | TitaNet small | NVIDIA NeMo | Apache 2.0 |
 | Speakers, final pass | pyannote segmentation 3.0 + ERes2Net | pyannote, 3D-Speaker | MIT, Apache 2.0 |

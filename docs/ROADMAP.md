@@ -75,7 +75,7 @@ Entre reunions (bloc 5):
 - [x] Gemma 4 E4B dins el nucli Rust (`llm.rs`, llama-cpp-2 + Metal): llegeix la transcripció un cop i respon cada part en JSON amb gramàtica. S'allibera en acabar. ~2,5 min per 20 min de reunió a l'M4.
 - [x] Portada (Portada | Transcripció) amb els passos del processament i «Genera la portada» per a reunions antigues.
 - [x] Configuració › Intel·ligència: activar, descarregar (reprenible), esborrar models, i editar i provar els prompts de cada part.
-- [ ] Publicar el model de puntuació convertit perquè l'app el pugui descarregar (i aclarir-ne la llicència amb Softcatalà).
+- [x] Publicar el model de puntuació convertit perquè l'app el pugui descarregar. És MIT: és a `quicodomingo/murmur-models/punct-ca`, amb la llicència i el crèdit a Softcatalà.
 - [ ] Correcció ortogràfica del text que escriu el LLM (castellanismes de l'E4B).
 
 ## 3. Instal·lable per a altres persones
@@ -84,7 +84,7 @@ Entre reunions (bloc 5):
 - [x] **Permisos**: Murmur els demana com les altres apps (diàleg del micròfon, avís de macOS per a l'àudio del sistema) i Configuració › Àudio › Permisos en mostra l'estat.
 - [x] Models a la carpeta de dades de l'app (`<app data>/models`) quan no hi ha la carpeta `models/` del projecte.
 - [x] Conformer per a sherpa-onnx publicat a [huggingface.co/quicodomingo/murmur-models](https://huggingface.co/quicodomingo/murmur-models) (CC BY 4.0, atribució a AINA; fp32 i int8). Prova: descàrrega completa en una carpeta buida (585 MB, 21 s) i transcripció idèntica a la dels models del projecte.
-- [ ] Puntuació de Softcatalà: guardada al repositori privat `quicodomingo/murmur-punctuation`. Preguntar-los la llicència; si la permet, fer-lo públic i posar-ne les URL a `models.rs`.
+- [x] Puntuació de Softcatalà: publicada a Hugging Face (`quicodomingo/murmur-models/punct-ca`, MIT) i amb les URL a `models.rs`.
 - [ ] Decidir si es baixa el Conformer en int8 (228 MB en total en lloc de 585 MB): mesurar-ne la qualitat amb la referència manual.
 - [x] Comprovació d'espai lliure abans de descarregar, i verificació (hash) dels fitxers.
 - [ ] Calendaris a la primera obertura (opcional).
