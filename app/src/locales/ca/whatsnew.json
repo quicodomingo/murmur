@@ -6,6 +6,18 @@
   "dontShowHint": "Es pot tornar a activar a Configuració › General.",
   "ok": "Entesos",
   "releases": {
+    "0.11.4": [
+      {
+        "title": "Ajunta dos parlants",
+        "text": "Si Murmur ha separat una mateixa persona en dos parlants, obre el menú del nom i tria «Totes les frases de… són de». També ho pots fer reanomenant-lo amb el nom de l'altre."
+      },
+      {
+        "title": "Puntuació de Softcatalà",
+        "text": "El model de puntuació de Softcatalà ja es pot descarregar. Posa punts, comes i majúscules a les reunions que barregen català i castellà.",
+        "link": "transcription",
+        "linkLabel": "Obre la configuració"
+      }
+    ],
     "0.11.3": [
       {
         "title": "El resum i la transcripció, en dos fitxers",

@@ -6,6 +6,18 @@
   "dontShowHint": "Se puede volver a activar en Ajustes › General.",
   "ok": "Entendido",
   "releases": {
+    "0.11.4": [
+      {
+        "title": "Junta dos hablantes",
+        "text": "Si Murmur ha separado a una misma persona en dos hablantes, abre el menú del nombre y elige «Todas las frases de… son de». También puedes hacerlo renombrándolo con el nombre del otro."
+      },
+      {
+        "title": "Puntuación de Softcatalà",
+        "text": "El modelo de puntuación de Softcatalà ya se puede descargar. Pone puntos, comas y mayúsculas en las reuniones que mezclan catalán y castellano.",
+        "link": "transcription",
+        "linkLabel": "Abre la configuración"
+      }
+    ],
     "0.11.3": [
       {
         "title": "El resumen y la transcripción, en dos archivos",

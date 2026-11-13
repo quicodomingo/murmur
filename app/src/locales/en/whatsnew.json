@@ -6,6 +6,18 @@
   "dontShowHint": "You can turn it back on in Settings › General.",
   "ok": "Got It",
   "releases": {
+    "0.11.4": [
+      {
+        "title": "Merge two speakers",
+        "text": "If Murmur has split one person into two speakers, open the name's menu and pick “All of …'s lines are…”. You can also rename one with the other's name."
+      },
+      {
+        "title": "Softcatalà's punctuation",
+        "text": "Softcatalà's punctuation model can now be downloaded. It adds full stops, commas and capitals to meetings that mix Catalan and Spanish.",
+        "link": "transcription",
+        "linkLabel": "Open settings"
+      }
+    ],
     "0.11.3": [
       {
         "title": "Summary and transcript, as two files",
