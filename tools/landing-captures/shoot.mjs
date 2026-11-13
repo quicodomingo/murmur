@@ -43,20 +43,47 @@ const shot = async (name, clip) => {
 };
 const clickText = (text, sel = "*") => ev(`(()=>{const e=[...document.querySelectorAll(${JSON.stringify(sel)})].find(e=>e.textContent.trim()===${JSON.stringify(text)}&&e.offsetParent!==null); e?.click(); return !!e})()`);
 
-async function open(lang, { theme = "acid", mode = "light", cover = false, notes = true, w = W, h = H } = {}) {
+async function open(lang, { theme = "acid", mode = "light", cover = false, notes = true, panel = 340, w = W, h = H, live = null } = {}) {
   await size(w, h);
   const d = seed(lang, slides[lang]);
+  // `live`: seconds into the meeting. Only what was said by then, no summary yet.
+  if (live) {
+    // Only what was said by then, no summary yet, and the next line half said (the engine is still writing it).
+    // The meeting leaves the stored list: it comes back through the app's own "new", as the one recording.
+    const m = d.meetings.find((m) => m.title === d.title);
+    const words = (m.utterances.find((u) => u.end > live)?.text ?? "").split(" ");
+    d.next = words.slice(0, Math.ceil(words.length * 0.6)).join(" ");
+    d.live = { ...m, status: "recording", duration: live, cover: null, utterances: m.utterances.filter((u) => u.end <= live),
+      notesDoc: { ...m.notesDoc, content: m.notesDoc.content.filter((b) => b.type !== "taskList") },
+      screens: m.screens.filter((x) => x.t <= live) };
+    d.meetings = d.meetings.filter((x) => x !== m);
+  }
   await send("Page.navigate", { url: "http://localhost:8766/" });
   await wait(1500);
   await ev(`localStorage.clear();
     localStorage.setItem("transcriptor.settings.v1", ${JSON.stringify(JSON.stringify({ uiLanguage: lang, theme, mode, calendarEnabled: true, language: lang === "en" ? "en" : "ca-es" }))});
     localStorage.setItem("transcriptor.meetings.v1", ${JSON.stringify(JSON.stringify(d.meetings))});
     localStorage.setItem("transcriptor.view.v1", ${JSON.stringify(JSON.stringify({ cover }))});
-    localStorage.setItem("transcriptor.notesLayout.v1", ${JSON.stringify(JSON.stringify({ visible: notes, full: false, width: 340 }))});`);
+    localStorage.setItem("transcriptor.notesLayout.v1", ${JSON.stringify(JSON.stringify({ visible: notes, full: false, width: panel }))});`);
   await send("Page.reload"); await wait(2500);
-  await clickText(d.title);
+  if (live) await goLive(d);
+  else await clickText(d.title);
   await wait(1200);
   return d;
+}
+// The meeting as if it were recording now, through the app's own reducer (found in React's fiber
+// tree). The recording clock (a 500 ms interval) is held still so the time shown stays at `live`.
+async function goLive(d) {
+  await ev(`(()=>{
+    const si = window.setInterval; window.setInterval = (f, ms, ...a) => ms === 500 ? 0 : si(f, ms, ...a);
+    const root = document.getElementById("root"); const key = Object.keys(root).find(k => k.startsWith("__reactContainer"));
+    let dispatch, stack = [root[key]];
+    while (stack.length && !dispatch) { const f = stack.pop(); let h = f.memoizedState;
+      while (h && typeof h === "object" && "next" in h) { const s = h.memoizedState; if (s && s.open && "selectedId" in s && h.queue?.dispatch) dispatch = h.queue.dispatch; h = h.next; }
+      if (f.sibling) stack.push(f.sibling); if (f.child) stack.push(f.child); }
+    dispatch({ type: "new", meeting: ${JSON.stringify(d.live)} });
+    dispatch({ type: "partial", channel: "system", text: ${JSON.stringify(d.next)} });
+  })()`);
 }
 const want = (n) => !ONLY || n.includes(ONLY);
 
@@ -68,6 +95,9 @@ for (const lang of ["ca", "es", "en"]) {
   if (want(p + "03-resum")) { await open(lang, { cover: true, notes: false }); await shot(p + "03-resum"); }
   if (want(p + "04-resum-fosc")) { await open(lang, { cover: true, notes: false, mode: "dark" }); await shot(p + "04-resum-fosc"); }
   if (lang !== "ca") continue;
+  // Social posts: 16:9, the transcript panel wide so the conversation reads at a glance.
+  for (const [n, o] of [["13-tuit-a", { panel: 560 }], ["13-tuit-b", { panel: 640 }], ["13-tuit-fosc", { panel: 560, mode: "dark" }], ["14-directe", { panel: 640, live: 1250 }], ["14-directe-fosc", { panel: 640, live: 1250, mode: "dark" }]])
+    if (want(p + n)) { await open(lang, { w: 1280, h: 720, ...o }); await shot(p + n); }
   if (want(p + "06-tema-mono")) { await open(lang, { theme: "mono" }); await shot(p + "06-tema-mono"); }
   if (want(p + "07-tema-formigo")) { await open(lang, { theme: "formigo" }); await shot(p + "07-tema-formigo"); }
   if (want(p + "08-tema-formigo-fosc")) { await open(lang, { theme: "formigo", mode: "dark" }); await shot(p + "08-tema-formigo-fosc"); }
