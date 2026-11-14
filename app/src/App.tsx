@@ -52,6 +52,7 @@ import { hasAudio, playAt, release, stopUnless } from "@/lib/player";
 import { stepTextZoom, useSettings } from "@/lib/settings";
 import { activeShares, expired, revokeShare } from "@/lib/share";
 import { notesDoc } from "@/lib/notes";
+import { capabilities, hasMod, isMac, shortcut } from "@/lib/platform";
 import { useMeetings } from "@/lib/store";
 import { SYSTEM_SPEAKER_BASE, type Language, type Meeting, type ModelId, type SearchHit } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -406,17 +407,17 @@ export default function App() {
   const removeRef = useRef<() => void>(() => {});
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === ",") {
+      if (hasMod(e) && e.key === ",") {
         e.preventDefault();
         setShowSettings(true);
       }
       // ⌘⌫: delete the selected meeting (not while typing).
       const typing = (e.target as HTMLElement | null)?.closest("input, textarea, [contenteditable='true']");
-      if (e.metaKey && e.key === "Backspace" && !typing) {
+      if (hasMod(e) && e.key === "Backspace" && !typing) {
         e.preventDefault();
         removeRef.current();
       }
-      if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "n") {
+      if (hasMod(e) && !e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         startRef.current();
       }
@@ -436,7 +437,7 @@ export default function App() {
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!e.metaKey || e.altKey || e.ctrlKey) return;
+      if (!hasMod(e) || e.altKey || (isMac ? e.ctrlKey : e.metaKey)) return;
       const direction = e.key === "+" || e.key === "=" ? 1 : e.key === "-" ? -1 : e.key === "0" ? 0 : null;
       if (direction === null) return;
       e.preventDefault();
@@ -633,7 +634,7 @@ export default function App() {
     if (language === "en" && !models.status.english?.installed) language = settings.language === "en" ? "ca" : settings.language;
     const name = t(`settings:transcription.languages.${language === "ca-es" ? "caEs" : language}`);
     toast(detected.language === language ? t("importLanguage", { language: name }) : t("importLanguageUnclear", { language: name }), { id: listening });
-    const title = path.split("/").pop()!.replace(/\.[^.]+$/, "");
+    const title = path.split(/[\\/]/).pop()!.replace(/\.[^.]+$/, "");
     const m = newMeeting({ mic: true, system: false }, language, title);
     dispatch({ type: "new", meeting: m });
     setImporting({ id: m.id, done: 0, total: 0 });
@@ -804,10 +805,11 @@ export default function App() {
     dispatch({ type: "jump", meetingId: meeting.id, t });
     if (hasAudio(meeting)) void playAt(meeting, t);
   };
-  /** "Exporta l'àudio…": an .m4a anyone can play. */
+  /** "Exporta l'àudio…": an .m4a anyone can play (an .ogg on Windows and Linux, playback.rs). */
   const exportAudio = async (m: Meeting) => {
     if (!m.audioPath) return;
-    const dest = await save({ title: t("exportAudioTitle"), defaultPath: `${m.title.replace(/[/:]/g, "-")}.m4a`, filters: [{ name: t("audioFilter"), extensions: ["m4a"] }] });
+    const ext = capabilities.audioExtension;
+    const dest = await save({ title: t("exportAudioTitle"), defaultPath: `${m.title.replace(/[/:\\]/g, "-")}.${ext}`, filters: [{ name: t("audioFilter"), extensions: [ext] }] });
     if (!dest) return;
     try {
       await backend.exportAudio(m.id, m.audioPath, dest);
@@ -986,7 +988,7 @@ export default function App() {
     return (
       <TooltipProvider delayDuration={600}>
         <div className="flex h-screen flex-col overflow-hidden bg-background">
-          <header data-tauri-drag-region className="flex h-[52px] shrink-0 items-center gap-2 border-b border-border pl-[84px] pr-2">
+          <header data-tauri-drag-region className="flex h-[52px] shrink-0 items-center gap-2 border-b border-border pl-[84px] pr-2 pc:pl-3">
             <span data-tauri-drag-region className="min-w-0 flex-1 truncate text-[13px] font-semibold">
               {meeting.title}
             </span>
@@ -995,9 +997,11 @@ export default function App() {
                 <span className="text-[12px] tabular-nums text-muted-foreground" aria-label={t("recordingTime")}>
                   {clock(recording.duration)}
                 </span>
-                <ToolbarButton label={t("captureScreen")} onClick={() => captureRef.current()}>
-                  <Camera className="size-4" />
-                </ToolbarButton>
+                {capabilities.screenshots && (
+                  <ToolbarButton label={t("captureScreen")} onClick={() => captureRef.current()}>
+                    <Camera className="size-4" />
+                  </ToolbarButton>
+                )}
                 <ToolbarButton label={t("stopRecording")} onClick={stop}>
                   <span className="size-2.5 rounded-[2px] bg-mm-recording-dot" />
                 </ToolbarButton>
@@ -1049,7 +1053,7 @@ export default function App() {
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header data-tauri-drag-region className={cn("flex h-[52px] shrink-0 items-center gap-2 border-b border-border px-3", !showSidebar && "pl-[84px]")}>
+          <header data-tauri-drag-region className={cn("flex h-[52px] shrink-0 items-center gap-2 border-b border-border px-3", !showSidebar && "pl-[84px] pc:pl-3")}>
             <ToolbarButton label={showSidebar ? t("hideSidebar") : t("showSidebar")} onClick={() => setShowSidebar((v) => !v)}>
               <PanelLeft className="size-4" />
             </ToolbarButton>
@@ -1083,7 +1087,7 @@ export default function App() {
                   </DropdownMenuItem>
                   {hasAudio(meeting) && (
                     <DropdownMenuItem onSelect={() => exportAudio(meeting)}>
-                      <FileAudio className="size-3.5" /> {t("exportAudio")}
+                      <FileAudio className="size-3.5" /> {t("exportAudio", { ext: capabilities.audioExtension })}
                     </DropdownMenuItem>
                   )}
                   {meeting.audioPath && meeting.utterances.length > 0 && (
@@ -1105,7 +1109,7 @@ export default function App() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" disabled={meeting.status === "recording"} onSelect={() => remove(meeting)}>
                     <Trash2 className="size-3.5" /> {t("deleteMeeting")}
-                    <span className="ml-auto pl-4 text-[11px] opacity-60">⌘⌫</span>
+                    <span className="ml-auto pl-4 text-[11px] opacity-60">{shortcut("⌘⌫")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

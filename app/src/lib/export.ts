@@ -60,7 +60,7 @@ export async function exportMeeting(meeting: Meeting, format: ExportFormat, cont
 export async function saveMarkdown(meeting: Meeting, dir: string, content: ExportContent = "all"): Promise<string[]> {
   const d = new Date(meeting.createdAt);
   const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const base = `${dir.replace(/\/+$/, "")}/${day} ${safeName(meeting.title)}`;
+  const base = `${dir.replace(/[\\/]+$/, "")}/${day} ${safeName(meeting.title)}`;
   const include = parts(meeting, content);
   const files: [string, ExportContent][] = !meeting.cover
     ? [[`${base}.md`, "all"]]

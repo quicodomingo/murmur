@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [
+      {
+        "title": "Murmur",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "label": "main"
+      }
+    ]
+  },
+  "bundle": {
+    "targets": [
+      "deb",
+      "rpm",
+      "appimage"
+    ],
+    "createUpdaterArtifacts": true,
+    "linux": {
+      "deb": {
+        "depends": [
+          "libgomp1"
+        ]
+      },
+      "rpm": {
+        "depends": [
+          "libgomp"
+        ]
+      }
+    },
+    "resources": {
+      "linux-libs/*": "./"
+    }
+  }
+}

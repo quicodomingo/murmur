@@ -106,11 +106,38 @@ pub fn whisper(pid: Option<u32>) {
     }
 }
 
+#[cfg(unix)]
 fn signal(pid: u32, pause: bool) {
     let sig = if pause { libc::SIGSTOP } else { libc::SIGCONT };
     // SAFETY: plain kill(2) on our own child process.
     unsafe {
         libc::kill(pid as libc::pid_t, sig);
+    }
+}
+
+/// Windows has no SIGSTOP: ntdll's NtSuspendProcess / NtResumeProcess do the same to every
+/// thread of the process.
+#[cfg(windows)]
+fn signal(pid: u32, pause: bool) {
+    use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_SUSPEND_RESUME};
+    #[link(name = "ntdll")]
+    unsafe extern "system" {
+        fn NtSuspendProcess(process: HANDLE) -> i32;
+        fn NtResumeProcess(process: HANDLE) -> i32;
+    }
+    // SAFETY: a handle to our own child process, closed right after.
+    unsafe {
+        let process = OpenProcess(PROCESS_SUSPEND_RESUME, 0, pid);
+        if process.is_null() {
+            return;
+        }
+        if pause {
+            NtSuspendProcess(process);
+        } else {
+            NtResumeProcess(process);
+        }
+        CloseHandle(process);
     }
 }
 

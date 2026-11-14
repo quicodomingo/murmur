@@ -34,11 +34,12 @@ fn sidecar() -> Result<PathBuf> {
     if let Some(path) = std::env::var_os("MURMUR_WHISPER_BIN") {
         return Ok(path.into());
     }
-    let beside = std::env::current_exe()?.with_file_name("murmur-whisper");
+    let name = format!("murmur-whisper{}", std::env::consts::EXE_SUFFIX);
+    let beside = std::env::current_exe()?.with_file_name(&name);
     if beside.is_file() {
         return Ok(beside);
     }
-    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../whisper/target/release/murmur-whisper");
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../whisper/target/release").join(&name);
     if dev.is_file() {
         return Ok(dev);
     }

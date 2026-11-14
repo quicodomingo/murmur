@@ -153,5 +153,15 @@ Entre reunions (bloc 5):
 
 ## 6. Més endavant
 
-- [ ] Windows: àudio del sistema amb loopback WASAPI, proves i instal·lador.
+- [x] Windows i Linux: l'app compila i funciona als tres sistemes, amb instal·ladors (NSIS; `.deb`, `.rpm` i AppImage) i actualitzacions.
+- [x] Windows: àudio del sistema amb loopback WASAPI.
+- [x] CI a macOS, Windows i Linux, i publicació automàtica de les versions en pujar l'etiqueta.
+- [x] Proves e2e: el motor transcriu un àudio de veritat a les tres plataformes, i la interfície amb `tauri-driver` a Windows i Linux.
+- [ ] Linux: àudio del sistema (el monitor de PipeWire o PulseAudio).
+- [ ] Windows i Linux: captures de pantalla (`xcap` o similar).
+- [ ] Windows i Linux: «Reunió detectada» (qui fa servir el micròfon).
+- [ ] Windows i Linux: calendari (Google o Outlook directes, amb OAuth).
+- [ ] Windows: signar l'instal·lador perquè SmartScreen no avisi.
+- [ ] Windows i Linux: acceleració per GPU (Vulkan) per a Whisper i Gemma.
+- [ ] macOS amb Intel (x86_64), si algú ho demana.
 - [ ] iOS / Android reaprofitant el nucli Rust.

@@ -1,0 +1,58 @@
+{
+  "about": {
+    "description": "Transcripció de reunions en directe, amb el català al centre. Tot es processa en aquest ordinador: l'àudio i el text no en surten mai. Local vol dir privat.",
+    "chips": {
+      "local": "Res surt d'aquest ordinador"
+    }
+  },
+  "app": {
+    "showAudioInFinder": "Mostra l'àudio a la carpeta",
+    "missingModelBody": "Murmur transcriu amb un model que funciona en aquest ordinador. Només cal descarregar-lo un cop.",
+    "emptyBody": "Grava una reunió i la transcripció apareixerà en directe, separada per parlants. Tot es processa en aquest ordinador: local vol dir privat.",
+    "showInFinder": "Mostra a la carpeta"
+  },
+  "onboarding": {
+    "features": {
+      "alerts": {
+        "text": "Murmur queda a la safata del sistema: un clic i comença a gravar."
+      }
+    },
+    "models": {
+      "introChoose": "Murmur funciona amb models que s'executen en aquest ordinador. Només cal descarregar-los un cop.",
+      "transcriptionText": "Converteix la veu en text, en català i altres llengües, dins d'aquest ordinador.",
+      "writers": {
+        "local": "Gemma, en aquest ordinador"
+      },
+      "localText": "Gemma 4, de Google, funciona dins d'aquest ordinador. Pesa {{size}} i necessita 16 GB de memòria."
+    }
+  },
+  "permissions": {
+    "micDeniedHelp": "Permet l'accés al micròfon a la configuració de privadesa del sistema."
+  },
+  "settings": {
+    "permissions": {
+      "micDenied": "Denegat. Permet l'accés al micròfon a la configuració de privadesa del sistema.",
+      "micUndetermined": "Si el sistema t'ho pregunta, permet-hi l'accés."
+    },
+    "intelligence": {
+      "engineLocal": "Aquest ordinador",
+      "privacyCloud": "Cada vegada que es genera un resum, el text de la transcripció i les notes s'envien a {{provider}}. L'àudio no surt mai d'aquest ordinador, i la clau es desa al clauer del sistema."
+    },
+    "share": {
+      "privacy": "Només s'envia el que tries en compartir, xifrat en aquest ordinador. L'àudio, només si el marques."
+    },
+    "claude": {
+      "intro": "Amb el connector, Claude pot llegir i cercar les teves reunions i transcriure àudios d'aquest ordinador amb Murmur. La transcripció es fa aquí, i a Claude només li arriba el text que demana.",
+      "desktopMissing": "No s'ha trobat Claude Desktop en aquest ordinador. També el pots fer servir amb Claude Code.",
+      "privacy": "Murmur no envia res pel seu compte: Claude només rep el text que demana a les eines, i el tracta segons les teves condicions amb Anthropic. L'àudio no surt mai de l'ordinador."
+    }
+  },
+  "share": {
+    "privacy": "Murmur la xifra en aquest ordinador abans d'enviar-la al teu Worker de Cloudflare. Sense l'enllaç ningú no la pot llegir, ni tan sols Cloudflare.",
+    "privacyPassword": "Murmur la xifra en aquest ordinador abans d'enviar-la al teu Worker de Cloudflare. Sense l'enllaç i la contrasenya ningú no la pot llegir, ni tan sols Cloudflare."
+  },
+  "sidebar": {
+    "localOnly": "Tot es queda en aquest ordinador",
+    "settingsShortcut": "Configuració (Ctrl+,)"
+  }
+}

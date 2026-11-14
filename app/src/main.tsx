@@ -12,7 +12,11 @@ import { releasesBetween } from "./lib/whatsnew";
 import "./index.css";
 import { initAppearance } from "./lib/appearance";
 import { initI18n } from "./lib/i18n";
+import { loadCapabilities, markOs } from "./lib/platform";
 
+// The OS on <html> (styles that differ, like room for the Mac's traffic lights), and what it can do.
+markOs();
+void loadCapabilities();
 // Theme and mode from the settings (Aparença), applied before the first render.
 initAppearance();
 // Interface language, likewise before the first render.

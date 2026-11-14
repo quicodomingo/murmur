@@ -1,0 +1,8 @@
+# x86-64 on Windows and Linux: AVX2 and FMA, which llama.cpp and whisper.cpp need to be fast
+# (llama-cpp-sys-2 turns Rust's target features into GGML_AVX2 & co.). Any PC since 2013-2015.
+# Without this, the CI runner would build for the bare x86-64 baseline (SSE2), several times slower.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+avx,+avx2,+fma,+f16c"]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-feature=+avx,+avx2,+fma,+f16c"]

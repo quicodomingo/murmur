@@ -73,12 +73,12 @@ pub struct CfAccount {
 // --- Keychain --------------------------------------------------------------------------------
 
 fn connection() -> Result<Connection> {
-    let bytes = security_framework::passwords::get_generic_password(SERVICE, ACCOUNT).map_err(|_| anyhow!(tr!("share_not_connected")))?;
+    let bytes = crate::keychain::get(SERVICE, ACCOUNT).ok_or_else(|| anyhow!(tr!("share_not_connected")))?;
     serde_json::from_slice(&bytes).map_err(|_| anyhow!(tr!("share_not_connected")))
 }
 
 fn save(c: &Connection) -> Result<()> {
-    security_framework::passwords::set_generic_password(SERVICE, ACCOUNT, &serde_json::to_vec(c)?)
+    crate::keychain::set(SERVICE, ACCOUNT, &serde_json::to_vec(c)?)
         .map_err(|e| anyhow!(tr!("cloud_keychain_failed", error = e)))
 }
 
@@ -92,12 +92,8 @@ pub fn status() -> Option<Status> {
 }
 
 pub fn disconnect() -> Result<()> {
-    match security_framework::passwords::delete_generic_password(SERVICE, ACCOUNT) {
-        Ok(()) => Ok(()),
-        // Nothing saved: already disconnected.
-        Err(e) if e.code() == -25300 => Ok(()),
-        Err(e) => Err(anyhow!(tr!("cloud_keychain_failed", error = e))),
-    }
+    // Nothing saved means already disconnected (keychain::delete says Ok).
+    crate::keychain::delete(SERVICE, ACCOUNT).map_err(|e| anyhow!(tr!("cloud_keychain_failed", error = e)))
 }
 
 /// `n` random letters and digits, from the system's secure generator.
@@ -106,7 +102,7 @@ fn random(n: usize) -> String {
     let mut out = String::with_capacity(n);
     while out.len() < n {
         let mut bytes = [0u8; 32];
-        security_framework::random::SecRandom::default().copy_bytes(&mut bytes).expect("system random generator");
+        crate::keychain::random_bytes(&mut bytes);
         // 248 = 4 × 62: dropping bytes above it keeps every character equally likely.
         out.extend(bytes.iter().filter(|b| **b < 248).map(|b| ALPHABET[(*b % 62) as usize] as char).take(n - out.len()));
     }

@@ -9,6 +9,7 @@ pub mod gate;
 pub mod glossary;
 pub mod i18n;
 pub mod import;
+pub mod keychain;
 pub mod cloud;
 pub mod share;
 pub mod llm;
@@ -481,10 +482,63 @@ fn feed_file(app: &AppHandle, samples: &[f32], tx: Sender<audio::Frame>, stop: c
     let _ = app.emit("import-progress", ImportProgress { done: total, total });
 }
 
+/// What this system can do, for the UI to show only what works here.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Platform {
+    /// "macos", "windows" or "linux".
+    os: &'static str,
+    /// Recording the other side of a call (audio.rs).
+    system_audio: bool,
+    /// Screenshots of the meeting window (capture.rs).
+    screenshots: bool,
+    /// Reading the system calendar (calendar.rs).
+    calendar: bool,
+    /// Noticing other apps using the microphone (micwatch.rs).
+    meeting_detection: bool,
+    /// The extension of the audio file to listen to or export (playback.rs).
+    audio_extension: &'static str,
+}
+
+#[tauri::command]
+fn platform() -> Platform {
+    let mac = cfg!(target_os = "macos");
+    Platform {
+        os: std::env::consts::OS,
+        system_audio: audio::SYSTEM_AUDIO,
+        screenshots: mac,
+        calendar: mac,
+        meeting_detection: mac,
+        audio_extension: playback::EXTENSION,
+    }
+}
+
 /// Audio files that macOS asked Murmur to open (Finder › Open With, the Dock icon, the Share
 /// menu's extension), until the window takes them: on a cold launch they arrive before it loads.
+/// On Windows and Linux the file association hands them over as arguments instead.
 #[derive(Default)]
 struct Opened(Mutex<Vec<String>>);
+
+impl Opened {
+    /// The audio files among the command line's arguments (Open with… on Windows and Linux).
+    fn from_args() -> Self {
+        let audio = std::env::args()
+            .skip(1)
+            // msedgedriver (the e2e tests on Windows) hands the app's arguments over as browser
+            // switches, "--D:\\…\\file.wav": the path without them, if that's a file.
+            .map(|a| match a.strip_prefix("--") {
+                Some(path) if std::path::Path::new(path).is_file() => path.to_string(),
+                _ => a,
+            })
+            .filter(|a| is_audio(std::path::Path::new(a)))
+            .collect();
+        Opened(Mutex::new(audio))
+    }
+}
+
+fn is_audio(path: &std::path::Path) -> bool {
+    path.extension().and_then(|e| e.to_str()).is_some_and(|e| import::EXTENSIONS.contains(&e.to_lowercase().as_str()))
+}
 
 #[tauri::command]
 fn take_opened_files(opened: State<'_, Opened>) -> Vec<String> {
@@ -1310,14 +1364,14 @@ async fn capture_screen(app: AppHandle, meeting_id: String, t: f64) -> Result<St
     Ok(path.to_string_lossy().into_owned())
 }
 
-/// A meeting's recording as an .m4a anyone can play (playback.rs), kept in the cache; returns its path.
+/// A meeting's recording as an .m4a (an .ogg off macOS) anyone can play (playback.rs), kept in the cache; returns its path.
 #[tauri::command]
 async fn playback_audio(app: AppHandle, meeting_id: String, audio_path: String) -> Result<String, String> {
     let ogg = recording_path(&audio_path)?;
     let dir = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("playback");
-    let out = dir.join(format!("{}.m4a", screens_dir(&app, &meeting_id).map(|_| meeting_id)?));
+    let out = dir.join(format!("{}.{}", screens_dir(&app, &meeting_id).map(|_| meeting_id)?, playback::EXTENSION));
     let target = out.clone();
-    tauri::async_runtime::spawn_blocking(move || playback::ensure_m4a(&ogg, &target))
+    tauri::async_runtime::spawn_blocking(move || playback::ensure_playable(&ogg, &target))
         .await
         .map_err(|e| e.to_string())?
         .map_err(|e| format!("{e:#}"))?;
@@ -1530,7 +1584,7 @@ pub fn run() {
             Ok(())
         })
         .manage(AppState::default())
-        .manage(Opened::default())
+        .manage(Opened::from_args())
         .manage(shell::Shell::default())
         // Closing the window keeps Murmur in the menu bar (it still notices meetings).
         .on_window_event(|window, event| {
@@ -1547,6 +1601,7 @@ pub fn run() {
             start_recording,
             detect_language,
             take_opened_files,
+            platform,
             claude_status,
             claude_desktop_connect,
             stop_recording,
@@ -1622,13 +1677,14 @@ pub fn run() {
         .run(|app, event| {
             // Clicking the Dock icon brings the hidden window back.
             match event {
+                #[cfg(target_os = "macos")]
                 tauri::RunEvent::Reopen { .. } => shell::show_main(app),
                 #[cfg(target_os = "macos")]
                 tauri::RunEvent::Opened { urls } => {
                     let audio: Vec<String> = urls
                         .iter()
                         .filter_map(|u| u.to_file_path().ok())
-                        .filter(|p| p.extension().and_then(|e| e.to_str()).is_some_and(|e| import::EXTENSIONS.contains(&e.to_lowercase().as_str())))
+                        .filter(|p| is_audio(p))
                         .map(|p| p.to_string_lossy().into_owned())
                         .collect();
                     if audio.is_empty() {

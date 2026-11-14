@@ -10,6 +10,8 @@
 #   xcrun notarytool store-credentials murmur --key AuthKey_….p8 --key-id … --issuer …
 # Update packages are signed with ~/.tauri/murmur-updater.key, whose password is in the
 # keychain as "murmur-updater" (its public key is in tauri.conf.json › plugins.updater).
+# The Windows and Linux builds are made by GitHub Actions (.github/workflows/release.yml), which
+# also runs this script on a macOS runner when the Apple secrets are set up (docs/PUBLICAR.md).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -63,7 +65,8 @@ rm -f "$TARBALL" "$TARBALL.sig"
 # Without macOS metadata: bsdtar would add an AppleDouble `._Murmur.app`, which the updater
 # tries to unpack over the app folder and fails.
 COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$TARBALL" -C "$(dirname "$APP")" Murmur.app
-TAURI_SIGNING_PRIVATE_KEY_PASSWORD=$(security find-generic-password -s murmur-updater -w) \
+# The key's password: from the environment (CI, .github/workflows/release.yml) or the keychain.
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-$(security find-generic-password -s murmur-updater -w)}" \
   npx tauri signer sign -f "$KEY" "$TARBALL" >/dev/null
 NOTES="${RELEASE_NOTES:-Murmur $VERSION}"
 node -e '

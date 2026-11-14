@@ -208,19 +208,52 @@ pub fn screen_granted() -> bool {
     imp::screen()
 }
 
-/// Opens the right page of System Settings › Privacy & Security.
+/// Opens the right page of System Settings › Privacy & Security (macOS) or Settings › Privacy
+/// (Windows). Linux has no such page: the desktop doesn't ask for these permissions.
 #[tauri::command]
 pub fn open_privacy_settings(pane: String) -> Result<(), String> {
-    let anchor = match pane.as_str() {
+    let url = privacy_url(&pane).ok_or_else(|| format!("Secció desconeguda: {pane}"))?;
+    open_url(url)
+}
+
+#[cfg(target_os = "macos")]
+fn privacy_url(pane: &str) -> Option<String> {
+    let anchor = match pane {
         "microphone" => "Privacy_Microphone",
         // System audio and screen recording share a page (System audio recording only / Screen).
         "systemAudio" | "screen" => "Privacy_ScreenCapture",
         "calendars" => "Privacy_Calendars",
-        _ => return Err(format!("Secció desconeguda: {pane}")),
+        _ => return None,
     };
-    std::process::Command::new("open")
-        .arg(format!("x-apple.systempreferences:com.apple.preference.security?{anchor}"))
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    Some(format!("x-apple.systempreferences:com.apple.preference.security?{anchor}"))
+}
+
+#[cfg(target_os = "windows")]
+fn privacy_url(pane: &str) -> Option<String> {
+    let page = match pane {
+        "microphone" | "systemAudio" => "privacy-microphone",
+        "screen" => "privacy-graphicscaptureprogrammatic",
+        "calendars" => "privacy-calendar",
+        _ => return None,
+    };
+    Some(format!("ms-settings:{page}"))
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn privacy_url(_pane: &str) -> Option<String> {
+    None
+}
+
+fn open_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let mut cmd = std::process::Command::new("open");
+    #[cfg(target_os = "windows")]
+    let mut cmd = {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "start", ""]);
+        c
+    };
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let mut cmd = std::process::Command::new("xdg-open");
+    cmd.arg(url).spawn().map(|_| ()).map_err(|e| e.to_string())
 }

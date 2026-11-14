@@ -10,6 +10,7 @@ import { LogoIcon } from "@/components/Logo";
 import { isTauri } from "@/lib/backend";
 import { useCalendarSync } from "@/lib/calendar";
 import { t as translate } from "@/lib/i18n";
+import { shortcut } from "@/lib/platform";
 import { activeShares } from "@/lib/share";
 import { cn } from "@/lib/utils";
 import { StartOptionsCompact, type StartChoice } from "./StartOptions";
@@ -101,7 +102,7 @@ export function Sidebar({ meetings, selectedId, canCreate, importingId, search, 
       >
         <Plus className="size-3.5" strokeWidth={2.4} aria-hidden />
         <span className="flex-1 text-left">{t("newMeeting")}</span>
-        <kbd className="font-sans text-[11px] font-medium opacity-60">⌘N</kbd>
+        <kbd className="font-sans text-[11px] font-medium opacity-60">{shortcut("⌘N")}</kbd>
       </button>
       <div className="-mt-1.5 mb-2 px-2">
         <StartOptionsCompact value={startChoice} onChange={onStartChoice} englishReady={englishReady} />
@@ -146,7 +147,7 @@ export function Sidebar({ meetings, selectedId, canCreate, importingId, search, 
                         type="button"
                         onClick={() => onSelect(m.id)}
                         onContextMenu={(e) => {
-                          // In the app, the native macOS menu; the web one stays for the browser.
+                          // In the app, the native menu; the web one stays for the browser.
                           if (!isTauri()) return;
                           e.preventDefault();
                           showRowMenu(m, onDelete);

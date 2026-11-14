@@ -23,6 +23,7 @@ import { connectShare, disconnectShare, setupShare, useShareStatus } from "@/lib
 import type { CloudProvider, Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MEETING_LANGUAGES } from "./StartOptions";
+import { capabilities, isMac } from "@/lib/platform";
 
 type Props = {
   open: boolean;
@@ -108,7 +109,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
           </button>
           <DialogDescription className="sr-only">{t("description")}</DialogDescription>
           <div className="mt-2 flex justify-center gap-1" role="tablist">
-            {TABS.map(({ id, icon: Icon }) => (
+            {TABS.filter(({ id }) => id !== "calendar" || capabilities.calendar).map(({ id, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
@@ -220,29 +221,31 @@ function GeneralTab({
           </div>
         </Row>
       </Group>
-      <Group title={t("general.beforeMeeting")}>
-        <Row label={t("general.detectMeetings")} hint={t("general.detectMeetingsHint")}>
-          <Switch checked={settings.detectMeetings} onCheckedChange={(detectMeetings) => onChange({ detectMeetings })} />
-        </Row>
-        <div className="flex min-h-11 items-center gap-4 px-3 py-2">
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px]">{t("general.calendarAlerts")}</div>
-            <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-              {connected ? (
-                t("general.calendarAlertsHint")
-              ) : (
-                <>
-                  {t("general.calendarNeeded")}{" "}
-                  <button type="button" className="text-mm-link hover:underline" onClick={() => onGoTo("calendar")}>
-                    {t("general.goToCalendar")}
-                  </button>
-                </>
-              )}
+      {(capabilities.meetingDetection || capabilities.calendar) && (
+        <Group title={t("general.beforeMeeting")}>
+          <Row label={t("general.detectMeetings")} hint={t("general.detectMeetingsHint")}>
+            <Switch checked={settings.detectMeetings} onCheckedChange={(detectMeetings) => onChange({ detectMeetings })} />
+          </Row>
+          <div className="flex min-h-11 items-center gap-4 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px]">{t("general.calendarAlerts")}</div>
+              <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                {connected ? (
+                  t("general.calendarAlertsHint")
+                ) : (
+                  <>
+                    {t("general.calendarNeeded")}{" "}
+                    <button type="button" className="text-mm-link hover:underline" onClick={() => onGoTo("calendar")}>
+                      {t("general.goToCalendar")}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
+            <Switch checked={connected && settings.calendarAlerts} disabled={!connected} onCheckedChange={(calendarAlerts) => onChange({ calendarAlerts })} />
           </div>
-          <Switch checked={connected && settings.calendarAlerts} disabled={!connected} onCheckedChange={(calendarAlerts) => onChange({ calendarAlerts })} />
-        </div>
-      </Group>
+        </Group>
+      )}
       <Group title={t("general.duringRecording")}>
         <Row label={t("general.indicator")} hint={t("general.indicatorHint")}>
           <Switch checked={settings.recordingIndicator} onCheckedChange={(recordingIndicator) => onChange({ recordingIndicator })} />
@@ -520,7 +523,7 @@ function AudioTab({ open, settings, onChange, recording }: { open: boolean; sett
 
   return (
     <>
-      <PermissionsGroup open={open} />
+      {isMac && <PermissionsGroup open={open} />}
       <Group title={t("audio.sources")}>
         <Row label={t("audio.mic")} hint={t("audio.micHint")}>
           <Switch checked={settings.mic} onCheckedChange={(mic) => onChange({ mic })} />
@@ -548,9 +551,11 @@ function AudioTab({ open, settings, onChange, recording }: { open: boolean; sett
             </Row>
           </>
         )}
-        <Row label={t("audio.system")} hint={t("audio.systemHint")}>
-          <Switch checked={settings.system} onCheckedChange={(system) => onChange({ system })} />
-        </Row>
+        {capabilities.systemAudio && (
+          <Row label={t("audio.system")} hint={t("audio.systemHint")}>
+            <Switch checked={settings.system} onCheckedChange={(system) => onChange({ system })} />
+          </Row>
+        )}
       </Group>
       <Group title={t("audio.recording")}>
         <Row label={t("audio.saveAudio")} hint={t("audio.saveAudioHint")}>

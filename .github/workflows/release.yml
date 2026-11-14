@@ -1,0 +1,178 @@
+# Publica una versió: en pujar l'etiqueta v<versió> (scripts/publish.sh ho fa) compila Murmur per
+# a Windows i Linux, i també per a macOS si hi ha els secrets d'Apple (variable MACOS_CI = true).
+# Ho puja tot a la release de quicodomingo/murmur-releases, que és d'on s'actualitzen les apps, i
+# a la del repositori del codi. El latest.json hi afegeix les plataformes noves sense treure les
+# que ja hi ha (el Mac, si l'ha publicat publish.sh). Tot el procés és a docs/PUBLICAR.md.
+#
+# Secrets:
+#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD   signar els paquets d'actualització
+#   RELEASES_TOKEN                                                   escriure a murmur-releases
+#   APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD,                   només si MACOS_CI = true
+#   APPLE_API_KEY, APPLE_API_KEY_ID, APPLE_API_ISSUER
+name: Publica
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Etiqueta de la versió (v0.12.0)"
+        required: true
+
+concurrency:
+  group: publica-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+  RELEASES_REPO: ${{ vars.RELEASES_REPO || 'quicodomingo/murmur-releases' }}
+
+jobs:
+  compila:
+    name: Compila (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-2022
+            bundles: windows
+          - name: Linux
+            os: ubuntu-22.04
+            bundles: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: ./.github/actions/preparar
+      - name: La versió de l'etiqueta és la de l'app
+        shell: bash
+        run: |
+          version=$(node -p "require('./app/src-tauri/tauri.conf.json').version")
+          [ "v$version" = "$TAG" ] || { echo "L'etiqueta $TAG no és la versió de l'app ($version)"; exit 1; }
+      - name: Compila i signa els paquets d'actualització
+        working-directory: app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri build
+      - name: Recull els fitxers
+        shell: bash
+        run: |
+          mkdir -p dist
+          b=app/src-tauri/target/release/bundle
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp $b/nsis/*-setup.exe $b/nsis/*-setup.exe.sig dist/
+          else
+            cp $b/appimage/*.AppImage $b/appimage/*.AppImage.sig $b/deb/*.deb $b/rpm/*.rpm dist/
+            cp $b/deb/*.deb.sig $b/rpm/*.rpm.sig dist/ 2>/dev/null || true
+          fi
+          ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.bundles }}
+          path: dist/*
+
+  macos:
+    name: Compila (macOS)
+    if: vars.MACOS_CI == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: ./.github/actions/preparar
+      - name: Certificat, notarització i clau de les actualitzacions
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          keychain="$RUNNER_TEMP/murmur.keychain-db"
+          password=$(openssl rand -hex 16)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          echo "$APPLE_API_KEY" > "$RUNNER_TEMP/AuthKey.p8"
+          xcrun notarytool store-credentials murmur --key "$RUNNER_TEMP/AuthKey.p8" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --keychain "$keychain"
+          mkdir -p ~/.tauri && echo "$TAURI_SIGNING_PRIVATE_KEY" > ~/.tauri/murmur-updater.key
+          rm "$RUNNER_TEMP/cert.p12" "$RUNNER_TEMP/AuthKey.p8"
+      - name: Compila, signa i notaritza (scripts/release.sh)
+        working-directory: app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: ./scripts/release.sh
+      - name: Recull els fitxers
+        run: |
+          mkdir -p dist
+          cp app/src-tauri/target/release/bundle/release/{*.dmg,Murmur.app.tar.gz,Murmur.app.tar.gz.sig} dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*
+
+  publica:
+    name: Publica
+    needs: [compila, macos]
+    # macos se salta si no hi ha els secrets d'Apple: la release surt igualment.
+    if: ${{ !cancelled() && needs.compila.result == 'success' && needs.macos.result != 'failure' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Notes de la versió
+        id: notes
+        run: |
+          # El missatge de l'etiqueta (publish.sh hi posa les RELEASE_NOTES); si no n'hi ha, les
+          # del latest.json que ja hi hagi (latest-json.mjs) o «Murmur <versió>».
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          notes=""
+          if [ "$(git cat-file -t "$TAG")" = tag ]; then
+            notes=$(git for-each-ref "refs/tags/$TAG" --format='%(contents)' | sed '/-----BEGIN/,$d')
+          fi
+          { echo "text<<FI"; echo "$notes"; echo "FI"; } >> "$GITHUB_OUTPUT"
+      - name: latest.json amb totes les plataformes
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || github.token }}
+          RELEASE_NOTES: ${{ steps.notes.outputs.text }}
+        run: |
+          gh release download "$TAG" --repo "$RELEASES_REPO" --pattern latest.json --dir previous 2>/dev/null || true
+          node app/scripts/latest-json.mjs dist "${TAG#v}" "https://github.com/$RELEASES_REPO/releases/download/$TAG" previous/latest.json > dist/latest.json
+          cat dist/latest.json
+      - name: Release a murmur-releases (d'on s'actualitzen les apps)
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || github.token }}
+          NOTES: ${{ steps.notes.outputs.text || format('Murmur {0}', github.ref_name) }}
+        run: |
+          if ! gh release view "$TAG" --repo "$RELEASES_REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$RELEASES_REPO" --title "Murmur ${TAG#v}" --notes "$NOTES"
+          fi
+          gh release upload "$TAG" --repo "$RELEASES_REPO" --clobber dist/*
+      - name: Release al repositori del codi (els instal·ladors)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ steps.notes.outputs.text || format('Murmur {0}', github.ref_name) }}
+        run: |
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Murmur ${TAG#v}" --notes "$NOTES" --verify-tag
+          fi
+          shopt -s nullglob
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber dist/*.dmg dist/*-setup.exe dist/*.AppImage dist/*.deb dist/*.rpm

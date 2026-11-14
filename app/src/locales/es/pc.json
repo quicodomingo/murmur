@@ -1,0 +1,58 @@
+{
+  "about": {
+    "description": "Transcripción de reuniones en directo, con el catalán en el centro. Todo se procesa en este ordenador: el audio y el texto nunca salen de él. Local quiere decir privado.",
+    "chips": {
+      "local": "Nada sale de este ordenador"
+    }
+  },
+  "app": {
+    "showAudioInFinder": "Mostrar el audio en la carpeta",
+    "missingModelBody": "Murmur transcribe con un modelo que funciona en este ordenador. Solo tienes que descargarlo una vez.",
+    "emptyBody": "Graba una reunión y la transcripción aparecerá en directo, separada por hablantes. Todo se procesa en este ordenador: local quiere decir privado.",
+    "showInFinder": "Mostrar en la carpeta"
+  },
+  "onboarding": {
+    "features": {
+      "alerts": {
+        "text": "Murmur se queda en la bandeja del sistema: un clic y empieza a grabar."
+      }
+    },
+    "models": {
+      "introChoose": "Murmur funciona con modelos que se ejecutan en este ordenador. Solo hay que descargarlos una vez.",
+      "transcriptionText": "Convierte la voz en texto, en catalán y otras lenguas, dentro de este ordenador.",
+      "writers": {
+        "local": "Gemma, en este ordenador"
+      },
+      "localText": "Gemma 4, de Google, funciona dentro de este ordenador. Pesa {{size}} y necesita 16 GB de memoria."
+    }
+  },
+  "permissions": {
+    "micDeniedHelp": "Permite el acceso al micrófono en la configuración de privacidad del sistema."
+  },
+  "settings": {
+    "permissions": {
+      "micDenied": "Denegado. Permite el acceso al micrófono en la configuración de privacidad del sistema.",
+      "micUndetermined": "Si el sistema te lo pregunta, permite el acceso."
+    },
+    "intelligence": {
+      "engineLocal": "Este ordenador",
+      "privacyCloud": "Cada vez que se genera un resumen, el texto de la transcripción y las notas se envían a {{provider}}. El audio nunca sale de este ordenador, y la clave se guarda en el llavero del sistema."
+    },
+    "share": {
+      "privacy": "Solo se envía lo que eliges al compartir, cifrado en este ordenador. El audio, solo si lo marcas."
+    },
+    "claude": {
+      "intro": "Con el conector, Claude puede leer y buscar tus reuniones y transcribir audios de este ordenador con Murmur. La transcripción se hace aquí, y a Claude solo le llega el texto que pide.",
+      "desktopMissing": "No se ha encontrado Claude Desktop en este ordenador. También puedes usarlo con Claude Code.",
+      "privacy": "Murmur no envía nada por su cuenta: Claude solo recibe el texto que pide a las herramientas, y lo trata según tus condiciones con Anthropic. El audio nunca sale del ordenador."
+    }
+  },
+  "share": {
+    "privacy": "Murmur la cifra en este ordenador antes de enviarla a tu Worker de Cloudflare. Sin el enlace nadie puede leerla, ni siquiera Cloudflare.",
+    "privacyPassword": "Murmur la cifra en este ordenador antes de enviarla a tu Worker de Cloudflare. Sin el enlace y la contraseña nadie puede leerla, ni siquiera Cloudflare."
+  },
+  "sidebar": {
+    "localOnly": "Todo se queda en este ordenador",
+    "settingsShortcut": "Ajustes (Ctrl+,)"
+  }
+}

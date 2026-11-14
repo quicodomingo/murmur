@@ -52,8 +52,7 @@ pub struct Answer {
 // --- Keychain --------------------------------------------------------------------------------
 
 pub fn key(provider: Provider) -> Result<String> {
-    let bytes = security_framework::passwords::get_generic_password(SERVICE, provider.account())
-        .map_err(|_| anyhow!(tr!("cloud_no_key")))?;
+    let bytes = crate::keychain::get(SERVICE, provider.account()).ok_or_else(|| anyhow!(tr!("cloud_no_key")))?;
     String::from_utf8(bytes).map_err(|_| anyhow!(tr!("cloud_no_key")))
 }
 
@@ -61,18 +60,14 @@ pub fn key(provider: Provider) -> Result<String> {
 pub fn connect(provider: Provider, key: &str) -> Result<Vec<CloudModel>> {
     let key = key.trim();
     let models = list_models(provider, key)?;
-    security_framework::passwords::set_generic_password(SERVICE, provider.account(), key.as_bytes())
+    crate::keychain::set(SERVICE, provider.account(), key.as_bytes())
         .map_err(|e| anyhow!(tr!("cloud_keychain_failed", error = e)))?;
     Ok(models)
 }
 
 pub fn disconnect(provider: Provider) -> Result<()> {
-    match security_framework::passwords::delete_generic_password(SERVICE, provider.account()) {
-        Ok(()) => Ok(()),
-        // Nothing saved: already disconnected.
-        Err(e) if e.code() == -25300 => Ok(()),
-        Err(e) => Err(anyhow!(tr!("cloud_keychain_failed", error = e))),
-    }
+    // Nothing saved means already disconnected (keychain::delete says Ok).
+    crate::keychain::delete(SERVICE, provider.account()).map_err(|e| anyhow!(tr!("cloud_keychain_failed", error = e)))
 }
 
 /// The key's last four characters, to recognise it; None if there's no key.

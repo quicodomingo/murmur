@@ -1,6 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
+import { isMac } from "./platform";
+
 /**
  * Interface languages (docs/TRADUCCIONS.md). Catalan is the source: every key exists in
  * `locales/ca/`, and a key missing from another language falls back to it.
@@ -10,7 +12,7 @@ import { initReactI18next } from "react-i18next";
  */
 export const UI_LANGUAGES = ["ca", "es", "en"] as const;
 export type UiLanguage = (typeof UI_LANGUAGES)[number];
-/** The setting: a language, or "system" to follow macOS. */
+/** The setting: a language, or "system" to follow the system's. */
 export type UiLanguagePref = UiLanguage | "system";
 
 /** Each language's own name, for the selector. */
@@ -23,9 +25,27 @@ for (const [path, strings] of Object.entries(files)) {
   (resources[lang] ??= {})[ns] = strings;
 }
 
+/**
+ * Windows and Linux: `pc.json` holds, by namespace, the texts that say "this Mac", Finder or
+ * System Settings, written for any computer. They replace the Mac ones there.
+ */
+function mergeInto(target: Record<string, unknown>, overrides: Record<string, unknown>) {
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value && typeof value === "object" && target[key] && typeof target[key] === "object")
+      mergeInto(target[key] as Record<string, unknown>, value as Record<string, unknown>);
+    else target[key] = value;
+  }
+}
+for (const lang of Object.keys(resources)) {
+  const pc = resources[lang].pc as Record<string, Record<string, unknown>> | undefined;
+  delete resources[lang].pc;
+  if (isMac || !pc) continue;
+  for (const [ns, overrides] of Object.entries(pc)) if (resources[lang][ns]) mergeInto(resources[lang][ns], overrides);
+}
+
 const SETTINGS_KEY = "transcriptor.settings.v1";
 
-/** The language macOS prefers among Murmur's; English for any other. */
+/** The language the system prefers among Murmur's; English for any other. */
 export function systemLanguage(): UiLanguage {
   for (const tag of navigator.languages ?? [navigator.language]) {
     const base = tag.toLowerCase().split("-")[0];

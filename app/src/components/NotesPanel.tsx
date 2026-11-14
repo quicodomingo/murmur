@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { Bold, Heading1, Heading2, Heading3, Italic, List, ListChecks, ListOrdered, Maximize2, Minimize2, Pilcrow, Strikethrough, Underline } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { shortcut } from "@/lib/platform";
 import { t as translate } from "@/lib/i18n";
 import { BlockTime, Indent } from "@/lib/notes";
 import { ResizeHandle } from "@/components/SidePanel";
@@ -143,10 +144,10 @@ function Toolbar({ editor }: { editor: Editor }) {
       { label: t("heading3"), key: "###", icon: Heading3, active: s.h3, run: () => chain().toggleHeading({ level: 3 }).run() },
     ],
     [
-      { label: t("bold"), key: "⌘B", icon: Bold, active: s.bold, run: () => chain().toggleBold().run() },
-      { label: t("italic"), key: "⌘I", icon: Italic, active: s.italic, run: () => chain().toggleItalic().run() },
-      { label: t("underline"), key: "⌘U", icon: Underline, active: s.underline, run: () => chain().toggleUnderline().run() },
-      { label: t("strike"), key: "⌘⇧S", icon: Strikethrough, active: s.strike, run: () => chain().toggleStrike().run() },
+      { label: t("bold"), key: shortcut("⌘B"), icon: Bold, active: s.bold, run: () => chain().toggleBold().run() },
+      { label: t("italic"), key: shortcut("⌘I"), icon: Italic, active: s.italic, run: () => chain().toggleItalic().run() },
+      { label: t("underline"), key: shortcut("⌘U"), icon: Underline, active: s.underline, run: () => chain().toggleUnderline().run() },
+      { label: t("strike"), key: shortcut("⌘⇧S"), icon: Strikethrough, active: s.strike, run: () => chain().toggleStrike().run() },
     ],
     [
       { label: t("bulletList"), key: "-", icon: List, active: s.bullet, run: () => chain().toggleBulletList().run() },
