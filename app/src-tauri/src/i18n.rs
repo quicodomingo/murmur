@@ -98,6 +98,11 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "El audio del sistema aún no está disponible en esta plataforma",
             "System audio isn't available on this platform yet",
         ],
+        "system_audio_unavailable" => [
+            "No es pot gravar el que sona als altaveus",
+            "No se puede grabar lo que suena en los altavoces",
+            "Can't record what the speakers play",
+        ],
         "no_microphone" => ["No s'ha trobat cap micròfon", "No se ha encontrado ningún micrófono", "No microphone found"],
         "mic_unavailable" => ["El micròfon no està disponible", "El micrófono no está disponible", "The microphone isn't available"],
         "audio_format_unsupported" => [

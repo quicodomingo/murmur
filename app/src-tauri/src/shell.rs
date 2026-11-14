@@ -17,8 +17,16 @@ use crate::calendar;
 use crate::i18n::tr;
 use crate::micwatch;
 
+#[cfg(target_os = "macos")]
 const TRAY_IDLE: &[u8] = include_bytes!("../icons/menubar/MenuBarTemplate@2x.png");
+#[cfg(target_os = "macos")]
 const TRAY_ALERT: &[u8] = include_bytes!("../icons/menubar/MenuBarAlertTemplate@2x.png");
+// Template icons are a macOS idea (black, tinted by the menu bar): on a Windows or Linux tray
+// they would be a black shape on a dark bar, so there it's the app's icon.
+#[cfg(not(target_os = "macos"))]
+const TRAY_IDLE: &[u8] = include_bytes!("../icons/64x64.png");
+#[cfg(not(target_os = "macos"))]
+const TRAY_ALERT: &[u8] = include_bytes!("../icons/64x64.png");
 const TRAY_RECORDING: &[u8] = include_bytes!("../icons/menubar/MenuBarRecording@2x.png");
 
 /// The alert window: a 470 pt card plus room for its close button and shadow.

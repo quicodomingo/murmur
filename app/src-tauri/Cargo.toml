@@ -22,7 +22,7 @@ tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-ap
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sherpa-onnx = "1.13.8"
+sherpa-onnx = { version = "1.13.8", default-features = false }
 cpal = "0.16"
 crossbeam-channel = "0.5"
 anyhow = "1"
@@ -33,7 +33,7 @@ ogg = "0.9"
 tauri-plugin-dialog = "2"
 rusqlite = { version = "0.40", features = ["bundled"] }
 tauri-plugin-autostart = "2"
-llama-cpp-2 = { version = "0.1.160", features = ["metal"] }
+llama-cpp-2 = "0.1.160"
 ort = { version = "=2.0.0-rc.14", default-features = false, features = ["std", "ndarray", "api-28"] }
 ort-sys = { version = "=2.0.0-rc.14", default-features = false, features = ["std", "api-28", "disable-linking"] }
 tokenizers = { version = "0.23.2", default-features = false, features = ["fancy-regex"] }
@@ -43,8 +43,13 @@ tauri-plugin-process = "2"
 sha2 = "0.10"
 semver = "1"
 libc = "0.2"
+getrandom = "0.3"
+dirs = "6"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+llama-cpp-2 = { version = "0.1.160", features = ["metal"] }
+sherpa-onnx = { version = "1.13.8", default-features = false, features = ["static"] }
 objc2-core-audio = "0.3"
 objc2-core-audio-types = "0.3"
 objc2-core-foundation = "0.3"
@@ -57,6 +62,29 @@ core-foundation = "0.10"
 security-framework = "3"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["NSColor", "NSColorSpace", "std"] }
 
+# Off macOS: the system's secret store through keyring (Credential Manager, Secret Service).
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+keyring = { version = "3", features = ["windows-native", "sync-secret-service", "crypto-rust"] }
+# Opening audio files (afconvert does it on macOS).
+symphonia = { version = "0.5", features = ["all-codecs", "all-formats"] }
+
+# Off macOS, sherpa-onnx as shared libraries, which build.rs hands to the installers:
+# - Windows: its static libraries use the static C runtime (/MT), which can't be linked with
+#   llama.cpp's (/MD).
+# - Linux: its static onnxruntime and llama.cpp each bring their own copy of libstdc++'s
+#   templates (std::regex), built by different compilers; the linker keeps one and onnxruntime
+#   crashes creating its environment ("free(): invalid pointer"). The .so keeps its own.
+# sherpa-onnx-sys is direct so that its build (which unpacks them) runs before ours.
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies]
+sherpa-onnx = { version = "1.13.8", default-features = false, features = ["shared"] }
+sherpa-onnx-sys = { version = "1.13.8", default-features = false, features = ["shared"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_Storage_FileSystem"] }
+
+
+[dev-dependencies]
+symphonia = { version = "0.5", features = ["all-codecs", "all-formats"] }
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

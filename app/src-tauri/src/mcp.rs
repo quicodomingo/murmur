@@ -1,16 +1,19 @@
 //! The Claude connector: Murmur as a local MCP server (stdio), for Claude Desktop and Claude Code.
 //! The same app binary, started with `--mcp` (main.rs), so nothing else has to be installed:
 //!
-//!     /Applications/Murmur.app/Contents/MacOS/transcriptor --mcp
+//! ```text
+//! /Applications/Murmur.app/Contents/MacOS/transcriptor --mcp      (macOS)
+//! %LOCALAPPDATA%\Murmur\transcriptor.exe --mcp                   (Windows)
+//! /usr/bin/transcriptor --mcp                                     (Linux, .deb or .rpm)
+//! ```
 //!
 //! Claude can read and search the meetings saved in Murmur, and transcribe an audio file on this
-//! Mac. Everything runs here; Claude gets only text. Transcribing takes minutes, longer than a
+//! computer. Everything runs here; Claude gets only text. Transcribing takes minutes, longer than a
 //! tool call may wait: `transcribe_file` answers at once with a job id, and `get_transcription`
 //! says how far it has got, then gives the text.
 
 use std::collections::HashMap;
 use std::io::{BufRead, Write};
-use std::os::fd::FromRawFd;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -26,10 +29,14 @@ const LANGUAGES: [&str; 4] = ["ca", "es", "en", "ca-es"];
 /// The MCP version spoken when the client doesn't say one.
 const PROTOCOL: &str = "2025-06-18";
 
-/// Murmur's data folder, the one the app uses (tauri.conf.json identifier).
+/// Murmur's data folder, the one the app uses (tauri.conf.json identifier): Tauri's
+/// `app_data_dir`, which is `dirs::data_dir()` (Application Support, %APPDATA%, ~/.local/share).
 fn data_dir() -> PathBuf {
-    let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default();
-    home.join("Library/Application Support").join(IDENTIFIER)
+    dirs::data_dir().unwrap_or_default().join(IDENTIFIER)
+}
+
+fn home() -> PathBuf {
+    dirs::home_dir().unwrap_or_default()
 }
 
 enum JobState {
@@ -50,14 +57,29 @@ struct Server {
     running: Arc<Mutex<()>>,
 }
 
-/// Answers Claude's requests on stdin/stdout until stdin closes.
-pub fn serve() -> Result<()> {
-    // The protocol owns stdout; anything a library prints goes to stderr instead.
-    let out = unsafe {
+/// The real stdout, for the protocol alone; fd 1 then points at stderr, so anything a library
+/// prints goes there instead.
+fn stdout_only_for_protocol() -> std::fs::File {
+    #[cfg(unix)]
+    unsafe {
+        use std::os::fd::FromRawFd;
         let fd = libc::dup(1);
         libc::dup2(2, 1);
         std::fs::File::from_raw_fd(fd)
-    };
+    }
+    #[cfg(windows)]
+    unsafe {
+        use std::os::windows::io::FromRawHandle;
+        let fd = libc::dup(1);
+        libc::dup2(2, 1);
+        std::fs::File::from_raw_handle(libc::get_osfhandle(fd) as _)
+    }
+}
+
+/// Answers Claude's requests on stdin/stdout until stdin closes.
+pub fn serve() -> Result<()> {
+    // The protocol owns stdout; anything a library prints goes to stderr instead.
+    let out = stdout_only_for_protocol();
     let mut out = std::io::BufWriter::new(out);
     set_app_models_dir(data_dir().join("models"));
     let server = Server { jobs: Mutex::new(HashMap::new()), running: Arc::new(Mutex::new(())) };
@@ -183,7 +205,7 @@ impl Server {
 /// `~/…` as the user's home: Claude often writes paths that way.
 fn expand(path: &str) -> PathBuf {
     match path.strip_prefix("~/") {
-        Some(rest) => std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default().join(rest),
+        Some(rest) => home().join(rest),
         None => PathBuf::from(path),
     }
 }
@@ -371,23 +393,24 @@ fn length(seconds: f32) -> String {
 
 /// Local date and time of a timestamp in milliseconds.
 fn date(ms: f64) -> String {
-    let secs = (ms / 1000.0) as libc::time_t;
-    let mut tm: libc::tm = unsafe { std::mem::zeroed() };
-    unsafe { libc::localtime_r(&secs, &mut tm) };
-    format!("{}-{:02}-{:02} {:02}:{:02}", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min)
+    use chrono::TimeZone;
+    match chrono::Local.timestamp_millis_opt(ms as i64).single() {
+        Some(t) => t.format("%Y-%m-%d %H:%M").to_string(),
+        None => String::new(),
+    }
 }
 
 // --- Settings › Claude --------------------------------------------------------------------
 
-/// Claude Desktop's settings file, where its local MCP servers are listed.
+/// Claude Desktop's settings file, where its local MCP servers are listed: in Application
+/// Support on macOS, %APPDATA% on Windows and ~/.config on Linux (`dirs::config_dir`).
 pub fn desktop_config() -> PathBuf {
-    let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default();
-    home.join("Library/Application Support/Claude/claude_desktop_config.json")
+    dirs::config_dir().unwrap_or_else(home).join("Claude/claude_desktop_config.json")
 }
 
-/// Claude Desktop is on this Mac (it made its settings folder).
+/// Claude Desktop is on this computer (it made its settings folder).
 pub fn desktop_installed() -> bool {
-    desktop_config().parent().is_some_and(Path::is_dir) || Path::new("/Applications/Claude.app").is_dir()
+    desktop_config().parent().is_some_and(Path::is_dir) || (cfg!(target_os = "macos") && Path::new("/Applications/Claude.app").is_dir())
 }
 
 /// Murmur is among Claude Desktop's servers.

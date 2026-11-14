@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "whisper": "cd whisper && cargo build --release && mkdir -p ../src-tauri/binaries && cp target/release/murmur-whisper ../src-tauri/binaries/murmur-whisper-aarch64-apple-darwin",
+    "whisper": "node scripts/build-whisper.mjs",
     "check-locales": "node scripts/check-locales.mjs"
   },
   "dependencies": {

@@ -2,11 +2,15 @@
 
 Les apps instal·lades busquen actualitzacions en obrir-se (si l'usuari no ho ha desactivat) i amb «Comprova ara» a Configuració › General. Hi ha dues coses que es poden publicar, cadascuna pel seu camí:
 
-- **L'app**: una *release* a [quicodomingo/murmur-releases](https://github.com/quicodomingo/murmur-releases/releases) amb el `.dmg` (instal·lacions noves) i el paquet d'actualització (`Murmur.app.tar.gz`, la seva signatura i `latest.json`).
-- **El repositori del codi** [quicodomingo/murmur](https://github.com/quicodomingo/murmur), públic i amb llicència MIT: `publish.sh` hi puja el codi i hi crea la mateixa *release* amb el `.dmg`, lligada al commit de la versió.
+- **L'app**: una *release* a [quicodomingo/murmur-releases](https://github.com/quicodomingo/murmur-releases/releases) amb els instal·ladors i els paquets d'actualització de cada sistema, i el `latest.json` que diu a cada app instal·lada què ha de baixar:
+  - macOS: el `.dmg` i `Murmur.app.tar.gz` (amb la seva signatura), fets al Mac amb `release.sh`, o a GitHub Actions si hi ha els secrets d'Apple.
+  - Windows: `Murmur_<versió>_x64-setup.exe` (instal·lador i paquet d'actualització alhora) i la seva signatura.
+  - Linux: `.deb`, `.rpm` i `.AppImage` (aquesta s'actualitza sola), amb les signatures.
+- **El repositori del codi** [quicodomingo/murmur](https://github.com/quicodomingo/murmur), públic i amb llicència MIT: `publish.sh` hi puja el codi i l'etiqueta `v<versió>`, i la *release* hi té els mateixos instal·ladors.
+- **Windows i Linux es compilen sols**: l'etiqueta engega [`.github/workflows/release.yml`](../.github/workflows/release.yml), que els compila, els signa amb la clau de les actualitzacions i els afegeix a totes dues *releases* i al `latest.json`, sense treure-hi el Mac.
 - **Els models**: el catàleg [`models.json`](https://github.com/quicodomingo/murmur-releases/blob/main/models.json) del mateix repositori. Els fitxers dels models són a Hugging Face (`quicodomingo/murmur-models`) o al seu origen.
 
-Publicar és públic i no es pot desfer per a qui ja s'hagi actualitzat: prova sempre la versió al teu Mac abans.
+Publicar és públic i no es pot desfer per a qui ja s'hagi actualitzat: prova sempre la versió al teu Mac abans, i mira que la CI estigui en verd per a Windows i Linux.
 
 ## Què cal tenir (un sol cop)
 
@@ -17,6 +21,23 @@ Publicar és públic i no es pot desfer per a qui ja s'hagi actualitzat: prova s
 | Clau de les actualitzacions | `~/.tauri/murmur-updater.key` (còpia a 1Password) | Signar el paquet d'actualització |
 | Contrasenya d'aquesta clau | Clauer, element `murmur-updater` (còpia a 1Password) | `release.sh` la llegeix sola |
 | `gh` amb sessió de `quicodomingo` | `gh auth status` | Pujar la *release* |
+| Secrets i variables de GitHub Actions | Repositori del codi › Settings › Secrets and variables › Actions | Compilar i publicar Windows i Linux (i macOS, si es vol) |
+
+Els secrets de GitHub Actions (un sol cop):
+
+| Secret | Què és |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | El contingut de `~/.tauri/murmur-updater.key` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | La contrasenya d'aquesta clau |
+| `RELEASES_TOKEN` | Un *fine-grained token* de `quicodomingo` amb permís *Contents: read and write* només a `murmur-releases` |
+
+Per compilar també el Mac a GitHub Actions (opcional; si no, es fa al Mac amb `release.sh` com sempre), la variable `MACOS_CI` = `true` i aquests secrets:
+
+| Secret | Què és |
+|---|---|
+| `APPLE_CERTIFICATE` | El Developer ID exportat del clauer com a `.p12`, en base64 (`base64 -i cert.p12 \| pbcopy`) |
+| `APPLE_CERTIFICATE_PASSWORD` | La contrasenya del `.p12` |
+| `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | La clau d'App Store Connect per notaritzar (el contingut de l'`AuthKey_….p8`, el seu id i l'emissor) |
 
 La clau pública és a `app/src-tauri/tauri.conf.json` › `plugins.updater.pubkey`. **Si es perd la clau privada, les apps instal·lades no podran rebre més actualitzacions**: caldria reinstal·lar-les a mà amb una versió que porti una clau nova.
 
@@ -61,13 +82,21 @@ La clau pública és a `app/src-tauri/tauri.conf.json` › `plugins.updater.pubk
    ```bash
    RELEASE_NOTES="Una frase amb el més important de la versió." ./scripts/publish.sh
    ```
-   Crea la *release* `v<versió>` al repositori públic amb els quatre fitxers, puja el codi al repositori del codi (`git push`) i hi crea la mateixa *release* amb el `.dmg`. Les notes van a GitHub i a `latest.json`: són el que l'app mostra a la finestra «Actualitzant Murmur».
+   Crea la *release* `v<versió>` al repositori públic amb els quatre fitxers del Mac, puja el codi i l'etiqueta `v<versió>` al repositori del codi (`git push`) i hi crea la mateixa *release* amb el `.dmg`. Les notes van a GitHub, a `latest.json` i al missatge de l'etiqueta: són el que l'app mostra a la finestra «Actualitzant Murmur».
+
+   L'etiqueta engega la compilació de Windows i Linux ([Actions › Publica](https://github.com/quicodomingo/murmur/actions/workflows/release.yml), uns 30 minuts). Quan acaba, totes dues *releases* tenen els instal·ladors i `latest.json` les tres plataformes. Si el Mac també es compila a GitHub Actions (`MACOS_CI`), es pot saltar el pas 4 i fer només `./scripts/publish.sh --no-mac`.
+
+   Si alguna compilació falla, es pot tornar a llançar a Actions › Publica › *Run workflow*, amb l'etiqueta: no toca el que ja s'hi ha publicat del Mac.
 
 7. **Comprova-ho**:
    ```bash
    curl -sL https://github.com/quicodomingo/murmur-releases/releases/latest/download/latest.json
    ```
-   Ha de mostrar la versió nova. En una app amb la versió anterior, «Comprova ara» l'ha d'oferir, instal·lar-la i reiniciar-se, i en tornar a obrir-se ha de mostrar les novetats.
+   Ha de mostrar la versió nova i les plataformes `darwin-aarch64`, `windows-x86_64` i `linux-x86_64`. En una app amb la versió anterior, «Comprova ara» l'ha d'oferir, instal·lar-la i reiniciar-se, i en tornar a obrir-se ha de mostrar les novetats.
+
+### Abans de publicar: les proves
+
+Cada canvi passa per [`.github/workflows/ci.yml`](../.github/workflows/ci.yml): tipus i traduccions, `cargo test` a macOS, Windows i Linux, i les proves e2e (`app/e2e/`): el motor transcriu un àudio de veritat als tres sistemes, i a Windows i Linux es prova la interfície de l'app compilada amb `tauri-driver`. No es publica una versió amb la CI en vermell.
 
 ### Si alguna cosa va malament
 

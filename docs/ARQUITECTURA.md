@@ -26,7 +26,7 @@ L'app final no porta Python ni PyTorch.
 ## Maquinari
 
 - **Desenvolupament:** Mac M4 amb 16 GB.
-- **Objectiu mínim:** M1 amb 8 GB. Per això els models es carreguen per torns (directe, alliberar, passada final, alliberar, model de llenguatge), el model de llenguatge és de 3 a 4 mil milions de paràmetres en 4 bits, i cap model en directe passa de ~500 MB.
+- **Objectiu mínim:** M1 amb 8 GB. A Windows i Linux, un PC x86-64 amb AVX2 i 8 GB. Per això els models es carreguen per torns (directe, alliberar, passada final, alliberar, model de llenguatge), el model de llenguatge és de 3 a 4 mil milions de paràmetres en 4 bits, i cap model en directe passa de ~500 MB.
 
 ## Banc de proves (`bench/`)
 
@@ -90,7 +90,7 @@ L'app es diu Murmur. El codi i el crate es diuen `transcriptor`, el nom antic. I
 - Les fonts aturades s'omplen de silenci segons el rellotge real, però només quan la cua d'àudio capturat és buida. Amb el Mac saturat (Google Meet amb vídeo), l'àudio pendent es prenia per silenci i es desava com a zeros: a la prova del 18/10, entre el 50% i el 99% de zeros mentre Meet era obert. Si la cua passa de 60 fragments, es deixa de fer el text provisional fins que s'atrapa.
 - Ids de parlant: micròfon 0…, sistema 100… (`SYSTEM_SPEAKER_BASE`). En una trucada, el parlant 0 del micròfon es diu «Tu».
 - Esdeveniments de Tauri: `transcript` (partial/final), `level`, `transcript-done`, `transcript-error`.
-- Windows (pendent): loopback WASAPI.
+- **Windows:** l'àudio del sistema és el loopback de WASAPI, un flux d'entrada de `cpal` sobre la sortida per defecte (`audio.rs`, `start_loopback`). No envia res mentre no sona res. Linux encara no en té (`audio::SYSTEM_AUDIO`): les reunions es graven només amb el micròfon.
 
 ### Idioma de la reunió
 
@@ -104,7 +104,7 @@ L'app es diu Murmur. El codi i el crate es diuen `transcriptor`, el nom antic. I
 ### Desar i escoltar l'àudio
 
 - **Desar** (`recorder.rs`): Ogg/Opus a 16 kHz. Amb una font, mono a 16 kbps (~7 MB/h). Amb dues, **estèreo a 24 kbps (~11 MB/h)**: micròfon a l'esquerra (ja sense eco) i sistema a la dreta. La transcripció de l'àudio descomprimit és pràcticament idèntica a l'original. Fitxer a `<app_data_dir>/recordings/<meeting_id>.ogg`. Opus es compila amb cmake.
-- **Escoltar** (`playback.rs`, `lib/player.ts`, `PlayerBar.tsx`): l'Ogg es descodifica, es barreja en mono i es passa a AAC a 48 kbps (~22 MB/h) amb `afconvert`. El `.m4a` va a `<app_cache_dir>/playback/` i es refà si l'Ogg és més nou. Clicar el minut d'una frase o de la portada la fa sonar d'allà, i la transcripció segueix la frase que sona. Sempre es desa en Ogg, que és més petit i manté els canals separats per tornar-los a analitzar.
+- **Escoltar** (`playback.rs`, `lib/player.ts`, `PlayerBar.tsx`): l'Ogg es descodifica, es barreja en mono i es passa a AAC a 48 kbps (~22 MB/h) amb `afconvert`. A Windows i Linux no hi ha `afconvert` ni un codificador d'AAC segur: és un Ogg/Opus mono amb el mateix codificador de `recorder.rs`, que WebView2 i WebKitGTK reprodueixen (`playback::EXTENSION`). El `.m4a` va a `<app_cache_dir>/playback/` i es refà si l'Ogg és més nou. Clicar el minut d'una frase o de la portada la fa sonar d'allà, i la transcripció segueix la frase que sona. Sempre es desa en Ogg, que és més petit i manté els canals separats per tornar-los a analitzar.
 
 ### Continuar una reunió (`lib/parts.ts`, `resume_meeting` a `lib.rs`)
 
@@ -191,11 +191,40 @@ El sagnat (extensió `Indent`) és un atribut `indent` (0 a 6) dels paràgrafs i
   - Models: catàleg `models.json` al mateix repositori (`models.rs`, `CATALOG_URL`), amb `version`, `minApp`, `notes` i fitxers (`name`, `url`, `bytes`, `sha256`). Només s'actualitzen els models instal·lats, i una actualització substitueix fitxers amb els mateixos noms. Es descarrega a `models/.updates/<id>/`, es verifica i després substitueix l'antic. La versió instal·lada és a `models/versions.json`.
   - Totes les descàrregues comproven l'espai lliure (+500 MB) i el SHA-256 abans de fer servir el fitxer.
 - **Novetats** (`WhatsNewDialog.tsx`, `lib/whatsnew.ts`): en obrir-se una versió nova, Murmur mostra què porta, una sola vegada (l'última vista es desa a `localStorage`, `murmur.whatsnew.seen.v1`). Les versions saltades surten plegades a sota. Una instal·lació nova no les mostra. Es poden desactivar i tornar a obrir des de Configuració › General. El text és dins l'app, traduït (`locales/<idioma>/whatsnew.json`), i les dates a `RELEASES`.
-- **Publicar** (`app/scripts/release.sh` i `publish.sh`): compila i signa amb el Developer ID (hardened runtime i `Entitlements.plist` amb `audio-input`, sense el qual el micròfon queda bloquejat), notaritza, grapa i fa el `.dmg`. El procés complet és a [PUBLICAR.md](PUBLICAR.md).
+- **Publicar** (`app/scripts/release.sh` i `publish.sh`): compila i signa amb el Developer ID (hardened runtime i `Entitlements.plist` amb `audio-input`, sense el qual el micròfon queda bloquejat), notaritza, grapa i fa el `.dmg`. L'etiqueta `v<versió>` engega `.github/workflows/release.yml`, que compila Windows i Linux (i macOS, si hi ha els secrets d'Apple) i els afegeix a les releases i al `latest.json` (`scripts/latest-json.mjs`). El procés complet és a [PUBLICAR.md](PUBLICAR.md).
 
 ### Dependències
 
 Totes les versions 2.x de `zip` estan retirades de crates.io. `Cargo.toml` fa `[patch.crates-io]` a l'etiqueta git v2.6.1, que és la que demana `sherpa-onnx-sys`.
+
+### Windows i Linux
+
+La mateixa app, amb el que cada sistema permet. La interfície pregunta què hi ha (`platform` a `lib.rs`, `lib/platform.ts`) i només ofereix el que funciona.
+
+| | macOS | Windows | Linux |
+|---|---|---|---|
+| Micròfon | Sí | Sí | Sí |
+| Àudio del sistema | Core Audio tap (`systap.rs`) | Loopback WASAPI | No |
+| Calendari, captures, «Reunió detectada», menú Compartir | Sí | No | No |
+| Obrir un àudio | `afconvert` | Symphonia (Opus, el nostre descodificador) | Igual que Windows |
+| Escoltar i exportar l'àudio | `.m4a` (AAC) | `.ogg` (Opus) | `.ogg` (Opus) |
+| Clauer | Keychain (`security-framework`) | Gestor de credencials (`keyring`) | Secret Service (`keyring`) |
+| Whisper i Gemma | Metal | CPU amb AVX2 | CPU amb AVX2 |
+| Instal·lador i actualitzacions | `.dmg`, `.app.tar.gz` | NSIS (`-setup.exe`, per a l'usuari) | `.deb`, `.rpm`, AppImage (s'actualitza sola) |
+
+- **Clauer** (`keychain.rs`): a macOS, `security-framework` com sempre (les claus desades abans es continuen llegint); a la resta, `keyring`, amb el mateix servei i compte.
+- **sherpa-onnx a Windows i Linux** són les biblioteques compartides (`features = ["shared"]`), no les estàtiques. A Windows, les estàtiques fan servir el runtime estàtic de C (`/MT`), que no es pot enllaçar amb el de llama.cpp (`/MD`). A Linux, l'onnxruntime estàtic i llama.cpp porten cadascun les seves instàncies de les plantilles de libstdc++ (`std::regex`), fetes amb compiladors diferents: l'enllaçador se'n queda una i onnxruntime petava en crear l'entorn (`free(): invalid pointer`, vist a la prova e2e del motor). `build.rs` copia les biblioteques a `src-tauri/windows-dlls/` o `src-tauri/linux-libs/`, i l'instal·lador les posa al costat de l'executable (Windows) o a `/usr/lib/Murmur` (Linux, on apunta el `rpath`).
+- **AVX2**: als executors de GitHub, whisper.cpp es compilaria per a la CPU de la màquina (`GGML_NATIVE`) i llama.cpp per a l'x86-64 bàsic (SSE2, diverses vegades més lent). `app/.cargo/config.toml` i `scripts/build-whisper.mjs` fixen AVX2, FMA i F16C: qualsevol PC des del 2013-2015.
+- **Dreceres i textos**: ⌘ és Ctrl (`hasMod`, `shortcut`), i els textos que diuen «aquest Mac», Finder o Configuració del Sistema tenen la seva versió per a qualsevol ordinador a `locales/<idioma>/pc.json`, que `lib/i18n.ts` aplica fora de macOS.
+- **Dades**: on Tauri les posa a cada sistema (`app_data_dir`: Application Support, `%APPDATA%`, `~/.local/share`). El connector per a Claude les busca al mateix lloc (`dirs::data_dir`), i Claude Desktop a `dirs::config_dir`.
+- **Obrir amb…**: a Windows i Linux el fitxer arriba com a argument (`Opened::from_args`).
+
+### Proves e2e (`app/e2e/`)
+
+- **Motor** (`specs/motor.test.mjs`, a les tres plataformes): l'app amb `--mcp` transcriu `fixtures/bon-dia.wav` (una veu sintètica d'espeak que diu «Bon dia a tothom. Avui parlarem del pressupost de l'any que ve i de les vacances d'estiu.») amb el model de transcripció de veritat, i se n'han d'entendre almenys tres paraules. Prova sherpa-onnx, els models, la descodificació i la diarització en aquell sistema.
+- **Interfície** (`specs/interficie.e2e.mjs`, Windows i Linux, amb `tauri-driver`): la benvinguda, els textos per a PC, les dreceres amb Ctrl, i una configuració sense calendari ni permisos de macOS (i sense àudio del sistema a Linux).
+- **Obrir un àudio** (`specs/importa.e2e.mjs`): l'app oberta amb el fitxer com a argument en fa una reunió i en mostra la transcripció.
+- La CI (`.github/workflows/ci.yml`) les fa a cada canvi. El model (~585 MB) es desa a la memòria cau de GitHub mentre no canviï `models.rs`.
 
 ## Passada final: Whisper (`retranscribe.rs`, `app/whisper/`)
 
@@ -253,7 +282,7 @@ El mateix binari de l'app, cridat amb `--mcp` (`main.rs`), és un servidor MCP p
 ### Si comença una altra reunió (`gate.rs`)
 
 - La feina d'acabar una reunió (parlants, Whisper, puntuació i portada) espera mentre Murmur grava, o mentre una altra app fa servir el micròfon (una trucada a Meet, Teams, Zoom…, la mateixa detecció que «Reunió detectada», `micwatch.rs`). Així la gravació o la trucada no van a batzegades. També se'n processa només una reunió alhora: si en tanques dues seguides, la segona espera la primera.
-- Whisper corre en un procés a part i es congela al moment (`SIGSTOP`, i `SIGCONT` quan s'acaba la gravació o la trucada). El model de llenguatge s'atura entre token i token, i la puntuació abans de començar. La verificació de parlants és una sola crida a sherpa-onnx: si ja ha començat, acaba (com a molt uns minuts).
+- Whisper corre en un procés a part i es congela al moment (`SIGSTOP`, i `SIGCONT` quan s'acaba la gravació o la trucada; a Windows, `NtSuspendProcess` i `NtResumeProcess`). El model de llenguatge s'atura entre token i token, i la puntuació abans de començar. La verificació de parlants és una sola crida a sherpa-onnx: si ja ha començat, acaba (com a molt uns minuts).
 - Mentre espera, el model que estava fent servir es queda a la memòria. La interfície ho diu a la barra de progrés («en pausa», i per què) i el temps d'espera no compta per a l'estimació. Si una app es queda el micròfon sense que hi hagi cap trucada, la feina no avança fins que el deixa.
 
 ### Avaluació amb etiquetes manuals

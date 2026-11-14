@@ -1,0 +1,38 @@
+# El que necessiten totes les compilacions: Node, Rust, la memòria cau i, a Linux, les
+# biblioteques de WebKitGTK, ALSA i D-Bus.
+name: Prepara l'entorn
+description: Node, Rust i les dependències del sistema per compilar Murmur
+runs:
+  using: composite
+  steps:
+    - name: Dependències de Linux
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+          patchelf libasound2-dev libdbus-1-dev libssl-dev libgomp1 cmake clang
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: app/package-lock.json
+    - name: Dependències de Node
+      shell: bash
+      working-directory: app
+      run: npm ci
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          app/src-tauri
+          app/whisper
+    # La memòria cau de Rust pot tornar el build de sherpa-onnx-sys sense les biblioteques que
+    # baixa (Cargo el dona per fet i l'enllaç falla): es refà cada cop, només és una descàrrega.
+    - name: Refés sherpa-onnx-sys
+      shell: bash
+      working-directory: app/src-tauri
+      run: |
+        cargo clean -p sherpa-onnx-sys
+        cargo clean -p sherpa-onnx-sys --release
+        rm -rf target/sherpa-onnx-prebuilt

@@ -24,7 +24,7 @@
   "copyMarkdown": "Copia en Markdown",
   "showAudioInFinder": "Mostra l'àudio al Finder",
   "audioNotSaved": "No s'ha desat l'àudio",
-  "exportAudio": "Exporta l'àudio (.m4a)…",
+  "exportAudio": "Exporta l'àudio (.{{ext}})…",
   "deleteMeeting": "Elimina la reunió…",
   "view": "Vista",
   "viewCover": "Resum",

@@ -1,0 +1,58 @@
+{
+  "about": {
+    "description": "Live meeting transcription, with Catalan at its heart. Everything is processed on this computer: audio and text never leave it. Local means private.",
+    "chips": {
+      "local": "Nothing leaves this computer"
+    }
+  },
+  "app": {
+    "showAudioInFinder": "Show Audio in Folder",
+    "missingModelBody": "Murmur transcribes with a model that runs on this computer. You only need to download it once.",
+    "emptyBody": "Record a meeting and the transcript will appear live, split by speaker. Everything is processed on this computer: local means private.",
+    "showInFinder": "Show in Folder"
+  },
+  "onboarding": {
+    "features": {
+      "alerts": {
+        "text": "Murmur stays in the system tray: one click and it starts recording."
+      }
+    },
+    "models": {
+      "introChoose": "Murmur works with models that run on this computer. You only need to download them once.",
+      "transcriptionText": "Turns speech into text, in Catalan and other languages, right on this computer.",
+      "writers": {
+        "local": "Gemma, on this computer"
+      },
+      "localText": "Gemma 4, by Google, runs on this computer. It takes {{size}} and needs 16 GB of memory."
+    }
+  },
+  "permissions": {
+    "micDeniedHelp": "Allow microphone access in the system's privacy settings."
+  },
+  "settings": {
+    "permissions": {
+      "micDenied": "Denied. Allow microphone access in the system's privacy settings.",
+      "micUndetermined": "If the system asks, allow access."
+    },
+    "intelligence": {
+      "engineLocal": "This Computer",
+      "privacyCloud": "Each time a summary is generated, the transcript's text and the notes are sent to {{provider}}. The audio never leaves this computer, and the key is saved in the system keychain."
+    },
+    "share": {
+      "privacy": "Only what you choose when sharing is sent, encrypted on this computer. The audio only if you tick it."
+    },
+    "claude": {
+      "intro": "With the connector, Claude can read and search your meetings and transcribe audio on this computer with Murmur. Transcription happens here, and Claude only gets the text it asks for.",
+      "desktopMissing": "Claude Desktop isn't on this computer. You can also use it with Claude Code.",
+      "privacy": "Murmur sends nothing on its own: Claude only gets the text it asks the tools for, and handles it under your terms with Anthropic. Audio never leaves the computer."
+    }
+  },
+  "share": {
+    "privacy": "Murmur encrypts it on this computer before sending it to your Cloudflare Worker. Without the link nobody can read it, not even Cloudflare.",
+    "privacyPassword": "Murmur encrypts it on this computer before sending it to your Cloudflare Worker. Without the link and the password nobody can read it, not even Cloudflare."
+  },
+  "sidebar": {
+    "localOnly": "Everything stays on this computer",
+    "settingsShortcut": "Settings (Ctrl+,)"
+  }
+}

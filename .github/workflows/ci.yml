@@ -1,0 +1,224 @@
+# Proves de cada canvi a macOS, Windows i Linux: tipus i traduccions de la interfície, tests del
+# motor i les proves e2e de l'app compilada (Windows i Linux: tauri-driver no funciona a macOS).
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  interficie:
+    name: Interfície (tipus i traduccions)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run check-locales
+      - run: npm run build
+
+  motor:
+    name: Motor (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-2022, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+      - name: Sidecar buit (els tests no el fan servir)
+        shell: bash
+        run: |
+          triple=$(rustc -vV | sed -n 's/^host: //p')
+          ext=""; [[ "$triple" == *windows* ]] && ext=".exe"
+          mkdir -p app/src-tauri/binaries
+          touch "app/src-tauri/binaries/murmur-whisper-$triple$ext"
+      - name: Tests del motor
+        working-directory: app/src-tauri
+        run: cargo test --locked
+      - name: Els exemples compilen
+        working-directory: app/src-tauri
+        run: cargo check --locked --examples
+
+  e2e:
+    name: E2E (${{ matrix.os }})
+    needs: interficie
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-2022, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      MURMUR_E2E_MODELS: ${{ github.workspace }}/e2e-models
+      MURMUR_E2E_REQUIRE_MODELS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+      - name: Compila l'app (sense instal·lador)
+        working-directory: app
+        run: npm run tauri build -- --debug --no-bundle
+      # El model de transcripció (~585 MB), descarregat un cop i desat a la memòria cau mentre
+      # no canviï el catàleg de models.
+      - name: Model de transcripció (memòria cau)
+        id: models
+        uses: actions/cache@v4
+        with:
+          path: e2e-models
+          key: models-transcription-${{ hashFiles('app/src-tauri/src/models.rs') }}
+          enableCrossOsArchive: true
+      - name: Descarrega el model de transcripció
+        if: steps.models.outputs.cache-hit != 'true'
+        working-directory: app/src-tauri
+        shell: bash
+        run: cargo run --example download_probe -- "$MURMUR_E2E_MODELS" transcription full
+      - name: Dependències de les proves
+        working-directory: app/e2e
+        run: npm ci
+      - name: Prova del motor (connector MCP, un àudio de veritat)
+        working-directory: app/e2e
+        run: npm run motor
+      - name: Traça de l'error (Linux)
+        if: failure() && runner.os == 'Linux'
+        working-directory: app/e2e
+        run: |
+          sudo apt-get install -y gdb >/dev/null
+          f=$(pwd)/fixtures/bon-dia.wav
+          mkfifo input.fifo
+          ( echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}'
+            echo "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"transcribe_file\",\"arguments\":{\"path\":\"$f\",\"language\":\"ca\"}}}"
+            sleep 60 ) > input.fifo &
+          TRANSCRIPTOR_MODELS=$MURMUR_E2E_MODELS gdb -batch -ex "run --mcp < input.fifo" -ex "thread apply all bt 25" ../src-tauri/target/debug/transcriptor 2>&1 | tail -150
+      - name: Eines de WebDriver
+        if: runner.os != 'macOS'
+        shell: bash
+        run: |
+          cargo install tauri-driver --locked
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get install -y webkit2gtk-driver xvfb
+          fi
+      - name: msedgedriver de la mateixa versió que WebView2
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}").pv
+          Write-Host "WebView2 $version"
+          Invoke-WebRequest "https://msedgedriver.microsoft.com/$version/edgedriver_win64.zip" -OutFile edgedriver.zip
+          Expand-Archive edgedriver.zip -DestinationPath "$env:RUNNER_TEMP\edgedriver"
+          "$env:RUNNER_TEMP\edgedriver" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Proves de la interfície
+        if: runner.os != 'macOS'
+        working-directory: app/e2e
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum npm run interficie
+            xvfb-run --auto-servernum npm run importa
+          else
+            npm run interficie
+            npm run importa
+          fi
+      - name: Captures de les proves
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.os }}
+          path: app/e2e/captures
+          if-no-files-found: ignore
+
+  # Els instal·ladors de veritat (compilació de release, com a la publicació), instal·lats i
+  # provats: les biblioteques de sherpa-onnx han d'anar dins del paquet. Signats amb una clau
+  # d'un sol ús; no es publica res.
+  paquets:
+    name: Paquets (${{ matrix.os }})
+    needs: interficie
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      MURMUR_E2E_MODELS: ${{ github.workspace }}/e2e-models
+      MURMUR_E2E_REQUIRE_MODELS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+      - name: Clau d'actualitzacions d'un sol ús
+        shell: bash
+        working-directory: app
+        run: |
+          npx tauri signer generate --ci -w "$RUNNER_TEMP/prova.key" -p prova >/dev/null
+          { echo "TAURI_SIGNING_PRIVATE_KEY<<FI"; cat "$RUNNER_TEMP/prova.key"; echo; echo "FI"; } >> "$GITHUB_ENV"
+          echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=prova" >> "$GITHUB_ENV"
+      - name: Fa els instal·ladors
+        working-directory: app
+        run: npm run tauri build
+      - name: Model de transcripció (memòria cau)
+        id: models
+        uses: actions/cache@v4
+        with:
+          path: e2e-models
+          key: models-transcription-${{ hashFiles('app/src-tauri/src/models.rs') }}
+          enableCrossOsArchive: true
+      - name: Descarrega el model de transcripció
+        if: steps.models.outputs.cache-hit != 'true'
+        working-directory: app/src-tauri
+        shell: bash
+        run: cargo run --release --example download_probe -- "$MURMUR_E2E_MODELS" transcription full
+      - name: Dependències de les proves
+        working-directory: app/e2e
+        run: npm ci
+      - name: Instal·la el .deb i prova l'app instal·lada
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          b=app/src-tauri/target/release/bundle
+          ls -la $b/deb $b/rpm $b/appimage
+          ls $b/deb/*.deb.sig $b/appimage/*.AppImage.sig
+          sudo apt-get install -y ./$b/deb/*.deb
+          app=$(dpkg -L murmur | grep -m1 '^/usr/bin/')
+          echo "Instal·lada: $app"; ldd "$app" | grep -i "onnx\|not found" || true
+          cd app/e2e && MURMUR_E2E_APP="$app" MURMUR_E2E_REQUIRE_MODELS=1 npm run motor
+      - name: Prova l'AppImage
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          image=$(ls $PWD/app/src-tauri/target/release/bundle/appimage/*.AppImage)
+          chmod +x "$image"
+          printf '#!/bin/sh\nexec "%s" --appimage-extract-and-run "$@"\n' "$image" > "$RUNNER_TEMP/murmur-appimage"
+          chmod +x "$RUNNER_TEMP/murmur-appimage"
+          cd app/e2e && MURMUR_E2E_APP="$RUNNER_TEMP/murmur-appimage" npm run motor
+      - name: Instal·la amb NSIS i prova l'app instal·lada
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem app/src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          Get-ChildItem app/src-tauri/target/release/bundle/nsis/*-setup.exe.sig | Out-Null
+          Start-Process $setup.FullName -ArgumentList "/S" -Wait
+          $dir = Join-Path $env:LOCALAPPDATA "Murmur"
+          Get-ChildItem $dir | Format-Table Name, Length
+          $app = Get-ChildItem $dir -Filter *.exe | Where-Object { $_.Name -notmatch "uninstall|whisper" } | Select-Object -First 1
+          if (-not (Test-Path (Join-Path $dir "sherpa-onnx-c-api.dll"))) { throw "Falta sherpa-onnx-c-api.dll a la instal·lació" }
+          Write-Host "Instal·lada: $($app.FullName)"
+          $env:MURMUR_E2E_APP = $app.FullName
+          cd app/e2e
+          $env:MURMUR_E2E_REQUIRE_MODELS = "1"
+          npm run motor

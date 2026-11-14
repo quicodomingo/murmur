@@ -2,10 +2,13 @@
 //! and encoded as AAC (.m4a) with macOS's own encoder. Any player can open it (QuickTime, the
 //! iPhone, Windows, WhatsApp), and so can the app's webview. Mono, because in the recording your
 //! voice is on the left and the rest of the call on the right.
+//!
+//! Windows and Linux have no AAC encoder we can count on: there it's a mono Ogg/Opus, which
+//! WebView2, WebKitGTK and the usual players read.
 
 use crate::i18n::tr;
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write};
+use std::io::BufReader;
 use std::path::Path;
 
 use anyhow::{Context, Result, anyhow};
@@ -14,7 +17,14 @@ use opus::{Channels, Decoder};
 
 const RATE: u32 = 16_000;
 /// AAC bit rate: about 22 MB per hour of meeting, clear for speech.
+#[cfg(target_os = "macos")]
 const BITRATE: u32 = 48_000;
+
+/// The playable file's extension and type (the share page needs the type).
+#[cfg(target_os = "macos")]
+pub const EXTENSION: &str = "m4a";
+#[cfg(not(target_os = "macos"))]
+pub const EXTENSION: &str = "ogg";
 
 /// The recording as mono samples at 16 kHz.
 pub fn decode(path: &Path) -> Result<Vec<f32>> {
@@ -59,7 +69,9 @@ pub fn decode_channels(path: &Path) -> Result<Vec<Vec<f32>>> {
 }
 
 /// Writes `samples` as an .m4a at `out` (through a temporary WAV and macOS's `afconvert`).
-pub fn write_m4a(samples: &[f32], out: &Path) -> Result<()> {
+#[cfg(target_os = "macos")]
+pub fn write_playable(samples: &[f32], out: &Path) -> Result<()> {
+    use std::io::{BufWriter, Write};
     if let Some(dir) = out.parent() {
         std::fs::create_dir_all(dir)?;
     }
@@ -99,13 +111,24 @@ pub fn write_m4a(samples: &[f32], out: &Path) -> Result<()> {
     Ok(())
 }
 
-/// The .m4a for `ogg` at `out`, made only if it's missing or older than the recording.
-pub fn ensure_m4a(ogg: &Path, out: &Path) -> Result<()> {
+/// Writes `samples` as a mono Ogg/Opus at `out`, with the recorder's own encoder.
+#[cfg(not(target_os = "macos"))]
+pub fn write_playable(samples: &[f32], out: &Path) -> Result<()> {
+    let partial = out.with_extension("ogg.part");
+    let mut rec = crate::recorder::Recorder::create(&partial, 1)?;
+    rec.push(samples)?;
+    rec.finish()?;
+    std::fs::rename(&partial, out)?;
+    Ok(())
+}
+
+/// The playable file for `ogg` at `out`, made only if it's missing or older than the recording.
+pub fn ensure_playable(ogg: &Path, out: &Path) -> Result<()> {
     let modified = |p: &Path| std::fs::metadata(p).and_then(|m| m.modified()).ok();
     if let (Some(made), Some(source)) = (modified(out), modified(ogg)) {
         if made >= source {
             return Ok(());
         }
     }
-    write_m4a(&decode(ogg)?, out)
+    write_playable(&decode(ogg)?, out)
 }

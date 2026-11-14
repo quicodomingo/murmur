@@ -9,6 +9,7 @@ import { meetingWhen } from "./parts";
 import { locale, t, uiLanguage } from "./i18n";
 import { notesDoc } from "./notes";
 import type { Meeting, ShareLink, SharePart } from "./types";
+import { capabilities } from "./platform";
 
 // Shared links (docs/COMPARTIR.md). The meeting is put together here as the page will show it,
 // already translated, then compressed and encrypted with AES-GCM; only that goes to the user's
@@ -293,7 +294,7 @@ export async function shareMeeting(
     const audio = new Uint8Array(await backend.shareReadFile(m.id, "audio", m.audioPath));
     const pieces = Math.max(1, Math.ceil(audio.length / AUDIO_PIECE));
     for (let i = 0; i < pieces; i++) uploads.push({ name: `audio.${i}`, bytes: await sealFile(audio.subarray(i * AUDIO_PIECE, (i + 1) * AUDIO_PIECE), key) });
-    files.audio = { parts: pieces, type: "audio/mp4", bytes: audio.length };
+    files.audio = { parts: pieces, type: capabilities.audioExtension === "m4a" ? "audio/mp4" : "audio/ogg", bytes: audio.length };
   }
 
   progress({ step: "meeting", done: 0, total: 1 });

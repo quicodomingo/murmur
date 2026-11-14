@@ -2,6 +2,7 @@ import { toast } from "sonner";
 
 import * as backend from "./backend";
 import { t } from "./i18n";
+import { capabilities } from "./platform";
 
 /**
  * Before recording: asks for what's missing, like other apps do (the system's own dialogs).
@@ -10,7 +11,8 @@ import { t } from "./i18n";
 export async function ensurePermissions(want: { mic: boolean; system: boolean }): Promise<{ mic: boolean; system: boolean } | null> {
   let status = await backend.permissionStatus();
   let mic = want.mic;
-  let system = want.system;
+  // Linux can't record the other side of a call yet: the microphone alone.
+  let system = want.system && capabilities.systemAudio;
 
   if (mic && status.microphone === "undetermined") {
     await backend.requestMicrophone();

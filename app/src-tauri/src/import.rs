@@ -12,13 +12,29 @@ use sherpa_onnx::{SileroVadModelConfig, VadModelConfig, VoiceActivityDetector};
 use crate::diarize::Span;
 use crate::engine::SAMPLE_RATE;
 
-/// What the open panel offers. macOS reads all of them (`afconvert`), Ogg/Opus included.
+/// What the open panel offers. macOS reads all of them (`afconvert`), Ogg/Opus included; on
+/// Windows and Linux Symphonia does, except Opus and CAF's own codecs.
 pub const EXTENSIONS: &[&str] = &["mp3", "m4a", "aac", "wav", "aif", "aiff", "caf", "flac", "ogg", "opus", "mp4", "mov"];
 
-/// The file as 16 kHz mono samples: macOS's `afconvert` turns it into a WAV in `tmp_dir`, or,
-/// for an Ogg/Opus it can't read, our own decoder (the format Murmur records in).
+/// The file as 16 kHz mono samples: macOS's `afconvert` (or Symphonia elsewhere) decodes it, or,
+/// for an Ogg/Opus they can't read, our own decoder (the format Murmur records in).
 pub fn decode(path: &Path, tmp_dir: &Path) -> Result<Vec<f32>> {
+    // Later steps write there too (the language detection's windows).
     std::fs::create_dir_all(tmp_dir)?;
+    let samples = match system_decode(path, tmp_dir)? {
+        Ok(samples) => samples,
+        // Why the system's decoder couldn't, said along with ours if it can't either.
+        Err(why) => crate::playback::decode(path).map_err(|e| anyhow!("{why}; Opus: {e}").context(tr!("audio_open_failed")))?,
+    };
+    if samples.is_empty() {
+        return Err(anyhow!(tr!("audio_empty")));
+    }
+    Ok(samples)
+}
+
+/// `afconvert` turns it into a 16 kHz WAV in `tmp_dir`; `Err(why)` if it can't read it.
+#[cfg(target_os = "macos")]
+fn system_decode(path: &Path, tmp_dir: &Path) -> Result<std::result::Result<Vec<f32>, String>> {
     let wav = tmp_dir.join(format!("import-{}.wav", std::process::id()));
     let converted = std::process::Command::new("/usr/bin/afconvert")
         // Channels as they are: told "-c 1", it keeps only the left one.
@@ -28,22 +44,94 @@ pub fn decode(path: &Path, tmp_dir: &Path) -> Result<Vec<f32>> {
         .stderr(std::process::Stdio::null())
         .status()
         .is_ok_and(|s| s.success());
-    let samples = if converted {
-        let bytes = std::fs::read(&wav);
+    if !converted {
         let _ = std::fs::remove_file(&wav);
-        wav_samples(&bytes?).ok_or_else(|| anyhow!(tr!("audio_open_failed")))?
-    } else {
-        let _ = std::fs::remove_file(&wav);
-        crate::playback::decode(path).map_err(|_| anyhow!(tr!("audio_open_failed")))?
-    };
-    if samples.is_empty() {
-        return Err(anyhow!(tr!("audio_empty")));
+        return Ok(Err("afconvert".into()));
     }
-    Ok(samples)
+    let bytes = std::fs::read(&wav);
+    let _ = std::fs::remove_file(&wav);
+    Ok(Ok(wav_samples(&bytes?).ok_or_else(|| anyhow!(tr!("audio_open_failed")))?))
+}
+
+/// Symphonia decodes the first audio track, its channels mixed into one and resampled to 16 kHz;
+/// `Err(why)` if it can't read it (Opus, which `playback::decode` handles).
+#[cfg(not(target_os = "macos"))]
+fn system_decode(path: &Path, _tmp_dir: &Path) -> Result<std::result::Result<Vec<f32>, String>> {
+    Ok(symphonia_decode(path))
+}
+
+#[cfg(any(not(target_os = "macos"), test))]
+fn symphonia_decode(path: &Path) -> std::result::Result<Vec<f32>, String> {
+    use symphonia::core::audio::SampleBuffer;
+    use symphonia::core::codecs::{CODEC_TYPE_NULL, DecoderOptions};
+    use symphonia::core::errors::Error;
+    use symphonia::core::formats::FormatOptions;
+    use symphonia::core::io::MediaSourceStream;
+    use symphonia::core::meta::MetadataOptions;
+    use symphonia::core::probe::Hint;
+
+    let file = std::fs::File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let stream = MediaSourceStream::new(Box::new(file), Default::default());
+    let mut hint = Hint::new();
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        hint.with_extension(ext);
+    }
+    let probed = symphonia::default::get_probe()
+        .format(&hint, stream, &FormatOptions::default(), &MetadataOptions::default())
+        .map_err(|e| format!("Symphonia: {e}"))?;
+    let mut format = probed.format;
+    // A video's first track is usually the picture: the first one with sound.
+    let track = format
+        .tracks()
+        .iter()
+        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL && t.codec_params.sample_rate.is_some())
+        .ok_or("Symphonia: no audio track")?;
+    let track_id = track.id;
+    let rate = track.codec_params.sample_rate.unwrap_or(SAMPLE_RATE as u32);
+    let mut decoder = symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default()).map_err(|e| format!("Symphonia: {e}"))?;
+    let mut resampler = crate::audio::Resampler::new(rate);
+    let mut mono = Vec::new();
+    let mut out = Vec::new();
+    // The buffer and how many frames it holds: a bigger packet needs a new one.
+    let mut buffer: Option<(SampleBuffer<f32>, usize)> = None;
+    loop {
+        let packet = match format.next_packet() {
+            Ok(p) => p,
+            // The end of the file, or something it can't go past.
+            Err(_) => break,
+        };
+        if packet.track_id() != track_id {
+            continue;
+        }
+        let decoded = match decoder.decode(&packet) {
+            Ok(d) => d,
+            // A damaged packet: skip it, as players do.
+            Err(Error::DecodeError(_)) => continue,
+            Err(_) => break,
+        };
+        let spec = *decoded.spec();
+        let channels = spec.channels.count().max(1);
+        let frames = decoded.capacity();
+        if buffer.as_ref().is_none_or(|(_, held)| *held < frames) {
+            buffer = Some((SampleBuffer::new(frames as u64, spec), frames));
+        }
+        let (buf, _) = buffer.as_mut().unwrap();
+        buf.copy_interleaved_ref(decoded);
+        // Two people on two channels (a call recorded apart) both stay in.
+        mono.clear();
+        mono.extend(buf.samples().chunks_exact(channels).map(|f| f.iter().sum::<f32>() / channels as f32));
+        if rate as usize == SAMPLE_RATE {
+            out.extend_from_slice(&mono);
+        } else {
+            resampler.process(&mono, &mut out);
+        }
+    }
+    if out.is_empty() { Err("Symphonia: no samples".into()) } else { Ok(out) }
 }
 
 /// The samples of a 16-bit PCM WAV, its channels mixed into one, whatever chunks come before
 /// them (afconvert can write an extended format header, which sherpa-onnx's reader refuses).
+#[cfg(any(target_os = "macos", test))]
 fn wav_samples(bytes: &[u8]) -> Option<Vec<f32>> {
     if bytes.len() < 12 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
         return None;
@@ -352,6 +440,35 @@ mod tests {
         assert_eq!(decide(&mixed).language.as_deref(), Some("ca-es"));
         // Sentences in each language within the same window.
         assert_eq!(decide(&[heard(0.53, 0.45, 0.0)]).language.as_deref(), Some("ca-es"));
+    }
+
+    #[test]
+    fn symphonia_reads_and_resamples() {
+        // One second of 48 kHz stereo 16-bit WAV: left at +0.5, right at -0.25.
+        let rate = 48_000u32;
+        let mut wav = b"RIFF".to_vec();
+        let data = rate * 4;
+        wav.extend((36 + data).to_le_bytes());
+        wav.extend(b"WAVEfmt ");
+        wav.extend(16u32.to_le_bytes());
+        wav.extend(1u16.to_le_bytes());
+        wav.extend(2u16.to_le_bytes());
+        wav.extend(rate.to_le_bytes());
+        wav.extend((rate * 4).to_le_bytes());
+        wav.extend(4u16.to_le_bytes());
+        wav.extend(16u16.to_le_bytes());
+        wav.extend(b"data");
+        wav.extend(data.to_le_bytes());
+        for _ in 0..rate {
+            wav.extend(16384i16.to_le_bytes());
+            wav.extend((-8192i16).to_le_bytes());
+        }
+        let path = std::env::temp_dir().join(format!("murmur-import-{}.wav", std::process::id()));
+        std::fs::write(&path, wav).unwrap();
+        let samples = symphonia_decode(&path).unwrap();
+        std::fs::remove_file(&path).ok();
+        assert!((15_990..=16_010).contains(&samples.len()), "{}", samples.len());
+        assert!(samples[100..].iter().all(|s| (s - 0.125).abs() < 0.01));
     }
 
     #[test]

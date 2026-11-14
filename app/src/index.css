@@ -4,6 +4,8 @@
 @import "./murmur-theme.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Windows and Linux (lib/platform.ts › markOs): no traffic lights, a native title bar instead. */
+@custom-variant pc (&:where(:root:not([data-os="macos"]) *));
 
 @theme inline {
     --font-heading: var(--font-sans);

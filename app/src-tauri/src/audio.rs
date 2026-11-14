@@ -1,5 +1,6 @@
-//! Audio capture: microphone (cpal) + system audio (a Core Audio process tap on macOS, systap.rs),
-//! each sent as 16 kHz mono f32 frames tagged with their source.
+//! Audio capture: microphone (cpal) + system audio (a Core Audio process tap on macOS, systap.rs;
+//! WASAPI loopback of the default output on Windows), each sent as 16 kHz mono f32 frames tagged
+//! with their source. Linux has no system audio yet.
 
 use crate::i18n::tr;
 use anyhow::{Context, Result, anyhow};
@@ -63,7 +64,12 @@ pub struct Capture {
     _mic: Option<cpal::Stream>,
     #[cfg(target_os = "macos")]
     _system: Option<crate::systap::SystemTap>,
+    #[cfg(windows)]
+    _system: Option<cpal::Stream>,
 }
+
+/// Whether this system can record the other side of a call.
+pub const SYSTEM_AUDIO: bool = cfg!(any(target_os = "macos", windows));
 
 /// `mic_device`: input device name from `list_microphones`; `None` (or not found) = system default.
 pub fn start_capture(
@@ -82,7 +88,9 @@ pub fn start_capture(
     } else {
         None
     };
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    let system_stream = if system { Some(start_loopback(tx.clone())?) } else { None };
+    #[cfg(not(any(target_os = "macos", windows)))]
     if system {
         return Err(anyhow!(tr!("system_audio_unsupported")));
     }
@@ -93,7 +101,7 @@ pub fn start_capture(
     };
     Ok(Capture {
         _mic: mic_stream,
-        #[cfg(target_os = "macos")]
+        #[cfg(any(target_os = "macos", windows))]
         _system: system_stream,
     })
 }
@@ -125,6 +133,24 @@ fn start_mic(name: Option<&str>, tx: Sender<Frame>) -> Result<cpal::Stream> {
     let supported = device
         .default_input_config()
         .context(tr!("mic_unavailable"))?;
+    open_input(&device, supported, Source::Mic, tx).context(tr!("mic_open_failed"))
+}
+
+/// What the speakers play, from WASAPI's loopback: an input stream on the default output device.
+/// It sends nothing while nothing plays.
+#[cfg(windows)]
+fn start_loopback(tx: Sender<Frame>) -> Result<cpal::Stream> {
+    let device = cpal::default_host()
+        .default_output_device()
+        .ok_or_else(|| anyhow!(tr!("system_audio_unavailable")))?;
+    let supported = device
+        .default_output_config()
+        .context(tr!("system_audio_unavailable"))?;
+    open_input(&device, supported, Source::System, tx).context(tr!("system_audio_unavailable"))
+}
+
+/// Starts `device` as an input, mixed to mono and resampled to 16 kHz, sending as `source`.
+fn open_input(device: &cpal::Device, supported: cpal::SupportedStreamConfig, source: Source, tx: Sender<Frame>) -> Result<cpal::Stream> {
     let channels = supported.channels() as usize;
     let mut resampler = Resampler::new(supported.sample_rate().0);
     let format = supported.sample_format();
@@ -144,7 +170,7 @@ fn start_mic(name: Option<&str>, tx: Sender<Frame>) -> Result<cpal::Stream> {
                         .collect();
                     let mut out = Vec::with_capacity(mono.len() / 2);
                     resampler.process(&mono, &mut out);
-                    let _ = tx.send((Source::Mic, out));
+                    let _ = tx.send((source, out));
                 },
                 err,
                 None,
@@ -156,8 +182,7 @@ fn start_mic(name: Option<&str>, tx: Sender<Frame>) -> Result<cpal::Stream> {
         SampleFormat::I16 => build!(i16, |s: i16| s as f32 / i16::MAX as f32),
         SampleFormat::I32 => build!(i32, |s: i32| s as f32 / i32::MAX as f32),
         other => return Err(anyhow!(tr!("audio_format_unsupported", format = format!("{other:?}")))),
-    }
-    .context(tr!("mic_open_failed"))?;
+    }?;
     stream.play().context(tr!("record_start_failed"))?;
     Ok(stream)
 }

@@ -1,6 +1,6 @@
 # Murmur
 
-Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur és una app de Mac (Tauri 2, React i un motor en Rust) que transcriu reunions en directe, en català, castellà i anglès, distingeix qui parla i, en acabar, en pot escriure un resum amb un model local. **Tot es processa a l'ordinador.**
+Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur és una app per a macOS, Windows i Linux (Tauri 2, React i un motor en Rust) que transcriu reunions en directe, en català, castellà i anglès, distingeix qui parla i, en acabar, en pot escriure un resum amb un model local. **Tot es processa a l'ordinador.**
 
 ## On és cada cosa
 
