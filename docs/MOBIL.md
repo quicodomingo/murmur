@@ -178,6 +178,7 @@ Mesurat al Galaxy A13 (Android de 32 bits, vuit Cortex-A55, 4 GB): 33,5 s de veu
 | 2 | cada 1,5 s (com a l'iPhone) | 301 s | 9× més lent |
 | 4 | cada 1,5 s | 243 s | 7,3× |
 | 4 | cada 3 s | 156 s | 4,7× |
+| 4 | cada 5 s | 115 s | 3,4× |
 | 2 | cap | 80 s | 2,4× |
 | 4 | cap | 65 s | 1,9× (el millor) |
 | 8 | cap | 87 s | 2,6× |
