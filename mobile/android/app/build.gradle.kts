@@ -22,7 +22,7 @@ android {
             isMinifyEnabled = false
         }
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     packaging { jniLibs { useLegacyPackaging = false } }
 }
 

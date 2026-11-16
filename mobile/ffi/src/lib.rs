@@ -24,6 +24,15 @@ const MAX_SPEAKERS: usize = 6;
 /// On the phone the Conformer runs in int8 on the two fast cores (docs/MOBIL.md: 4 threads are slower).
 const LOAD: LoadOptions = LoadOptions { int8: true, threads: 2 };
 
+/// LOAD, unless MURMUR_THREADS or MURMUR_INT8=0 say otherwise (development: measuring a new phone).
+fn load_options() -> LoadOptions {
+    let env = |k: &str| std::env::var(k).ok();
+    LoadOptions {
+        int8: env("MURMUR_INT8").map_or(LOAD.int8, |v| v != "0"),
+        threads: env("MURMUR_THREADS").and_then(|v| v.parse().ok()).unwrap_or(LOAD.threads),
+    }
+}
+
 mod pairing;
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
@@ -434,7 +443,7 @@ impl Murmur {
         if let Some(SharedModels(m)) = slot.as_ref() {
             return Ok(m);
         }
-        let loaded: &'static Models = Box::leak(Box::new(Models::load_with(Path::new(&self.models_dir), LiveModel::CatalanSpanish, LOAD)?));
+        let loaded: &'static Models = Box::leak(Box::new(Models::load_with(Path::new(&self.models_dir), LiveModel::CatalanSpanish, load_options())?));
         *slot = Some(SharedModels(loaded));
         Ok(loaded)
     }

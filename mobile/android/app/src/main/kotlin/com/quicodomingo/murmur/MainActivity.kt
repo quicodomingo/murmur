@@ -43,7 +43,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Development: --es threads N, --es int8 0 (before the engine loads) and --ef every S.
+        if (BuildConfig.DEBUG) {
+            intent.getStringExtra("threads")?.let { android.system.Os.setenv("MURMUR_THREADS", it, true) }
+            intent.getStringExtra("int8")?.let { android.system.Os.setenv("MURMUR_INT8", it, true) }
+        }
         val recorder = Recorder(applicationContext)
+        if (BuildConfig.DEBUG) intent.getStringExtra("bench")?.let { recorder.bench(it, intent.getFloatExtra("every", 1.5f)) }
         setContent { RecordScreen(recorder) }
     }
 }

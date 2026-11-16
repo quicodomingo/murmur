@@ -73,11 +73,23 @@ class Recorder(context: Context) {
                     AudioFormat.ENCODING_PCM_FLOAT, maxOf(min, rate * 4))
                 val piece = FloatArray(rate / 10)
                 mic.startRecording()
+                val began = System.nanoTime()
+                var busy = 0L
+                var pushed = 0L
                 try {
                     while (isActive && recording) {
                         val n = withContext(Dispatchers.IO) { mic.read(piece, 0, piece.size, AudioRecord.READ_BLOCKING) }
                         if (n <= 0) continue
+                        val t0 = System.nanoTime()
                         val update = withContext(engineThread) { engine.push(piece.copyOf(n).toList()) }
+                        busy += System.nanoTime() - t0
+                        pushed += n
+                        // How fast the engine goes against real time (development).
+                        if (pushed % (rate * 5) < n) {
+                            val wall = (System.nanoTime() - began) / 1e9
+                            android.util.Log.d("Murmur", "audio %.1f s, wall %.1f s, engine busy %.1f s (%.0f%% of real time)"
+                                .format(pushed / rate.toDouble(), wall, busy / 1e9, 100 * busy / 1e9 / (pushed / rate.toDouble())))
+                        }
                         lines.addAll(update.finals)
                         update.partial?.let { partial = it }
                         seconds = update.seconds
@@ -88,6 +100,32 @@ class Recorder(context: Context) {
                 }
             }.onFailure { error = it.message; recording = false }
         }
+    }
+
+    /**
+     * Development (`adb shell am start … --es bench file.wav`): a 16 kHz mono float WAV from the
+     * app's folder, through the engine as fast as it goes. The log gets the time against real time and the text.
+     */
+    fun bench(name: String, every: Float) = scope.launch {
+        while (!ready && error == null) kotlinx.coroutines.delay(200)
+        val engine = engine ?: return@launch
+        val bytes = File(dataDir, name).readBytes()
+        val data = (0 until bytes.size - 8).first { String(bytes, it, 4) == "data" } + 8
+        val buf = java.nio.ByteBuffer.wrap(bytes, data, bytes.size - data).order(java.nio.ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
+        val samples = FloatArray(buf.remaining()).also { buf.get(it) }
+        val text = StringBuilder()
+        val t0 = System.nanoTime()
+        withContext(engineThread) {
+            engine.start("bench", "ca-es", false, every)
+            for (i in samples.indices step 1600) {
+                engine.push(samples.copyOfRange(i, minOf(i + 1600, samples.size)).toList()).finals.forEach { text.append(it.text).append(' ') }
+            }
+        }
+        val live = (System.nanoTime() - t0) / 1e9
+        withContext(engineThread) { engine.stop("{}") }
+        val audio = samples.size / 16_000.0
+        android.util.Log.d("Murmur", "bench (every %.1f s): %.1f s of audio in %.1f s (%.0f%% of real time)".format(every, audio, live, 100 * live / audio))
+        android.util.Log.d("Murmur", "bench text: $text")
     }
 
     fun stop() {
