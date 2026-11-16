@@ -3,8 +3,8 @@
 # libraries, and writes its Kotlin side (app/src/main/kotlin/uniffi). Gradle runs it before each
 # build; by hand: ./build-rust.sh
 #
-# Two architectures: arm64 (most phones, and the one Google Play requires) and 32-bit ARM, which
-# cheaper phones still run even on 64-bit chips (Samsung's Galaxy A13, for one).
+# Two architectures: arm64, the only one the published app ships, and 32-bit ARM, only for debug
+# builds on phones that run 32-bit Android (Samsung's Galaxy A13, for one): too slow to transcribe live.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"

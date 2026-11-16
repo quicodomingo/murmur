@@ -169,3 +169,22 @@ Per provar-la al simulador sense parlar: `xcrun simctl launch <simulador> com.qu
 
 Encara no hi ha: posar nom als parlants, les fotos, l'editor de notes amb format, l'emparellament, l'iPad, el Duo ni Android.
 
+## Android: només telèfons de 64 bits
+
+Mesurat al Galaxy A13 (Android de 32 bits, vuit Cortex-A55, 4 GB): 33,5 s de veu en català, passats pel motor tan de pressa com pot (`--es bench`, només en desenvolupament).
+
+| Fils | Text provisional | Temps | Contra temps real |
+|---|---|---|---|
+| 2 | cada 1,5 s (com a l'iPhone) | 301 s | 9× més lent |
+| 4 | cada 1,5 s | 243 s | 7,3× |
+| 4 | cada 3 s | 156 s | 4,7× |
+| 2 | cap | 80 s | 2,4× |
+| 4 | cap | 65 s | 1,9× (el millor) |
+| 8 | cap | 87 s | 2,6× |
+| 4, model fp32 | cap | 65 s | 1,9× |
+
+- El text, amb temps, surt bé (un sol error). El problema és la velocitat: en directe el micròfon perd àudio i el text arriba tard i malament.
+- El text provisional és el que més costa: cada passada torna a llegir el tros que queda. Cal mesurar-ho també als telèfons de 64 bits abans de fixar l'interval d'Android.
+- Decisió: l'app publicada és només per a arm64 (`abiFilters` de `release`), i Google Play no l'ofereix als telèfons d'Android de 32 bits. La compilació de desenvolupament encara porta ARM de 32 bits, per provar pantalles en un telèfon així.
+- Pendent: mesurar en un telèfon de 64 bits de gamma mitjana (els nuclis A76/A78 i les instruccions int8 de 64 bits haurien d'anar molt més de pressa).
+

@@ -13,13 +13,18 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
-        // The engine is built for arm64 and 32-bit ARM (build-rust.sh).
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
     buildTypes {
+        // Murmur needs a 64-bit phone: on 32-bit Android (the Galaxy A13, Cortex-A55) the live model
+        // runs at half real time at best and loses audio (docs/MOBIL.md). Release ships arm64 only,
+        // so Google Play doesn't offer it there; debug keeps 32-bit ARM to try screens on such a phone.
+        debug {
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        }
         release {
             isMinifyEnabled = false
+            ndk { abiFilters += listOf("arm64-v8a") }
         }
     }
     buildFeatures { compose = true; buildConfig = true }
