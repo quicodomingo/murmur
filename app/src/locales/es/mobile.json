@@ -278,5 +278,9 @@
     "demoComputer": "Ordenador",
     "demoComputerText": "Whisper y el resumen",
     "demoEncrypted": "cifrada"
+  },
+  "android": {
+    "channelName": "Grabación en curso",
+    "channelText": "La notificación fija mientras Murmur graba una reunión, con Marca, Pausa y Detener."
   }
 }

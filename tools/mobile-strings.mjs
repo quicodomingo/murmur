@@ -22,6 +22,8 @@ const byLang = Object.fromEntries(LANGS.map((l) => [l, flatten(JSON.parse(readFi
 const strings = {};
 const plist = {};
 for (const key of Object.keys(byLang.ca).sort()) {
+  // android.*: only the Android app's (its notification channel).
+  if (key.startsWith("android.")) continue;
   // infoPlist.<Key>: the system's own texts (the microphone permission), in InfoPlist.xcstrings.
   if (key.startsWith("infoPlist.")) {
     plist[key.slice(10)] = { extractionState: "manual", localizations: Object.fromEntries(LANGS.map((l) => [l, { stringUnit: { state: "translated", value: byLang[l][key] } }])) };

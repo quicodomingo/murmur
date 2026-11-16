@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Murmur's "m" (the logo's front bar), for the status bar: Android paints it in one colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="140" android:viewportHeight="140">
+    <group android:translateX="-30" android:translateY="-30">
+        <path android:pathData="M60,140 V100 a18,18 0 0,1 36,0 V140 M96,100 a18,18 0 0,1 36,0 V140"
+            android:strokeColor="#FFFFFFFF" android:strokeWidth="17" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    </group>
+</vector>
