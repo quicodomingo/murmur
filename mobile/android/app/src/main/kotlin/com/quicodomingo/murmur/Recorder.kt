@@ -25,8 +25,9 @@ import java.io.File
  * iPhone; the microphone reads 16 kHz mono floats in pieces of 100 ms and pushes them.
  */
 class Recorder(context: Context) {
-    // Development: the models are copied by hand (adb) to the app's own folder, until they come in an asset pack.
-    private val modelsDir = File(context.getExternalFilesDir(null), "models")
+    // Development: the models are copied by hand into the app's private folder (adb and run-as;
+    // Android hides files that adb leaves in the external one), until they come in an asset pack.
+    private val modelsDir = File(context.filesDir, "models")
     private val dataDir = context.filesDir
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val engineThread = Dispatchers.IO.limitedParallelism(1)

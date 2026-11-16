@@ -13,8 +13,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
-        // The engine is built for arm64 only: every Android phone of the last years (the emulator on an Apple Mac too).
-        ndk { abiFilters += "arm64-v8a" }
+        // The engine is built for arm64 and 32-bit ARM (build-rust.sh).
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
     buildTypes {
