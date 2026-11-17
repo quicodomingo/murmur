@@ -135,7 +135,7 @@ class RecordingService : Service() {
         val live = store.live
         val paused = live?.paused == true
         val last = live?.lines?.lastOrNull()
-        val who = last?.let { live.speakerNames[it.speaker.toInt()] ?: getString(R.string.rec_speaker, (it.speaker + 1).toString()) }
+        val who = last?.let { live.speaker(it) }?.let { s -> live.speakerNames[s] ?: getString(R.string.rec_speaker, (s + 1).toString()) }
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE)
         val builder = Notification.Builder(this, CHANNEL)

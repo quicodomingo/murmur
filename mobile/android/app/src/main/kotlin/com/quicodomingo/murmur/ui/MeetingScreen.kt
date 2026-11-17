@@ -152,21 +152,7 @@ fun MeetingScreen(store: Store, id: String, onBack: () -> Unit) {
     naming?.let { speaker ->
         SpeakerNameDialog(meeting.speakerNames[speaker], onDismiss = { naming = null }) { store.nameSpeaker(id, speaker, it) }
     }
-    if (renaming) {
-        var title by remember { mutableStateOf(meeting.title) }
-        AlertDialog(
-            onDismissRequest = { renaming = false },
-            title = { Text(stringResource(R.string.meeting_renameTitle)) },
-            text = {
-                OutlinedTextField(title, { title = it }, singleLine = true, colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = c.textPrimary, unfocusedTextColor = c.textPrimary, cursorColor = c.caret,
-                    focusedBorderColor = c.textPrimary, unfocusedBorderColor = c.separator))
-            },
-            confirmButton = { TextButton({ store.rename(id, title); renaming = false }) { Text(stringResource(R.string.meeting_save), color = c.textPrimary) } },
-            dismissButton = { TextButton({ renaming = false }) { Text(stringResource(R.string.meeting_cancel), color = c.textSecondary) } },
-            containerColor = c.background, titleContentColor = c.textPrimary,
-        )
-    }
+    if (renaming) RenameDialog(meeting.title, onDismiss = { renaming = false }) { store.rename(id, it) }
     if (deleting) {
         AlertDialog(
             onDismissRequest = { deleting = false },

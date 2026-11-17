@@ -4,9 +4,15 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.quicodomingo.murmur.ui.NotesState
 import org.json.JSONArray
 import org.json.JSONObject
 import uniffi.murmur_mobile.Line
@@ -16,17 +22,37 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /** The recording in progress, as the screens and the notification show it. */
-class LiveMeeting(val id: String, title: String) {
+class LiveMeeting(val id: String, title: String, seconds: () -> Double) {
     var title by mutableStateOf(title)
     val lines = mutableStateListOf<Line>()
     var partial by mutableStateOf("")
     var paused by mutableStateOf(false)
-    /** The moments marked as important, in seconds. */
-    val marks = mutableStateListOf<Double>()
+    /** The notes, the marked moments and the photos, with an empty line to write on. */
+    val notes = NotesState(emptyList(), now = seconds) {}
     /** Names given while recording, by speaker number. */
-    val speakerNames = mutableMapOf<Int, String>()
+    val speakerNames = mutableStateMapOf<Int, String>()
+    /** Speakers merged into another (from → into): also the lines still to come. */
+    val aliases = mutableStateMapOf<Int, Int>()
+    /** Lines given to another speaker by hand, by line id. */
+    val lineSpeakers = mutableStateMapOf<String, Int>()
 
-    fun isMarked(line: Line) = marks.any { it >= line.start - 1 && it <= line.end + 2 }
+    fun isMarked(line: Line) = notes.blocks.any { it.kind == NoteBlock.Kind.MARK && (it.t ?: -10.0) >= line.start - 1 && (it.t ?: -10.0) <= line.end + 2 }
+
+    /** Who said a line, after what was changed by hand. */
+    fun speaker(of: Line): Int {
+        lineSpeakers[of.id]?.let { return it }
+        var s = of.speaker.toInt()
+        val seen = mutableSetOf<Int>()
+        while (true) {
+            val next = aliases[s] ?: break
+            if (!seen.add(s)) break
+            s = next
+        }
+        return s
+    }
+
+    /** The speakers there are, by number. */
+    val speakers: List<Int> get() = lines.map { speaker(it) }.distinct().sorted()
 }
 
 /**
@@ -127,7 +153,7 @@ class Store(private val context: Context) {
             val result = runCatching { engine.start(title, language, room, every) }
             main.post {
                 result.onSuccess { id ->
-                    live = LiveMeeting(id, title).also { m ->
+                    live = LiveMeeting(id, title) { seconds }.also { m ->
                         // With the user's voice saved, speaker 0 is them (the engine knows them from the first word).
                         if (engine.voiceSaved() != null) m.speakerNames[0] = context.getString(R.string.rec_you)
                     }
@@ -174,9 +200,83 @@ class Store(private val context: Context) {
         onLiveChanged?.invoke()
     }
 
+    /** A marked moment: into the notes, at its second (as on the iPhone). */
     fun mark() {
         val current = live ?: return
-        current.marks.add(kotlin.math.floor(seconds))
+        current.notes.insert(NoteBlock(kind = NoteBlock.Kind.MARK, text = context.getString(R.string.rec_markNote), t = kotlin.math.floor(seconds)))
+        onLiveChanged?.invoke()
+    }
+
+    /**
+     * A photo while recording (the camera's file): turned upright, made no bigger than 2048 px and
+     * saved at its second in the meeting's folder, and into the notes. It goes to the computer with
+     * the meeting, as one of its screenshots.
+     */
+    fun addPhoto(taken: File) {
+        val current = live ?: return
+        val t = kotlin.math.floor(seconds)
+        val path = "screens/${current.id}/${(t * 1000).toLong()}.jpg"
+        val out = File(dataDir, path)
+        Thread {
+            val ok = runCatching { saveJpeg(taken, out) }.isSuccess
+            taken.delete()
+            main.post { if (ok && live?.id == current.id) current.notes.insert(NoteBlock(kind = NoteBlock.Kind.PHOTO, t = t, photo = path)) }
+        }.start()
+    }
+
+    private fun saveJpeg(source: File, out: File, side: Int = 2048) {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(source.path, bounds)
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= side) sample *= 2
+        var bitmap = BitmapFactory.decodeFile(source.path, BitmapFactory.Options().apply { inSampleSize = sample }) ?: error("no image")
+        val scale = minOf(1f, side.toFloat() / maxOf(bitmap.width, bitmap.height))
+        val rotation = when (ExifInterface(source.path).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+        if (scale < 1f || rotation != 0f) {
+            val m = Matrix().apply { postScale(scale, scale); postRotate(rotation) }
+            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, m, true)
+        }
+        out.parentFile?.mkdirs()
+        val tmp = File(out.path + ".tmp")
+        tmp.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 82, it) }
+        tmp.renameTo(out)
+    }
+
+    /** A new title while recording: it goes with the meeting when it stops. */
+    fun renameLive(title: String) {
+        val t = title.trim()
+        if (t.isEmpty()) return
+        live?.title = t
+        onLiveChanged?.invoke()
+    }
+
+    // Speakers while recording (the label's menu): kept here, and they go with the meeting when it stops.
+
+    fun nameLiveSpeaker(speaker: Int, name: String) {
+        val current = live ?: return
+        val n = name.trim()
+        if (n.isEmpty()) current.speakerNames.remove(speaker) else current.speakerNames[speaker] = n
+        onLiveChanged?.invoke()
+    }
+
+    fun reassignLiveLine(line: String, speaker: Int) {
+        live?.lineSpeakers?.set(line, speaker)
+        onLiveChanged?.invoke()
+    }
+
+    fun mergeLiveSpeakers(from: Int, into: Int) {
+        val current = live ?: return
+        if (from == into) return
+        current.aliases[from] = into
+        // Lines given by hand to the one that goes follow it.
+        current.lineSpeakers.filterValues { it == from }.keys.forEach { current.lineSpeakers[it] = into }
+        if (current.speakerNames[into] == null) current.speakerNames[from]?.let { current.speakerNames[into] = it }
+        current.speakerNames.remove(from)
         onLiveChanged?.invoke()
     }
 
@@ -272,8 +372,13 @@ class Store(private val context: Context) {
     /** What the app adds to the meeting when it stops: its title, marks and speakers' names. */
     private fun extra(live: LiveMeeting): String = JSONObject().apply {
         put("title", live.title)
-        put("marks", JSONArray(live.marks.map { JSONObject().put("t", it) }))
-        put("speakerNames", JSONObject(live.speakerNames.mapKeys { it.key.toString() }))
+        val notes = live.notes.blocks.toList()
+        put("marks", NotesDoc.marks(notes))
+        put("screens", NotesDoc.screens(notes))
+        NotesDoc.encode(notes)?.let { put("notesDoc", it) }
+        put("speakerNames", JSONObject(live.speakerNames.toMap().mapKeys { it.key.toString() }))
+        put("speakerAliases", JSONObject(live.aliases.toMap().mapKeys { it.key.toString() }))
+        put("lineSpeakers", JSONObject(live.lineSpeakers.toMap()))
     }.toString()
 
     companion object {

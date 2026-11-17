@@ -200,6 +200,28 @@ private fun MenuSection(title: String) {
     Text(title, color = c.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
 }
 
+/** A meeting's name, in a dialog. */
+@Composable
+fun RenameDialog(current: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    val c = LocalPalette.current
+    var title by remember { mutableStateOf(current) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.meeting_renameTitle)) },
+        text = {
+            OutlinedTextField(title, { title = it }, singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = c.textPrimary, unfocusedTextColor = c.textPrimary, cursorColor = c.caret,
+                    focusedBorderColor = c.textPrimary, unfocusedBorderColor = c.separator,
+                ))
+        },
+        confirmButton = { TextButton({ onSave(title); onDismiss() }) { Text(stringResource(R.string.meeting_save), color = c.textPrimary) } },
+        dismissButton = { TextButton(onDismiss) { Text(stringResource(R.string.meeting_cancel), color = c.textSecondary) } },
+        containerColor = c.background, titleContentColor = c.textPrimary,
+    )
+}
+
 /** "Canvia el nom…" of a speaker: a dialog with the name in a field. */
 @Composable
 fun SpeakerNameDialog(current: String?, onDismiss: () -> Unit, onSave: (String) -> Unit) {
