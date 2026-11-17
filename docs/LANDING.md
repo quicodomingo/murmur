@@ -1,15 +1,16 @@
 # Landing de descàrrega
 
-Tot el que cal per fer la pàgina de descàrrega de Murmur: el missatge, els textos de cada secció en català, castellà i anglès, les captures que tenim i les que falten. Les dades surten del README i de la versió 0.14.0 (les novetats des de la primera versió, i el post del blog, són a [NOVETATS-0.14.md](NOVETATS-0.14.md)); si canvia alguna funcionalitat, s'actualitza aquí també.
+Tot el que cal per fer la pàgina de descàrrega de Murmur: el missatge, els textos de cada secció en català, castellà i anglès, les captures que tenim i les que falten. Les dades surten del README, de la versió 0.14.0 i de l'app de l'iPhone (1.0, la fitxa és a [APPSTORE.md](APPSTORE.md)) (les novetats des de la primera versió, i el post del blog, són a [NOVETATS-0.14.md](NOVETATS-0.14.md)); si canvia alguna funcionalitat, s'actualitza aquí també.
 
 ## Dades bàsiques
 
 | | |
 |---|---|
 | Nom | Murmur (sempre amb majúscula al text; el logotip és «murmur» en minúscula) |
-| Plataforma | Mac amb Apple Silicon (M1 o posterior) i macOS 14.2 o posterior; Windows 10 i 11 i Linux de 64 bits, amb un processador amb AVX2 (Intel des del 2013, AMD des del 2015), i Windows 11 en PC amb ARM (Snapdragon). Ben aviat, iPhone, iPad i Android |
+| Plataforma | Mac amb Apple Silicon (M1 o posterior) i macOS 14.2 o posterior; Windows 10 i 11 i Linux de 64 bits, amb un processador amb AVX2 (Intel des del 2013, AMD des del 2015), i Windows 11 en PC amb ARM (Snapdragon). iPhone amb iOS 18 o posterior. Ben aviat, iPad i Android |
 | Preu | Gratuïta. Codi obert amb llicència MIT |
 | Descàrrega | https://github.com/quicodomingo/murmur-releases/releases/latest (els fitxers porten la versió al nom, així que l'enllaç estable és el de la pàgina, no el del fitxer): el `.dmg` del Mac, `Murmur_<versió>_x64-setup.exe` per a Windows (`_arm64-setup.exe` per als PC amb ARM), i el `.deb` i el `.rpm` per a Linux |
+| App Store | https://apps.apple.com/app/id6835415829 (sense país: obre la botiga de qui visita). El nom a la botiga és «Murmur - Meeting transcription» en anglès; en català, «Murmur» |
 | Codi | https://github.com/quicodomingo/murmur |
 | Targeta gràfica | Whisper (la passada final) i el model del resum la fan servir sols, sense configurar res: Metal al Mac, i Vulkan a Windows x64 i a Linux (NVIDIA, AMD o Intel). Als PC amb ARM, de moment, el processador. La transcripció en directe sempre va pel processador |
 | Signatura | Al Mac, signada i notaritzada per Apple. A Windows, l'instal·lador encara no està signat (SmartScreen avisa el primer cop). S'actualitza sola a tot arreu |
@@ -36,9 +37,16 @@ Una idea central: **transcriu les reunions al teu ordinador, en català, sense e
 | Subtítol | En català, castellà i anglès, en directe i amb qui diu què. Res surt de l'ordinador. | En catalán, castellano e inglés, en directo y con quién dice qué. Nada sale del ordenador. | In Catalan, Spanish and English, live, with who said what. Nothing leaves your computer. |
 | Botó (segons el sistema de qui visita) | Descarrega per a Mac / per a Windows / per a Linux | Descargar para Mac / para Windows / para Linux | Download for Mac / for Windows / for Linux |
 | Sota el botó | Gratuïta · Mac, Windows i Linux | Gratis · Mac, Windows y Linux | Free · Mac, Windows and Linux |
+| Enllaç al costat (a l'App Store) | També per a iPhone | También para iPhone | Also on iPhone |
 | Enllaç sota el botó | Altres sistemes | Otros sistemas | Other platforms |
 
 Captura: `01-reunio` (o `02-reunio-fosc` si la pàgina és fosca).
+
+**Si qui visita fa servir un iPhone**, el botó gran no pot ser el de descàrrega de l'ordinador: hi va la insígnia «Baixa-la a l'App Store», i a sota «Murmur també és per a Mac, Windows i Linux» amb l'enllaç a la secció de descàrrega. Es detecta pel navegador (`/iPhone/` a `navigator.userAgent`), igual que ara es tria Mac, Windows o Linux. A Safari de l'iPhone, a més, el bàner de l'App Store surt sol amb aquesta línia al `<head>`:
+
+```html
+<meta name="apple-itunes-app" content="app-id=6835415829">
+```
 
 #### Quin instal·lador de Windows
 
@@ -109,15 +117,44 @@ Vuit blocs. Cadascun amb un títol i una o dues frases; el detall és al README.
 
 Funcionalitats més petites, per a una llista o una graella d'icones: cerca a totes les reunions (`10-cerca`), etiquetes, glossari de noms i marques, transcriure un fitxer d'àudio o de vídeo, ajuntar dos parlants, continuar una reunió aturada, connector per a Claude, tres temes amb mode clar i fosc (`06` a `08`).
 
-### 5. Privadesa
+### 5. A l'iPhone
+
+Una secció pròpia, entre les funcionalitats i la privadesa. La idea: **les reunions de la sala, amb el telèfon damunt la taula**, i l'ordinador que les acaba quan hi tornes. Captura principal: `30-iphone-transcripcio`; si hi cap una tira de dues o tres, `30-iphone-resum` i `30-iphone-notes` al costat.
+
+| | Català | Castellà | Anglès |
+|---|---|---|---|
+| Etiqueta | Nou · iPhone | Nuevo · iPhone | New · iPhone |
+| Titular | Murmur, ara també al telèfon. | Murmur, ahora también en el teléfono. | Murmur, now on your phone too. |
+| Text | Deixa l'iPhone damunt la taula i llegeix la reunió mentre parleu, en català i castellà. Es transcriu dins del telèfon, sense connexió, i continua amb la pantalla bloquejada. | Deja el iPhone sobre la mesa y lee la reunión mientras habláis, en catalán y castellano. Se transcribe dentro del teléfono, sin conexión, y sigue con la pantalla bloqueada. | Leave your iPhone on the table and read the meeting as you talk, in Catalan and Spanish. It's transcribed on the phone, offline, and keeps going with the screen locked. |
+| Botó | La insígnia oficial «Baixa-la a l'App Store» | La insignia oficial «Descárgalo en el App Store» | The official "Download on the App Store" badge |
+| Sota el botó | Gratuïta · iOS 18 o posterior | Gratis · iOS 18 o posterior | Free · iOS 18 or later |
+
+Tres punts al costat de la captura:
+
+| | Català | Castellà | Anglès |
+|---|---|---|---|
+| 1 | **Qui diu què, també aquí.** Distingeix les veus, et reconeix com a «Tu» i la gent es pot presentar dient «Murmur, sóc la Laia». | **Quién dice qué, también aquí.** Distingue las voces, te reconoce como «Tú» y la gente se puede presentar diciendo «Murmur, soy Laia». | **Who said what, here too.** It tells voices apart, knows you as "You", and people can introduce themselves by saying "Murmur, I'm Laia". |
+| 2 | **Notes i fotos al minut.** Escriu notes, fes fotos de la pissarra i marca els moments importants, des de l'app o des de la pantalla bloquejada. | **Notas y fotos en su minuto.** Escribe notas, haz fotos de la pizarra y marca los momentos importantes, desde la app o desde la pantalla bloqueada. | **Notes and photos at their minute.** Write notes, take photos of the whiteboard and mark the key moments, in the app or from the lock screen. |
+| 3 | **L'ordinador l'acaba.** Amb Murmur a l'ordinador i a la mateixa xarxa, cada reunió hi passa sola i xifrada, sense cap servidor pel mig. L'ordinador la torna a escoltar amb Whisper, en fa el resum, les decisions i les tasques, i te les torna al telèfon. | **El ordenador la termina.** Con Murmur en el ordenador y en la misma red, cada reunión pasa sola y cifrada, sin ningún servidor por medio. El ordenador la vuelve a escuchar con Whisper, hace el resumen, las decisiones y las tareas, y te las devuelve al teléfono. | **Your computer finishes it.** With Murmur on your computer and on the same network, each meeting goes across on its own, encrypted, with no server in between. The computer listens again with Whisper, writes the summary, decisions and tasks, and sends them back to the phone. |
+
+Coses que cal dir bé, perquè són diferents de l'ordinador:
+
+- **Idiomes:** l'iPhone transcriu en català i castellà (i les dues barrejades). L'anglès, de moment, només a l'ordinador. Per això, a les captures angleses la transcripció és en castellà.
+- **El resum el fa l'ordinador**, no el telèfon. L'app funciona sola (transcripció, parlants, notes, cerca), però el resum, les decisions i les tasques arriben quan l'emparelles. Que la landing no prometi resums «al telèfon».
+- **Sense compte:** emparellar és llegir un codi QR de Configuració › Mòbil a l'ordinador (des de la 0.16.0).
+- **iPad i Android:** «Ben aviat», sense data.
+
+**La insígnia de l'App Store** s'ha de baixar de la pàgina d'Apple (Apple Marketing Tools, *App Store badges*), en català, castellà i anglès, en negre per als fons clars i en blanc per als foscos. Apple no deixa canviar-la (ni colors, ni proporcions, ni el text) i demana un mínim de 40 px d'alçada a la pantalla i un marge al voltant. L'enllaç és el de l'App Store de les dades bàsiques.
+
+### 6. Privadesa
 
 | Català | Castellà | Anglès |
 |---|---|---|
-| **Tot es queda al teu ordinador.** La veu, els parlants i el resum es processen a l'ordinador. Murmur només es connecta per descarregar els models, buscar actualitzacions i enviar estadístiques d'ús anònimes, que es poden desactivar. Sense compte i sense subscripció. Si comparteixes una reunió, es xifra abans de sortir de l'ordinador. Si connectes Notion, només hi va el text de les reunions que hi desis, directament al teu espai. | **Todo se queda en tu ordenador.** La voz, los hablantes y el resumen se procesan en el ordenador. Murmur solo se conecta para descargar los modelos, buscar actualizaciones y enviar estadísticas de uso anónimas, que se pueden desactivar. Sin cuenta y sin suscripción. Si compartes una reunión, se cifra antes de salir del ordenador. Si conectas Notion, solo le llega el texto de las reuniones que guardes allí, directamente a tu espacio. | **Everything stays on your computer.** Speech, speakers and the summary are processed on your computer. Murmur only goes online to download models, check for updates and send anonymous usage statistics, which you can turn off. No account, no subscription. If you share a meeting, it's encrypted before it leaves your computer. If you connect Notion, only the text of the meetings you save there goes to it, straight to your own workspace. |
+| **Tot es queda al teu ordinador.** La veu, els parlants i el resum es processen a l'ordinador. Murmur només es connecta per descarregar els models, buscar actualitzacions i enviar estadístiques d'ús anònimes, que es poden desactivar. Sense compte i sense subscripció. Si comparteixes una reunió, es xifra abans de sortir de l'ordinador. Si connectes Notion, només hi va el text de les reunions que hi desis, directament al teu espai. A l'iPhone, igual: tot es queda al telèfon, i el que passa a l'ordinador hi va directament, per la teva xarxa i xifrat. | **Todo se queda en tu ordenador.** La voz, los hablantes y el resumen se procesan en el ordenador. Murmur solo se conecta para descargar los modelos, buscar actualizaciones y enviar estadísticas de uso anónimas, que se pueden desactivar. Sin cuenta y sin suscripción. Si compartes una reunión, se cifra antes de salir del ordenador. Si conectas Notion, solo le llega el texto de las reuniones que guardes allí, directamente a tu espacio. En el iPhone, igual: todo se queda en el teléfono, y lo que pasa al ordenador va directamente, por tu red y cifrado. | **Everything stays on your computer.** Speech, speakers and the summary are processed on your computer. Murmur only goes online to download models, check for updates and send anonymous usage statistics, which you can turn off. No account, no subscription. If you share a meeting, it's encrypted before it leaves your computer. If you connect Notion, only the text of the meetings you save there goes to it, straight to your own workspace. On the iPhone, the same: it all stays on the phone, and what goes to your computer goes straight there, over your own network, encrypted. |
 
 Nota que ha de sortir a prop: **per gravar una reunió cal el consentiment de tothom que hi participa** (*Grabar una reunión requiere el consentimiento de todos los participantes* / *Recording a meeting requires everyone's consent*).
 
-### 6. Preguntes freqüents
+### 7. Preguntes freqüents
 
 | Pregunta | Resposta |
 |---|---|
@@ -131,10 +168,13 @@ Nota que ha de sortir a prop: **per gravar una reunió cal el consentiment de to
 | Entén el valencià i el balear? | Sí. En acabar, el Whisper català del BSC torna a escoltar la reunió, i és el millor de les nostres proves amb totes tres variants. |
 | Pot transcriure un vídeo? | Sí: mp4, mov, m4v, mkv i webm. Murmur n'agafa només el so, i en pots exportar els subtítols. |
 | Què s'envia a Notion? | Només el text de la reunió (resum, notes i transcripció), quan l'exportes o en acabar si ho tens activat. Mai l'àudio ni les captures. |
-| Hi haurà app per al mòbil? | Sí, per a iPhone, iPad i Android. Podrà gravar sense l'ordinador i, quan s'hi connecti, l'ordinador refarà la transcripció. |
+| Hi ha app per al mòbil? | Sí, per a iPhone, a l'App Store (iOS 18 o posterior). Grava i transcriu sola, sense l'ordinador. iPad i Android vindran ben aviat. |
+| Cal l'ordinador per fer servir l'app de l'iPhone? | No. Sola transcriu, distingeix les veus, hi pots prendre notes i fotos i cercar. Si tens Murmur a l'ordinador (0.16 o posterior), l'emparelles amb un codi QR i cada reunió hi passa per refer-la amb Whisper i fer-ne el resum, que torna al telèfon. |
+| L'iPhone entén l'anglès? | De moment, l'iPhone transcriu en català i castellà, també barrejats. L'anglès és a l'ordinador. |
+| Grava amb la pantalla bloquejada? | Sí. La gravació continua amb la pantalla apagada, i des de la pantalla bloquejada pots marcar un moment, posar-la en pausa o aturar-la. |
 | On es desen les reunions? | En una base de dades al teu ordinador. L'àudio només es desa si ho actives. També pots desar cada reunió en Markdown a la carpeta que triïs. |
 
-### 7. Peu
+### 8. Peu
 
 Codi obert (MIT) · GitHub · Windows i Linux gràcies a @xaviviro · amb models del projecte AINA i del BSC, NVIDIA, OpenAI, Softcatalà i Google (la taula de models és al README, amb les llicències).
 
@@ -173,6 +213,13 @@ Les reunions d'exemple són a `tools/landing-captures/seed.mjs`, en els tres idi
 | `19-notion-tria` | ca, es, en | Triar a quina pàgina de Notion van les reunions | Compartir i exportar |
 | `20-la-teva-veu` | ca, es, en | «Fes que Murmur et reconegui»: llegint la frase, amb les paraules ja dites apagades | Parlants |
 | `21-presenta-te` | ca, es, en | En directe: «Murmur, sóc la Laia» i l'avís «Parlant 3» és Laia | Parlants |
+| `30-iphone-transcripcio` | ca, es, en | iPhone: la reunió «Llançament de la web nova», revisada, amb la transcripció i els parlants | A l'iPhone (la principal) |
+| `30-iphone-resum` | ca, es, en | iPhone: el resum que ha fet l'ordinador, amb to, qui ha parlat, decisions i tasques | A l'iPhone, «L'ordinador l'acaba» |
+| `30-iphone-notes` | ca, es, en | iPhone: les notes amb el minut i una foto de la pissarra | A l'iPhone, «Notes i fotos» |
+| `30-iphone-llista` | ca, es, en | iPhone: la llista de reunions per dies | A l'iPhone |
+| `30-iphone-cerca` | ca, es, en | iPhone: la cerca a totes les reunions | A l'iPhone |
+
+Les `30-iphone-*` són les captures de l'App Store (`docs/appstore/<idioma>/`, en mode clar) dins el marc del telèfon i amb el fons transparent, a 908 × 1921, per posar-les sobre qualsevol color. Es fan amb `docs/appstore/promo/render-landing.sh` (Chrome sense finestra). Les de la botiga, amb titular i fons de marca (`docs/appstore/<idioma>/botiga/`), també serveixen per a xarxes.
 
 També hi ha les captures més antigues de `data/captures-blog/` i les maquetes de disseny de `docs/design/screens/` (clar i fosc l'un al costat de l'altre, amb una interfície anterior).
 
@@ -191,4 +238,6 @@ Aquestes només es poden fer amb l'app de veritat, perquè depenen del motor, de
 - [ ] **La traducció:** una reunió amb la transcripció traduïda i el segmentat Original / traducció.
 - [ ] **Windows:** la finestra de Murmur a Windows.
 - [ ] **Dins Obsidian i Notion:** la nota a Obsidian i la pàgina a Notion, fetes amb l'app de veritat (les de Murmur són simulades).
+- [ ] **iPhone en mode fosc:** les mateixes cinc, si la secció de l'iPhone és fosca. Cal el simulador d'iOS (ara no n'hi ha cap d'instal·lat), amb `-demo -appearance dark`.
+- [ ] **iPhone gravant:** la pantalla de gravació amb el text que va apareixent, i la Live Activity a la pantalla bloquejada. Són les que més ensenyen el que fa; cal l'iPhone de debò.
 - [ ] Un vídeo curt (20 a 30 segons) d'una gravació en directe, si la landing en vol.

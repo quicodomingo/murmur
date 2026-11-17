@@ -1,0 +1,30 @@
+<!doctype html>
+<!--
+  One iPhone screenshot inside the phone's frame, on a transparent background, for the landing
+  (the same frame as promo.html, without the headline). phone.html?lang=ca|es|en&shot=3-transcripcio
+  render-landing.sh makes them all with Chrome, into data/captures-landing/.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Murmur · iPhone</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: transparent; overflow: hidden; }
+  .phone {
+    position: absolute; left: 4px; top: 4px; width: 900px; padding: 18px;
+    border-radius: 136px; background: #050505; box-shadow: 0 0 0 3px #2E2E2E;
+  }
+  .phone img { display: block; width: 864px; height: auto; border-radius: 118px; }
+</style>
+</head>
+<body>
+<div class="phone"><img alt="" id="shot"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const lang = ["ca", "es", "en"].includes(q.get("lang")) ? q.get("lang") : "ca";
+  const shot = (q.get("shot") || "3-transcripcio").replace(/[^\w-]/g, "");
+  document.getElementById("shot").src = `../${lang}/${shot}.png`;
+</script>
+</body>
+</html>

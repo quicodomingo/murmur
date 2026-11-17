@@ -210,8 +210,10 @@ Entre reunions (bloc 5):
   - [x] Provar l'emparellament amb l'app de l'ordinador i un iPhone de debò.
   - [x] Configuració › Mòbil i la icona de la barra lateral, visibles per a tothom (abans, només en desenvolupament).
   - [x] Preparar l'App Store: 1.0 només per a iPhone, la fitxa en tres idiomes, la privadesa, les notes per a la revisió i les captures en català ([`docs/APPSTORE.md`](APPSTORE.md)).
-  - [ ] La pàgina de privadesa a la web, les captures en castellà i anglès, i enviar-la a revisió.
-  - [ ] Publicar la versió de l'ordinador que ensenya Configuració › Mòbil abans que l'app surti a la botiga.
+  - [x] La pàgina de privadesa a la web, les captures en castellà i anglès, i enviar-la a revisió.
+  - [x] Publicar la versió de l'ordinador que ensenya Configuració › Mòbil (0.16.0) abans que l'app surti a la botiga.
+  - [x] Publicada a l'App Store el 17 de novembre de 2026 (https://apps.apple.com/app/id6835415829).
+  - [ ] La secció de l'iPhone a la landing: textos i captures a [`docs/LANDING.md`](LANDING.md).
   - [ ] Les edicions després de revisar en tots dos sentits (avui el mòbil només conserva el títol i els noms que hi canvies).
   - [ ] iPad, iPhone Duo i Android.
   - [x] Provar l'emparellament de punta a punta amb `fake_phone` i l'app: emparellar, enviar una reunió de 3 minuts, passada final (Whisper i dos parlants trobats) i recollir-ne el resultat.
