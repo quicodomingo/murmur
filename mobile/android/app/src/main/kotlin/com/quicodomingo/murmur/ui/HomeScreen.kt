@@ -85,6 +85,10 @@ fun HomeScreen(store: Store, onOpen: (String) -> Unit, onOpenLive: () -> Unit, o
                 item { SectionTitle(labels.getValue(Day.Today)) }
                 item { LiveCard(store, onOpenLive) }
             }
+            // The engine takes a few seconds to load on slow phones: say so, rather than an empty list.
+            if (!store.ready && store.error == null) {
+                item { Text(stringResource(R.string.android_loading), color = c.textSecondary, fontSize = 15.sp, modifier = Modifier.padding(4.dp)) }
+            }
             if (live == null && sections.isEmpty() && store.ready) item { Empty() }
             sections.forEach { (day, rows) ->
                 if (!(live != null && day == Day.Today)) item(key = "s-$day") { SectionTitle(labels.getValue(day)) }

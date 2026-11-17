@@ -281,6 +281,7 @@
   },
   "android": {
     "channelName": "Grabación en curso",
-    "channelText": "La notificación fija mientras Murmur graba una reunión, con Marca, Pausa y Detener."
+    "channelText": "La notificación fija mientras Murmur graba una reunión, con Marca, Pausa y Detener.",
+    "loading": "Preparando Murmur…"
   }
 }

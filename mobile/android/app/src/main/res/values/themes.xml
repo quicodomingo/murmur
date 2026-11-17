@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only the window behind Compose and the launch screen: the acid theme's background (Palette.kt),
+         light here and dark in values-night, so opening the app in dark mode doesn't flash white. -->
+    <style name="Murmur" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+    <color name="window_background">#FFFFFF</color>
+</resources>

@@ -3,6 +3,7 @@
 <resources>
     <string name="android_channelName">Grabación en curso</string>
     <string name="android_channelText">La notificación fija mientras Murmur graba una reunión, con Marca, Pausa y Detener.</string>
+    <string name="android_loading">Preparando Murmur…</string>
     <string name="cover_decisions">Decisiones</string>
     <string name="cover_noDecisions">No se ha tomado ninguna decisión explícita.</string>
     <string name="cover_noTasks">En esta reunión no se han pedido tareas.</string>

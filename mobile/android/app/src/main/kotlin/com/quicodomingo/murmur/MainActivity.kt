@@ -41,7 +41,10 @@ class MainActivity : ComponentActivity() {
             intent.getStringExtra("int8")?.let { android.system.Os.setenv("MURMUR_INT8", it, true) }
         }
         val store = Store.get(applicationContext)
-        if (BuildConfig.DEBUG) intent.getStringExtra("bench")?.let { store.bench(it, intent.getFloatExtra("every", 1.5f)) }
+        if (BuildConfig.DEBUG) {
+            intent.getStringExtra("bench")?.let { store.bench(it, intent.getFloatExtra("every", 1.5f)) }
+            intent.getStringExtra("deleteTitled")?.let { store.deleteTitled(it) }
+        }
         setContent { MurmurTheme { App(store) } }
     }
 }

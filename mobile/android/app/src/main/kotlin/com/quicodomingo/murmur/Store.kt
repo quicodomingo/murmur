@@ -220,6 +220,15 @@ class Store(private val context: Context) {
         }
     }
 
+    /** Development (`--es deleteTitled bench`): deletes the meetings with this title, such as old speed tests. */
+    fun deleteTitled(title: String) {
+        engineThread.execute {
+            val engine = engine ?: return@execute
+            runCatching { engine.meetings() }.getOrNull()?.filter { it.title == title }?.forEach { runCatching { engine.deleteMeeting(it.id) } }
+            main.post { reload() }
+        }
+    }
+
     /** What the app adds to the meeting when it stops: its title, marks and speakers' names. */
     private fun extra(live: LiveMeeting): String = JSONObject().apply {
         put("title", live.title)

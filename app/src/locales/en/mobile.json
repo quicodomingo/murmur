@@ -281,6 +281,7 @@
   },
   "android": {
     "channelName": "Recording in progress",
-    "channelText": "The pinned notification while Murmur records a meeting, with Mark, Pause and Stop."
+    "channelText": "The pinned notification while Murmur records a meeting, with Mark, Pause and Stop.",
+    "loading": "Getting Murmur ready…"
   }
 }

@@ -281,6 +281,7 @@
   },
   "android": {
     "channelName": "Gravació en curs",
-    "channelText": "La notificació fixa mentre Murmur grava una reunió, amb Marca, Pausa i Atura."
+    "channelText": "La notificació fixa mentre Murmur grava una reunió, amb Marca, Pausa i Atura.",
+    "loading": "Preparant Murmur…"
   }
 }
