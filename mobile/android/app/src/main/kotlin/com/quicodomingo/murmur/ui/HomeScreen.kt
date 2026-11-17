@@ -1,8 +1,18 @@
 package com.quicodomingo.murmur.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +58,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quicodomingo.murmur.R
@@ -85,10 +97,6 @@ fun HomeScreen(store: Store, onOpen: (String) -> Unit, onOpenLive: () -> Unit, o
                 item { SectionTitle(labels.getValue(Day.Today)) }
                 item { LiveCard(store, onOpenLive) }
             }
-            // The engine takes a few seconds to load on slow phones: say so, rather than an empty list.
-            if (!store.ready && store.error == null) {
-                item { Text(stringResource(R.string.android_loading), color = c.textSecondary, fontSize = 15.sp, modifier = Modifier.padding(4.dp)) }
-            }
             if (live == null && sections.isEmpty() && store.ready) item { Empty() }
             sections.forEach { (day, rows) ->
                 if (!(live != null && day == Day.Today)) item(key = "s-$day") { SectionTitle(labels.getValue(day)) }
@@ -96,6 +104,10 @@ fun HomeScreen(store: Store, onOpen: (String) -> Unit, onOpenLive: () -> Unit, o
                     MeetingCard(row, day, onClick = { onOpen(row.id) }, onLongClick = { deleting = row })
                 }
             }
+        }
+        // The engine takes a few seconds to load on slow phones: the mark, breathing, rather than an empty list.
+        AnimatedVisibility(!store.ready && store.error == null, Modifier.align(Alignment.Center), enter = fadeIn(), exit = fadeOut(tween(250))) {
+            Loading()
         }
         Dock(store, onNew, onOpenLive, Modifier.align(Alignment.BottomCenter))
     }
@@ -141,18 +153,43 @@ private fun BrandBar() {
 
 private val logoPath = PathParser().parsePathString("M60 140 V100 a18 18 0 0 1 36 0 V140 M96 100 a18 18 0 0 1 36 0 V140").toPath()
 
+/** `echo` places the echo: 1 where the mark has it (+15, −15), 0 hidden right behind the "m". */
 @Composable
-fun Logo(modifier: Modifier = Modifier) {
+fun Logo(modifier: Modifier = Modifier, corner: Dp = 9.dp, echo: Float = 1f) {
     val c = LocalPalette.current
-    Canvas(modifier.clip(RoundedCornerShape(9.dp)).background(c.logoBackground)) {
+    Canvas(modifier.clip(RoundedCornerShape(corner)).background(c.logoBackground)) {
         val k = size.minDimension / 140f
         scale(k, Offset.Zero) {
             translate(-30f, -30f) {
-                translate(15f, -15f) { drawPath(logoPath, c.logoBar2, style = Stroke(17f, cap = StrokeCap.Round, join = StrokeJoin.Round)) }
+                translate(15f * echo, -15f * echo) {
+                    drawPath(logoPath, c.logoBar2.copy(alpha = echo), style = Stroke(17f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                }
                 drawPath(logoPath, c.logoBackground, style = Stroke(27f, cap = StrokeCap.Round, join = StrokeJoin.Round))
                 drawPath(logoPath, c.logoBar1, style = Stroke(17f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
         }
+    }
+}
+
+/**
+ * While the engine loads: the mark large, its echo coming out from behind the "m" and going back
+ * (Eco: every word is said and then written), and a quiet line below. Still with animations off.
+ */
+@Composable
+private fun Loading() {
+    val c = LocalPalette.current
+    val context = LocalContext.current
+    val still = remember {
+        android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
+    val echo = if (still) 1f else rememberInfiniteTransition(label = "loading").animateFloat(
+        0.15f, 1f, infiniteRepeatable(tween(1100, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "echo",
+    ).value
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.semantics(mergeDescendants = true) {}) {
+        // The ring (DESIGN.md: logoRing) keeps the black square from vanishing on a dark background.
+        Logo(Modifier.size(96.dp).border(1.dp, c.logoRing, RoundedCornerShape(26.dp)), corner = 26.dp, echo = echo)
+        Spacer(Modifier.height(20.dp))
+        Text(stringResource(R.string.android_loading), color = c.textSecondary, fontSize = 15.sp)
     }
 }
 

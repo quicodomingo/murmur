@@ -66,6 +66,10 @@ fun RecordingScreen(store: Store, onBack: () -> Unit, onMark: () -> Unit, onPaus
     val live = store.live ?: return
     var menu by remember { mutableStateOf(false) }
     var discarding by remember { mutableStateOf(false) }
+    var stopArmed by remember { mutableStateOf(false) }
+    LaunchedEffect(stopArmed) {
+        if (stopArmed) { kotlinx.coroutines.delay(4_000); stopArmed = false }
+    }
     val haptic = LocalHapticFeedback.current
     val list = rememberLazyListState()
     val you = stringResource(R.string.rec_you)
@@ -136,7 +140,10 @@ fun RecordingScreen(store: Store, onBack: () -> Unit, onMark: () -> Unit, onPaus
             ) { Icon(painterResource(R.drawable.ic_flag), stringResource(R.string.rec_mark), tint = c.textPrimary, modifier = Modifier.size(22.dp)) }
             Pill(if (live.paused) R.drawable.ic_play else R.drawable.ic_pause, stringResource(if (live.paused) R.string.rec_resume else R.string.rec_pause),
                 c.fillSubtle, c.textPrimary, Modifier.weight(1f), onPause)
-            Pill(R.drawable.ic_stop, stringResource(R.string.rec_stop), c.textPrimary, c.background, Modifier.weight(1f), onStop)
+            // Atura asks for a second tap within 4 s, as on the iPhone and in the notification.
+            Pill(R.drawable.ic_stop, stringResource(if (stopArmed) R.string.rec_stopConfirm else R.string.rec_stop), c.textPrimary, c.background, Modifier.weight(1f)) {
+                if (stopArmed) { stopArmed = false; onStop() } else { haptic.performHapticFeedback(HapticFeedbackType.LongPress); stopArmed = true }
+            }
         }
     }
 

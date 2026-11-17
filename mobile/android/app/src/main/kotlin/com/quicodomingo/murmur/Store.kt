@@ -148,14 +148,20 @@ class Store(private val context: Context) {
         onLiveChanged?.invoke()
     }
 
+    private var stopping = false
+
     /** Stops and saves; `done` gets the meeting's id. The engine first catches up with the queue. */
     fun stop(done: (String?) -> Unit = {}) {
         val engine = engine ?: return done(null)
         val current = live ?: return done(null)
+        // A second stop while the first is still saving (two quick taps) does nothing.
+        if (stopping) return done(null)
+        stopping = true
         val extra = extra(current)
         engineThread.execute {
             val result = runCatching { engine.stop(extra) }
             main.post {
+                stopping = false
                 justSaved = result.getOrNull()
                 live = null
                 result.onFailure { error = it.message }
