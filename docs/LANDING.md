@@ -219,7 +219,7 @@ Les reunions d'exemple són a `tools/landing-captures/seed.mjs`, en els tres idi
 | `30-iphone-llista` | ca, es, en | iPhone: la llista de reunions per dies | A l'iPhone |
 | `30-iphone-cerca` | ca, es, en | iPhone: la cerca a totes les reunions | A l'iPhone |
 
-Les `30-iphone-*` són les captures de l'App Store (`docs/appstore/<idioma>/`, en mode clar) dins el marc del telèfon i amb el fons transparent, a 908 × 1921, per posar-les sobre qualsevol color. Es fan amb `docs/appstore/promo/render-landing.sh` (Chrome sense finestra). Les de la botiga, amb titular i fons de marca (`docs/appstore/<idioma>/botiga/`), també serveixen per a xarxes.
+Les `30-iphone-*` són les captures de l'App Store (`docs/appstore/<idioma>/`, en mode clar) dins el marc del telèfon i amb el fons transparent, a 908 × 1921, per posar-les sobre qualsevol color. Totes tenen la seva versió fosca, `30-iphone-*-fosc`, per a una secció fosca. Es fan amb `docs/appstore/promo/render-landing.sh` (Chrome sense finestra). Les captures fosques de l'app (`docs/appstore/<idioma>/fosc/`) es fan amb `mobile/ios/shoot-dark.sh <id del simulador> <carpeta>`, al simulador de l'iPhone Pro Max, amb les mateixes reunions inventades; la data de les reunions és la del dia que es fan. Les de la botiga, amb titular i fons de marca (`docs/appstore/<idioma>/botiga/`), també serveixen per a xarxes.
 
 També hi ha les captures més antigues de `data/captures-blog/` i les maquetes de disseny de `docs/design/screens/` (clar i fosc l'un al costat de l'altre, amb una interfície anterior).
 
@@ -238,6 +238,5 @@ Aquestes només es poden fer amb l'app de veritat, perquè depenen del motor, de
 - [ ] **La traducció:** una reunió amb la transcripció traduïda i el segmentat Original / traducció.
 - [ ] **Windows:** la finestra de Murmur a Windows.
 - [ ] **Dins Obsidian i Notion:** la nota a Obsidian i la pàgina a Notion, fetes amb l'app de veritat (les de Murmur són simulades).
-- [ ] **iPhone en mode fosc:** les mateixes cinc, si la secció de l'iPhone és fosca. Cal el simulador d'iOS (ara no n'hi ha cap d'instal·lat), amb `-demo -appearance dark`.
 - [ ] **iPhone gravant:** la pantalla de gravació amb el text que va apareixent, i la Live Activity a la pantalla bloquejada. Són les que més ensenyen el que fa; cal l'iPhone de debò.
 - [ ] Un vídeo curt (20 a 30 segons) d'una gravació en directe, si la landing en vol.

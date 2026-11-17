@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
   One iPhone screenshot inside the phone's frame, on a transparent background, for the landing
-  (the same frame as promo.html, without the headline). phone.html?lang=ca|es|en&shot=3-transcripcio
+  (the same frame as promo.html, without the headline). phone.html?lang=ca|es|en&shot=3-transcripcio[&dark=1] (dark: docs/appstore/<lang>/fosc/)
   render-landing.sh makes them all with Chrome, into data/captures-landing/.
 -->
 <html>
@@ -24,7 +24,8 @@
   const q = new URLSearchParams(location.search);
   const lang = ["ca", "es", "en"].includes(q.get("lang")) ? q.get("lang") : "ca";
   const shot = (q.get("shot") || "3-transcripcio").replace(/[^\w-]/g, "");
-  document.getElementById("shot").src = `../${lang}/${shot}.png`;
+  const dir = q.get("dark") ? `${lang}/fosc` : lang;
+  document.getElementById("shot").src = `../${dir}/${shot}.png`;
 </script>
 </body>
 </html>
