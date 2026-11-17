@@ -148,7 +148,9 @@ class Store(private val context: Context) {
         onLiveChanged?.invoke()
     }
 
-    private var stopping = false
+    /** Stopped and saving: the engine first catches up with the queued audio, which takes a while on slow phones. */
+    var stopping by mutableStateOf(false)
+        private set
 
     /** Stops and saves; `done` gets the meeting's id. The engine first catches up with the queue. */
     fun stop(done: (String?) -> Unit = {}) {

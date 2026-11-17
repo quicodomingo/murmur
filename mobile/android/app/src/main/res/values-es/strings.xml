@@ -139,6 +139,7 @@
     <string name="rec_photo">Foto</string>
     <string name="rec_recording">Grabando</string>
     <string name="rec_resume">Continuar</string>
+    <string name="rec_saving">Guardando…</string>
     <string name="rec_speaker">Hablante %1$s</string>
     <string name="rec_stop">Detener</string>
     <string name="rec_stopConfirm">Toca para detener</string>

@@ -39,7 +39,8 @@
     "you": "Tú",
     "back": "Vuelve a la lista",
     "resume": "Continuar",
-    "stopConfirm": "Toca para detener"
+    "stopConfirm": "Toca para detener",
+    "saving": "Guardando…"
   },
   "notes": {
     "placeholder": "Escribe una nota…",

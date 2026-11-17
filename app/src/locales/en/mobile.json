@@ -39,7 +39,8 @@
     "you": "You",
     "back": "Back to the list",
     "resume": "Resume",
-    "stopConfirm": "Tap to stop"
+    "stopConfirm": "Tap to stop",
+    "saving": "Saving…"
   },
   "notes": {
     "placeholder": "Write a note…",

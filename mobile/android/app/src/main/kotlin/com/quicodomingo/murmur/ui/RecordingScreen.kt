@@ -139,9 +139,19 @@ fun RecordingScreen(store: Store, onBack: () -> Unit, onMark: () -> Unit, onPaus
                 contentAlignment = Alignment.Center,
             ) { Icon(painterResource(R.drawable.ic_flag), stringResource(R.string.rec_mark), tint = c.textPrimary, modifier = Modifier.size(22.dp)) }
             Pill(if (live.paused) R.drawable.ic_play else R.drawable.ic_pause, stringResource(if (live.paused) R.string.rec_resume else R.string.rec_pause),
-                c.fillSubtle, c.textPrimary, Modifier.weight(1f), onPause)
-            // Atura asks for a second tap within 4 s, as on the iPhone and in the notification.
-            Pill(R.drawable.ic_stop, stringResource(if (stopArmed) R.string.rec_stopConfirm else R.string.rec_stop), c.textPrimary, c.background, Modifier.weight(1f)) {
+                c.fillSubtle, c.textPrimary, Modifier.weight(1f), enabled = !store.stopping, onClick = onPause)
+            // Atura asks for a second tap within 4 s, as on the iPhone and in the notification: armed, it's the
+            // dark red with white of the iPhone (acid light's recordingLabel, 5.6:1) in both modes. Then
+            // «Desant…» until the engine has caught up with the queued audio and saved.
+            val armed = stopArmed || store.stopping
+            Pill(
+                R.drawable.ic_stop,
+                stringResource(if (store.stopping) R.string.rec_saving else if (stopArmed) R.string.rec_stopConfirm else R.string.rec_stop),
+                if (armed) MurmurPalette.acidLight.recordingLabel else c.textPrimary,
+                if (armed) MurmurPalette.acidLight.background else c.background,
+                Modifier.weight(1f),
+                enabled = !store.stopping,
+            ) {
                 if (stopArmed) { stopArmed = false; onStop() } else { haptic.performHapticFeedback(HapticFeedbackType.LongPress); stopArmed = true }
             }
         }
@@ -168,9 +178,9 @@ fun IconCircle(icon: Int, label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Pill(icon: Int, label: String, background: androidx.compose.ui.graphics.Color, content: androidx.compose.ui.graphics.Color, modifier: Modifier, onClick: () -> Unit) {
+private fun Pill(icon: Int, label: String, background: androidx.compose.ui.graphics.Color, content: androidx.compose.ui.graphics.Color, modifier: Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Row(
-        modifier.height(56.dp).clip(RoundedCornerShape(20.dp)).background(background).clickable(onClick = onClick),
+        modifier.height(56.dp).clip(RoundedCornerShape(20.dp)).background(background).clickable(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {
         Icon(painterResource(icon), null, tint = content, modifier = Modifier.size(20.dp))

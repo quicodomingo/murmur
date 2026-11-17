@@ -139,6 +139,7 @@
     <string name="rec_photo">Photo</string>
     <string name="rec_recording">Recording</string>
     <string name="rec_resume">Resume</string>
+    <string name="rec_saving">Saving…</string>
     <string name="rec_speaker">Speaker %1$s</string>
     <string name="rec_stop">Stop</string>
     <string name="rec_stopConfirm">Tap to stop</string>
