@@ -78,10 +78,42 @@ class Store(private val context: Context) {
         }
     }
 
+    /** Goes up on every reload, so an open meeting reads itself again (names, speakers). */
+    var changes by mutableStateOf(0)
+        private set
+
     fun reload() {
         val rows = runCatching { engine?.meetings() }.getOrNull() ?: return
         meetings.clear()
         meetings.addAll(rows)
+        changes++
+    }
+
+    /** A change to a finished meeting, on the engine's thread (in order with the rest), then read again. */
+    private fun edit(change: (Murmur) -> Unit) {
+        val engine = engine ?: return
+        engineThread.execute {
+            runCatching { change(engine) }
+            main.post { reload() }
+        }
+    }
+
+    /** A speaker's name ("Parlant 2" is "Laia"); empty takes it away. */
+    fun nameSpeaker(id: String, speaker: Int, name: String) = edit { it.setSpeakerName(id, speaker.toLong(), name) }
+
+    /** One line goes to another speaker (the computer's final pass leaves it alone). */
+    fun reassignLine(id: String, line: String, speaker: Int) = edit { it.setLineSpeaker(id, line, speaker.toLong()) }
+
+    /** Every line of `from` is `into`'s: two speakers that were the same person. */
+    fun mergeSpeakers(id: String, from: Int, into: Int) {
+        if (from != into) edit { it.mergeSpeakers(id, from.toLong(), into.toLong()) }
+    }
+
+    /** A finished meeting's notes, as they're edited (no reload: the screen has them). */
+    fun saveNotes(id: String, blocks: List<NoteBlock>) {
+        val engine = engine ?: return
+        val doc = (NotesDoc.encode(blocks) ?: JSONObject().put("type", "doc").put("content", JSONArray().put(JSONObject().put("type", "paragraph")))).toString()
+        engineThread.execute { runCatching { engine.setNotes(id, doc) } }
     }
 
     /** Starts a meeting in the engine; RecordingService opens the microphone. */
@@ -199,7 +231,7 @@ class Store(private val context: Context) {
     fun meeting(id: String): MeetingDetail? {
         val json = runCatching { engine?.meetingJson(id) }.getOrNull() ?: return null
         val row = meetings.firstOrNull { it.id == id }
-        return MeetingDetail.parse(json, sent = row?.sent ?: false, revised = row?.revised ?: false)
+        return MeetingDetail.parse(json, sent = row?.sent ?: false, revised = row?.revised ?: false, markLabel = context.getString(R.string.rec_markNote))
     }
 
     /**
@@ -263,14 +295,18 @@ data class MeetingDetail(
     val marks: List<Double>,
     val sent: Boolean,
     val revised: Boolean,
+    /** The notes, the marked moments and the photos, as the editor shows them. */
+    val notes: List<NoteBlock>,
 ) {
     data class Utterance(val id: String, val start: Double, val end: Double, val speaker: Int, val text: String)
 
     fun isMarked(u: Utterance) = marks.any { it >= u.start - 1 && it <= u.end + 2 }
     val voices: Int get() = utterances.map { it.speaker }.toSet().size
+    /** The speakers there are, by number. */
+    val speakers: List<Int> get() = utterances.map { it.speaker }.distinct().sorted()
 
     companion object {
-        fun parse(json: String, sent: Boolean, revised: Boolean): MeetingDetail? = runCatching {
+        fun parse(json: String, sent: Boolean, revised: Boolean, markLabel: String): MeetingDetail? = runCatching {
             val m = JSONObject(json)
             val names = mutableMapOf<Int, String>()
             m.optJSONObject("speakerNames")?.let { o ->
@@ -292,6 +328,12 @@ data class MeetingDetail(
                 marks = (0 until marks.length()).mapNotNull { marks.optJSONObject(it)?.optDouble("t") },
                 sent = sent,
                 revised = revised,
+                notes = NotesDoc.decode(
+                    m.optJSONObject("notesDoc"),
+                    (0 until marks.length()).mapNotNull { marks.optJSONObject(it)?.optDouble("t") }.toSet(),
+                    m.optJSONArray("screens"),
+                    markLabel,
+                ),
             )
         }.getOrNull()
     }
