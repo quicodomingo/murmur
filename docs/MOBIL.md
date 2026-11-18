@@ -190,3 +190,30 @@ Mesurat al Galaxy A13 (Android de 32 bits, vuit Cortex-A55, 4 GB): 33,5 s de veu
 - **L'app** (`mobile/android/`, Jetpack Compose): `Store.kt` porta l'estat i el motor (un sol fil, en ordre); `RecordingService.kt` és la gravació, un servei en primer pla de tipus micròfon amb la notificació fixa (el temps, l'última frase, Marca, Pausa i Atura, que demana dos tocs com a la pantalla bloquejada de l'iPhone) i un wake lock parcial perquè continuï amb la pantalla apagada. El micròfon no espera mai el motor: si el motor va endarrerit, l'àudio fa cua en lloc de perdre's. Pantalles: la llista per dies (la reunió en curs a dalt), la gravació i la reunió acabada (canviar el nom, eliminar).
 - Pendent: mesurar en un telèfon de 64 bits de gamma mitjana (els nuclis A76/A78 i les instruccions int8 de 64 bits haurien d'anar molt més de pressa).
 
+### Android: on som
+
+L'app d'Android segueix l'app de l'iPhone pantalla per pantalla: els mateixos colors (`ui/Palette.kt`, generat dels tokens de l'ordinador amb `tools/mobile-theme.mjs`) i els mateixos textos (`res/values*/strings.xml`, generats de `app/src/locales/*/mobile.json` amb `node tools/mobile-strings.mjs`; no s'editen a mà).
+
+Fet:
+- Gravar amb el text en directe, en un servei en primer pla amb la notificació fixa (Marca, Pausa, Atura) i la pantalla apagada.
+- La llista per dies, la reunió acabada amb les pestanyes Transcripció i Notes, canviar el nom i eliminar.
+- Les notes en el format de l'ordinador (títols, llistes, caselles, marques al seu minut i fotos de la càmera), també mentre es grava.
+- Els parlants: posar-los nom, dir que una frase és d'un altre i ajuntar-ne dos, en directe i després.
+
+Falta, per ordre:
+1. «Murmur, sóc…» (com `Intro.swift` a l'iPhone).
+2. La cerca, les etiquetes i compartir com a text.
+3. La configuració, «La teva veu», l'onboarding i les estadístiques.
+4. L'emparellament i l'enviament a l'ordinador (el protocol és el de `mobile/ffi/src/pairing.rs`, el mateix de l'iPhone).
+5. Google Play.
+
+Compilar: cal l'Android SDK i l'NDK (d'Android Studio), `cargo install cargo-ndk` i els objectius `rustup target add aarch64-linux-android armv7-linux-androideabi`. Gradle crida `build-rust.sh`, que compila el motor i genera el codi de UniFFI en Kotlin:
+
+```bash
+cd mobile/android && ./gradlew assembleDebug
+```
+
+Els models no hi van a dins: en desenvolupament es copien a la carpeta privada de l'app (`files/models`) amb `adb push` i `run-as`, els mateixos que porta l'app de l'iPhone a `mobile/ios/Murmur/Resources/models`.
+
+Qualsevol canvi a `mobile/ffi` el comparteix l'app de l'iPhone publicada: ha de continuar compilant i aparellant-se amb l'iPhone.
+

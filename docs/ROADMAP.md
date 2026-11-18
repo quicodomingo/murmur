@@ -222,7 +222,14 @@ Entre reunions (bloc 5):
   - [ ] Quan l'app de l'iPhone sigui a l'App Store de la UE: `PHONE_APP` a `true` (`app/src/lib/features.ts`; amaga Configuració › Mòbil i la icona de sincronització a l'app publicada), el paràgraf dels README que està comentat, i la novetat de l'iPhone amb la imatge (la de la 0.16.0, que no va sortir).
   - [ ] La secció de l'iPhone a la landing: textos i captures a [`docs/LANDING.md`](LANDING.md).
   - [ ] Les edicions després de revisar en tots dos sentits (avui el mòbil només conserva el títol i els noms que hi canvies).
-  - [ ] iPad, iPhone Duo i Android.
+  - [ ] iPad i iPhone Duo.
+  - [ ] Android (`mobile/android/`, en curs; què hi ha i què falta a [`docs/MOBIL.md`](MOBIL.md#android-on-som)):
+    - [x] Gravar amb el text en directe i la notificació fixa, la llista, la reunió acabada, les notes i els parlants editables.
+    - [ ] «Murmur, sóc…».
+    - [ ] La cerca, les etiquetes i compartir com a text.
+    - [ ] La configuració, «La teva veu», l'onboarding i les estadístiques.
+    - [ ] L'emparellament amb l'ordinador.
+    - [ ] Google Play.
   - [x] Provar l'emparellament de punta a punta amb `fake_phone` i l'app: emparellar, enviar una reunió de 3 minuts, passada final (Whisper i dos parlants trobats) i recollir-ne el resultat.
   - [ ] La prova d'una tarda a l'iPhone (cal Xcode): velocitat, qualitat i bateria del Conformer.
   - [ ] Primera app en SwiftUI: gravar i text en directe, per TestFlight.
