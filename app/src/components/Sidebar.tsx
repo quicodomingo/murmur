@@ -17,6 +17,7 @@ import { MarkerBackground, useMarker } from "@/lib/motion";
 import { MobileSync } from "./MobileSync";
 import { StartOptionsCompact, type StartChoice } from "./StartOptions";
 import { hasTag, tagCounts, type TagCount } from "./Tags";
+import { PHONE_APP } from "@/lib/features";
 
 type Props = {
   meetings: MeetingSummary[];
@@ -198,6 +199,10 @@ export function Sidebar({ meetings, selectedId, canCreate, starting, importingId
                         <span className="flex-1 truncate">{m.title}</span>
                         {m.device && <Smartphone className="size-3 shrink-0 text-text-secondary" aria-label={translate("app:fromPhone", { phone: m.device.name })} />}
                         {activeShares(m).length > 0 && <Link2 className="size-3 shrink-0 text-text-secondary" aria-label={translate("share:shared")} />}
+                        {/* Steps left undone when it ended (the meeting's "Acaba de processar…"). */}
+                        {!!m.pending?.length && m.status === "done" && (
+                          <span className="size-1.5 shrink-0 rounded-full bg-mm-text-tertiary" role="img" aria-label={translate("app:after.pendingLabel")} title={translate("app:after.pendingLabel")} />
+                        )}
                         {m.status === "recording" && m.id !== importingId ? (
                           <span className="flex items-center gap-[5px] text-[10px] font-bold tracking-[0.06em] text-mm-recording-label" aria-label={t("recording")}>
                             <span className="mm-rec size-2 rounded-full bg-mm-recording-dot" aria-hidden />
@@ -243,7 +248,7 @@ export function Sidebar({ meetings, selectedId, canCreate, starting, importingId
         ) : (
           <span className="flex-1 text-[11px]">{t("localOnly")}</span>
         )}
-        <MobileSync meetings={meetings} onSettings={onMobileSettings} />
+        {PHONE_APP && <MobileSync meetings={meetings} onSettings={onMobileSettings} />}
         <button type="button" onClick={onSettings} aria-label={t("settings")} title={t("settingsShortcut")} className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10">
           <Settings className="size-4" />
         </button>

@@ -1,5 +1,6 @@
-//! The macOS calendar (EventKit): every account added to the system (iCloud, Google, Exchange…).
-//! Murmur only reads it: the next meeting for the alert, and its title when recording starts.
+//! The calendars: the macOS one (EventKit, here), with every account added to the system (iCloud,
+//! Google, Exchange…), Google Calendar on its own (google.rs) and iCal links (ics.rs). Murmur only
+//! reads them: the next meeting for the alert, and its title when recording starts.
 
 use serde::{Deserialize, Serialize};
 
@@ -51,6 +52,9 @@ impl EventInfo {
 #[serde(rename_all = "camelCase")]
 pub struct Watch {
     pub enabled: bool,
+    /// The system's calendar is connected (macOS); the iCal links count either way.
+    #[serde(default)]
+    pub system: bool,
     /// Calendars to watch; `None` means all of them.
     pub calendar_ids: Option<Vec<String>>,
     /// Also events with no guests and no video link.
@@ -58,7 +62,7 @@ pub struct Watch {
 }
 
 /// The video call service named in a link, location or notes.
-fn platform(text: &str) -> Option<&'static str> {
+pub(crate) fn platform(text: &str) -> Option<&'static str> {
     const SERVICES: [(&str, &str); 7] = [
         ("meet.google.com", "Google Meet"),
         ("zoom.us/", "Zoom"),
@@ -227,7 +231,18 @@ mod imp {
     }
 }
 
-pub use imp::events;
+/// Events from the system's calendar (if `system`), Google (google.rs) and the iCal links
+/// (ics.rs), in time order. A meeting that comes by two of them (a Google account also added to
+/// macOS, or also as a link) is kept once.
+pub fn events(from_ms: f64, to_ms: f64, ids: Option<&[String]>, system: bool) -> Vec<EventInfo> {
+    let mut all = if system { imp::events(from_ms, to_ms, ids) } else { vec![] };
+    all.extend(crate::google::events(from_ms, to_ms, ids));
+    all.extend(crate::ics::events(from_ms, to_ms, ids));
+    let mut seen = std::collections::HashSet::new();
+    all.retain(|e| seen.insert((e.start as i64, e.end as i64, e.title.trim().to_lowercase())));
+    all.sort_by(|a, b| a.start.total_cmp(&b.start));
+    all
+}
 
 #[tauri::command]
 pub fn calendar_access() -> Access {
@@ -240,15 +255,76 @@ pub async fn request_calendar_access() -> Access {
     tauri::async_runtime::spawn_blocking(imp::request).await.unwrap_or(Access::Denied)
 }
 
+/// The calendars to choose from: the system's (if `system`), Google's and the iCal links'.
 #[tauri::command]
-pub async fn list_calendars() -> Vec<CalendarInfo> {
-    tauri::async_runtime::spawn_blocking(imp::calendars).await.unwrap_or_default()
+pub async fn list_calendars(system: Option<bool>) -> Vec<CalendarInfo> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut all = if system.unwrap_or(true) { imp::calendars() } else { vec![] };
+        all.extend(crate::google::calendars());
+        all.extend(crate::ics::calendars());
+        all
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Settings › Calendari › Google Calendar: whether this build has it, and the account.
+#[tauri::command]
+pub async fn google_status() -> crate::google::Status {
+    tauri::async_runtime::spawn_blocking(crate::google::status).await.map_err(|e| e.to_string()).unwrap_or(crate::google::Status {
+        available: crate::google::available(),
+        connected: false,
+        email: None,
+        error: None,
+    })
+}
+
+/// "Inicia la sessió…": the browser, and back. Returns the account's address.
+#[tauri::command]
+pub async fn google_connect(app: tauri::AppHandle) -> Result<String, String> {
+    use tauri_plugin_opener::OpenerExt;
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::google::connect(|url| app.opener().open_url(url, None::<&str>).map_err(|e| anyhow::anyhow!("{e}"))).map_err(|e| format!("{e:#}"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub fn google_cancel() {
+    crate::google::cancel();
+}
+
+#[tauri::command]
+pub async fn google_disconnect() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| crate::google::disconnect().map_err(|e| format!("{e:#}"))).await.map_err(|e| e.to_string())?
+}
+
+/// Settings › Calendari › Enllaç iCal: the saved links (never their URL, which is the secret).
+#[tauri::command]
+pub async fn ical_feeds() -> Vec<crate::ics::FeedInfo> {
+    tauri::async_runtime::spawn_blocking(crate::ics::list).await.unwrap_or_default()
+}
+
+/// Reads the link to check it's a calendar, and saves it to the keychain.
+#[tauri::command]
+pub async fn ical_add(url: String) -> Result<crate::ics::FeedInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || crate::ics::add(&url).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn ical_remove(id: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || crate::ics::remove(&id).map_err(|e| format!("{e:#}")))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Events between two times (ms since 1970) in the given calendars (all if `None`).
 #[tauri::command]
-pub async fn calendar_events(from: f64, to: f64, calendar_ids: Option<Vec<String>>) -> Vec<EventInfo> {
-    tauri::async_runtime::spawn_blocking(move || imp::events(from, to, calendar_ids.as_deref()))
+pub async fn calendar_events(from: f64, to: f64, calendar_ids: Option<Vec<String>>, system: Option<bool>) -> Vec<EventInfo> {
+    tauri::async_runtime::spawn_blocking(move || events(from, to, calendar_ids.as_deref(), system.unwrap_or(true)))
         .await
         .unwrap_or_default()
 }

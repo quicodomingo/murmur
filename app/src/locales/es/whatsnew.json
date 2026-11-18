@@ -6,6 +6,34 @@
   "dontShow": "No volver a mostrar",
   "ok": "Entendido",
   "releases": {
+    "0.17.0": [
+      {
+        "title": "Tú eliges qué se hace al terminar",
+        "text": "Al terminar una reunión o abrir un archivo, eliges qué pasos quieres: hablantes, Whisper, puntuación y resumen. Murmur recuerda la elección, y lo que dejes para más tarde lo puedes hacer desde el menú de la reunión."
+      },
+      {
+        "title": "El calendario, también en Windows y Linux",
+        "text": "Añade el enlace iCal de un calendario de Google, Outlook o iCloud y Murmur te avisará antes de cada reunión, con el título y los invitados. En el Mac, se suman los calendarios del sistema.",
+        "link": "calendar",
+        "linkLabel": "Configuración › Calendario"
+      },
+      {
+        "title": "En Linux, también el audio del sistema",
+        "text": "Murmur ya puede grabar lo que suena en el ordenador, como las voces de una llamada, con PulseAudio o PipeWire, y las separa de la tuya.",
+        "link": "audio",
+        "linkLabel": "Configuración › Audio"
+      },
+      {
+        "title": "El resumen, también con Gemini u OpenRouter",
+        "text": "Además de Claude y OpenAI, ahora puedes hacer que el resumen lo escriba Gemini o cualquiera de los modelos de OpenRouter, con tu clave. El modelo se elige con un buscador.",
+        "link": "intelligence",
+        "linkLabel": "Configuración › Inteligencia"
+      },
+      {
+        "title": "Ninguna reunión a medias",
+        "text": "Mientras graba, el ordenador ya no se duerme. Y si el micrófono deja de enviar sonido (un cambio de dispositivo, unos auriculares que se desconectan), Murmur te lo dice enseguida y lo vuelve a abrir."
+      }
+    ],
     "0.15.0": [
       {
         "title": "La tarjeta gráfica, también en Windows y Linux",

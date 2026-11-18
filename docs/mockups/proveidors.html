@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ca" data-theme="acid" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qui escriu els resums</title>
+<link rel="stylesheet" href="../../app/src/murmur-theme.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0 0 60px; background: var(--mm-fill-subtle); color: var(--mm-text-primary); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  [data-mode="dark"] body { background: var(--mm-sidebar); }
+  .i { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* Page chrome */
+  .top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: var(--mm-background); border-bottom: 1px solid var(--mm-separator); }
+  .top h1 { margin: 0; font-size: 14px; flex: 1; }
+  .switch { display: flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; }
+  .switch button { all: unset; cursor: pointer; padding: 2px 12px; border-radius: 5px; color: var(--mm-text-secondary); }
+  .switch button[aria-pressed="true"] { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+  .switch button:focus-visible { outline: 2px solid var(--mm-link); }
+  .lead { width: 960px; margin: 28px auto 0; color: var(--mm-text-secondary); font-size: 13px; }
+  .lead b { color: var(--mm-text-primary); }
+  h2 { width: 960px; margin: 40px auto 10px; font-size: 15px; }
+  .cap { width: 960px; margin: 12px auto 0; color: var(--mm-text-secondary); }
+  .cap b { color: var(--mm-text-primary); }
+  .stage { width: 960px; margin: 0 auto; display: flex; justify-content: center; }
+
+  /* Onboarding window, 720 × 540 */
+  .ob { width: 720px; height: 540px; background: var(--mm-background); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); position: relative; }
+  .ob .bar { height: 28px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+  .lights { display: flex; gap: 8px; } .lights i { width: 12px; height: 12px; border-radius: 50%; background: var(--mm-separator); }
+  .ob .content { flex: 1; overflow: hidden; padding: 4px 48px 0; }
+  .kicker { font-size: 12px; font-weight: 600; color: var(--mm-text-secondary); }
+  .ob h3 { margin: 4px 0 0; font-size: 24px; line-height: 1.2; letter-spacing: -.015em; }
+  .intro { margin: 6px 0 0; font-size: 14px; color: var(--mm-text-primary); opacity: .8; }
+  .card { margin-top: 16px; border: 1px solid var(--mm-separator); border-radius: 12px; overflow: hidden; }
+  .mrow { display: flex; gap: 12px; padding: 12px 14px; }
+  .mrow + .mrow { border-top: 1px solid var(--mm-separator); }
+  .ico { width: 30px; height: 30px; border-radius: 8px; background: var(--mm-fill-subtle); display: grid; place-items: center; flex: none; }
+  .ico .i { width: 16px; height: 16px; }
+  .mrow .main { flex: 1; min-width: 0; }
+  .name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .badge { font-size: 11px; font-weight: 500; padding: 0 6px; border-radius: 5px; background: var(--mm-fill-subtle); color: var(--mm-text-secondary); }
+  .size { margin-left: auto; font-weight: 400; font-size: 12px; color: var(--mm-text-secondary); font-variant-numeric: tabular-nums; }
+  .desc { margin-top: 2px; font-size: 12px; color: var(--mm-text-secondary); }
+  .check { width: 22px; height: 22px; border-radius: 6px; background: var(--mm-text-primary); color: var(--mm-background); display: grid; place-items: center; opacity: .5; flex: none; }
+  .note { margin-top: 12px; display: flex; gap: 10px; font-size: 12px; color: var(--mm-text-secondary); }
+  .note .i { margin-top: 2px; }
+  .analytics { margin-top: 8px; display: flex; gap: 10px; font-size: 12px; color: var(--mm-text-secondary); }
+  .box { width: 14px; height: 14px; border-radius: 4px; background: var(--mm-text-primary); flex: none; margin-top: 2px; }
+  .ob footer { height: 68px; flex: none; display: flex; align-items: center; padding: 0 24px; gap: 8px; }
+  .dots { display: flex; gap: 6px; align-items: center; flex: 1; }
+  .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--mm-separator); }
+  .dots i.on { width: 18px; background: var(--mm-text-primary); }
+  .btn { height: 30px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 8px; font-size: 13px; }
+  .btn.ghost { color: var(--mm-text-secondary); }
+  .btn.primary { background: var(--mm-accent); color: var(--mm-on-accent); font-weight: 600; }
+  .btn.off { opacity: .45; }
+
+  /* Segmented: where the summary is written */
+  .seg { display: inline-flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; margin-top: 10px; }
+  .seg b { font-weight: 400; height: 24px; display: flex; align-items: center; gap: 5px; padding: 0 12px; border-radius: 5px; color: var(--mm-text-secondary); }
+  .seg b.on { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
+  .seg .i { width: 12px; height: 12px; }
+
+  /* The four companies, a radio group of equal tiles */
+  .who { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .tile { border-radius: 8px; padding: 7px 9px; box-shadow: 0 0 0 1px var(--mm-separator); }
+  .tile b { display: block; font-size: 12px; font-weight: 600; }
+  .tile span { display: block; font-size: 11px; color: var(--mm-text-secondary); }
+  .tile.on { box-shadow: 0 0 0 2px var(--mm-text-primary); }
+  .sub { margin-top: 8px; font-size: 12px; color: var(--mm-text-secondary); }
+  .link { color: var(--mm-link); }
+  .keyrow { margin-top: 6px; display: flex; gap: 6px; }
+  .input { height: 28px; flex: 1; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--mm-separator); background: var(--mm-field); padding: 0 8px; display: flex; align-items: center; font: 12px ui-monospace, "SF Mono", monospace; color: var(--mm-text-tertiary); }
+  .input.focus { box-shadow: inset 0 0 0 1px var(--mm-text-secondary), 0 0 0 3px var(--mm-fill-subtle); color: var(--mm-text-primary); }
+  .sbtn { height: 28px; padding: 0 12px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--mm-separator); display: flex; align-items: center; font-size: 13px; background: var(--mm-background); }
+  .ok { display: flex; align-items: center; gap: 6px; color: var(--mm-text-primary); margin-top: 8px; font-size: 12px; }
+  .ok .i { color: var(--mm-toggle-on); stroke-width: 3; }
+
+  /* Model picker: a button that opens a searchable list */
+  .picker { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--mm-separator); background: var(--mm-background); font-size: 13px; max-width: 260px; }
+  .picker.open { box-shadow: inset 0 0 0 1px var(--mm-text-secondary), 0 0 0 3px var(--mm-fill-subtle); }
+  .picker em { font-style: normal; color: var(--mm-text-secondary); font-size: 12px; }
+  .picker .i { width: 12px; height: 12px; color: var(--mm-text-secondary); margin-left: 2px; }
+  .modelline { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mm-text-secondary); }
+
+  .pop { position: absolute; width: 340px; background: var(--mm-background); border-radius: 10px; box-shadow: 0 12px 32px rgb(0 0 0 / .2), 0 0 0 1px var(--mm-separator); overflow: hidden; z-index: 5; }
+  .pop .search { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border-bottom: 1px solid var(--mm-separator); }
+  .pop .search .i { color: var(--mm-text-secondary); }
+  .pop .search span { flex: 1; }
+  .pop .search .ph { color: var(--mm-text-tertiary); }
+  .pop .search kbd { font: 11px inherit; color: var(--mm-text-tertiary); }
+  .pop .list { max-height: 248px; overflow: hidden; padding: 4px; }
+  .pop .gh { position: relative; padding: 8px 8px 3px; font-size: 11px; font-weight: 600; color: var(--mm-text-secondary); display: flex; }
+  .pop .gh small { margin-left: auto; font-weight: 400; color: var(--mm-text-tertiary); }
+  .opt { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 6px; font-size: 13px; }
+  .opt .tick { width: 14px; flex: none; }
+  .opt .tick .i { width: 13px; height: 13px; stroke-width: 2.4; }
+  .opt .nm { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .opt .nm mark { background: none; color: inherit; font-weight: 600; }
+  .opt .co { font-size: 11px; color: var(--mm-text-tertiary); }
+  .opt .tag { font-size: 10px; font-weight: 600; padding: 0 5px; border-radius: 4px; background: var(--mm-fill-subtle); color: var(--mm-text-secondary); }
+  .opt.hl { background: var(--mm-sidebar-selection); }
+  .pop .foot { border-top: 1px solid var(--mm-separator); padding: 7px 10px; font-size: 11px; color: var(--mm-text-tertiary); display: flex; justify-content: space-between; }
+  .empty { padding: 22px 16px; text-align: center; font-size: 12px; color: var(--mm-text-secondary); }
+  .empty b { display: block; color: var(--mm-text-primary); font-size: 13px; margin-bottom: 2px; }
+
+  /* Settings window, 820 wide */
+  .st { width: 820px; height: 560px; background: var(--mm-settings-background); border-radius: 12px; overflow: hidden; display: flex; box-shadow: 0 20px 50px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); position: relative; }
+  .st nav { width: 184px; flex: none; background: var(--mm-sidebar); border-right: 1px solid var(--mm-separator); padding: 40px 8px 8px; }
+  .st nav div { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 6px; color: var(--mm-text-secondary); font-size: 13px; }
+  .st nav div.on { background: var(--mm-sidebar-selection); color: var(--mm-text-primary); font-weight: 500; }
+  .st nav .i { width: 16px; height: 16px; }
+  .st main { flex: 1; padding: 40px 24px 24px; overflow: hidden; }
+  .grp-t { padding: 0 4px 6px; font-size: 12px; font-weight: 600; color: var(--mm-text-secondary); }
+  .grp { border: 1px solid var(--mm-separator); border-radius: 10px; background: var(--mm-background); }
+  .srow { display: flex; align-items: center; gap: 16px; padding: 9px 12px; }
+  .srow + .srow, .srow + .ssub, .ssub + .srow { border-top: 1px solid var(--mm-separator); }
+  .srow .l { flex: 1; min-width: 0; }
+  .srow .h { font-size: 11px; color: var(--mm-text-secondary); margin-top: 1px; }
+  .ssub { padding: 8px 12px 8px 24px; background: var(--mm-fill-subtle); display: flex; align-items: center; gap: 16px; font-size: 12px; }
+  .ssub .l { flex: 1; }
+  .ssub .h { font-size: 11px; color: var(--mm-text-secondary); }
+  .toggle { width: 30px; height: 18px; border-radius: 9px; background: var(--mm-toggle-on); position: relative; flex: none; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--mm-toggle-knob); }
+  .danger { color: var(--mm-recording-label); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="audio" viewBox="0 0 24 24"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/></symbol>
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+  <symbol id="cloud" viewBox="0 0 24 24"><path d="M17.5 19H8a6 6 0 11.9-11.9A7 7 0 0118 9.5a4.75 4.75 0 01-.5 9.5z"/></symbol>
+  <symbol id="laptop" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></symbol>
+  <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
+  <symbol id="mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></symbol>
+  <symbol id="text" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+  <symbol id="brain" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></symbol>
+  <symbol id="paint" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></symbol>
+</svg>
+
+<div class="top">
+  <h1>Qui escriu els resums · proveïdors i buscador de models</h1>
+  <div class="switch" role="group" aria-label="Tema">
+    <button data-theme-set="acid" aria-pressed="true">Àcid</button>
+    <button data-theme-set="mono" aria-pressed="false">Monocrom</button>
+    <button data-theme-set="formigo" aria-pressed="false">Formigó</button>
+  </div>
+  <div class="switch" role="group" aria-label="Mode">
+    <button data-mode-set="light" aria-pressed="true">Clar</button>
+    <button data-mode-set="dark" aria-pressed="false">Fosc</button>
+  </div>
+</div>
+
+<p class="lead">L'onboarding tenia un segmentat de quatre (Gemma, Claude, ChatGPT, Ara no). Amb Gemini i OpenRouter serien sis, i no hi caben. Proposta: <b>primer on</b> (en aquest ordinador, al núvol o ara no), en un segmentat de tres, i <b>després qui</b>, només si és al núvol: quatre caselles iguals, perquè cap empresa quedi en desavantatge. A sota, el selector de model amb <b>buscador</b>, el mateix a l'onboarding (només OpenRouter) i a Configuració.</p>
+
+<h2>1 · Onboarding: Gemma, per defecte</h2>
+<div class="stage" id="s1"></div>
+<p class="cap">El segmentat diu <b>on</b> s'escriu el resum. Gemma continua sent l'opció per defecte i la que no envia res. El text de sota no canvia.</p>
+
+<h2>2 · Onboarding: al núvol, amb Gemini</h2>
+<div class="stage" id="s2"></div>
+<p class="cap">Amb «Al núvol» surten les quatre empreses, en el mateix ordre que a Configuració i sense cap triada d'entrada: Murmur no recomana cap empresa. Cada casella diu en una línia què la fa diferent. Un cop triada, el camp de la clau amb l'enllaç per crear-la. El botó principal no s'activa fins que el compte està connectat, com ara.</p>
+
+<h2>3 · Onboarding: OpenRouter connectat, triant el model</h2>
+<div class="stage" id="s3"></div>
+<p class="cap">Amb Claude, ChatGPT i Gemini, el model per defecte va bé i no cal ensenyar-lo. Amb OpenRouter sí, perquè n'hi ha 370: surt «Model: Claude Sonnet 5.5», que obre el buscador. A dalt, <b>Recomanats</b>: quatre models que sabem que fan bé el resum (de quatre empreses diferents); a sota, tots, agrupats per empresa.</p>
+
+<h2>4 · Configuració › Intel·ligència: el buscador, escrivint</h2>
+<div class="stage" id="s4"></div>
+<p class="cap">El desplegable natiu de Model es canvia per aquest botó amb buscador (també per a Claude, OpenAI i Gemini, perquè tots es comportin igual; amb llistes curtes el buscador no surt). Busca pel nom i per l'empresa, sense accents ni majúscules. Fletxes per moure's, Retorn per triar i Esc per tancar. Els models gratuïts porten l'etiqueta «Gratis».</p>
+
+<h2>5 · El buscador sense resultats</h2>
+<div class="stage" id="s5"></div>
+<p class="cap">Si no hi ha cap coincidència, ho diu i suggereix buscar per empresa. Pregunta oberta: <b>posem el preu</b> per milió de paraules al costat de cada model? OpenRouter el dona, però per a la majoria de gent és una xifra difícil d'interpretar. Proposta: no, i sí l'etiqueta «Gratis».</p>
+
+<script>
+const icon = (id, extra = "") => `<svg class="i" ${extra}><use href="#${id}"/></svg>`;
+
+function onboarding({ where, who, connected, picker }) {
+  const tiles = [
+    ["anthropic", "Claude", "d'Anthropic"],
+    ["openai", "ChatGPT", "d'OpenAI"],
+    ["gemini", "Gemini", "de Google"],
+    ["openrouter", "OpenRouter", "Molts models, una clau"],
+  ];
+  let detail = "";
+  if (where === "local") detail = `<div class="sub">Gemma 4, de Google, funciona dins d'aquest ordinador. Pesa 5,2 GB i necessita 16 GB de memòria.</div>`;
+  if (where === "cloud") {
+    detail = `<div class="who" role="radiogroup" aria-label="Qui l'escriu">${tiles
+      .map(([id, n, s]) => `<div class="tile ${who === id ? "on" : ""}" role="radio" aria-checked="${who === id}"><b>${n}</b><span>${s}</span></div>`)
+      .join("")}</div>`;
+    if (who === "gemini" && !connected)
+      detail += `<div class="sub">Només s'envia el text de la reunió a Google, mai l'àudio. Cal una clau d'API, amb un nivell gratuït. <span class="link">Crea'n una a aistudio.google.com</span></div>
+        <div class="keyrow"><div class="input focus">AIza…</div><div class="sbtn">Connecta</div></div>`;
+    if (who === "openrouter" && connected)
+      detail += `<div class="ok">${icon("check")}OpenRouter connectat. Clau desada al clauer, acaba en …7f3a</div>
+        <div class="modelline">Model: <span class="picker ${picker ? "open" : ""}" id="ob-picker">Claude Sonnet 5.5 <em>Anthropic</em>${icon("chev")}</span></div>`;
+  }
+  const seg = [
+    ["local", "laptop", "Gemma, en aquest ordinador"],
+    ["cloud", "cloud", "Al núvol"],
+    ["none", null, "Ara no"],
+  ]
+    .map(([v, ic, l]) => `<b class="${where === v ? "on" : ""}">${ic ? icon(ic) : ""}${l}</b>`)
+    .join("");
+  const ready = where !== "cloud" || connected;
+  return `<div class="ob">
+    <div class="bar"><div class="lights"><i></i><i></i><i></i></div></div>
+    <div class="content">
+      <div class="kicker">Últim pas</div>
+      <h3>Descarrega els models</h3>
+      <p class="intro">Murmur funciona amb models que s'executen en aquest ordinador. Només cal descarregar-los un cop.</p>
+      <div class="card">
+        <div class="mrow"><div class="ico">${icon("audio")}</div><div class="main">
+          <div class="name">Model de transcripció <span class="badge">Necessari</span><span class="size">1,1 GB</span></div>
+          <div class="desc">Converteix la veu en text, en català i altres llengües, dins d'aquest ordinador.</div></div>
+          <div class="check">${icon("check", 'style="width:13px;height:13px;stroke-width:3"')}</div></div>
+        <div class="mrow"><div class="ico">${icon("spark")}</div><div class="main">
+          <div class="name">Resums <span class="badge">Opcional</span><span class="size">${where === "local" ? "5,2 GB" : ""}</span></div>
+          <div class="desc" id="onboarding-summary">Títol, resum, decisions i tasques de cada reunió. Tria on s'escriuen:</div>
+          <div class="seg" role="radiogroup">${seg}</div>
+          ${detail}
+        </div></div>
+      </div>
+      <div class="note">${icon(where === "cloud" ? "cloud" : "lock")}<span>${
+        where === "cloud"
+          ? "L'àudio no surt mai d'aquest ordinador. Per fer els resums, només s'envia el text de la reunió, amb la teva clau."
+          : "Un cop descarregats, funcionen sense connexió. L'àudio i el text de les reunions no surten mai d'aquest ordinador."
+      }</span></div>
+      <div class="analytics"><span class="box"></span><span>Envia estadístiques d'ús anònimes: quines funcions es fan servir, sense res del que es diu a les reunions.</span></div>
+    </div>
+    <footer><div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div>
+      <span class="btn ghost">Enrere</span><span class="btn primary ${ready ? "" : "off"}">Descarrega i comença</span></footer>
+  </div>`;
+}
+
+const recommended = [
+  ["Claude Sonnet 5.5", "Anthropic"],
+  ["Gemini 3.5 Flash", "Google"],
+  ["GPT-6.1 Terra", "OpenAI"],
+  ["Qwen4 Max", "Qwen"],
+];
+const all = {
+  Anthropic: ["Claude Fable 5.2", "Claude Opus 5.5", "Claude Sonnet 5.5", "Claude Haiku 5.5"],
+  Baidu: ["ERNIE-5.5-Flash-Preview|Gratis", "ERNIE-Light-DT-1.0"],
+  Google: ["Gemini 4 Hydrogen", "Gemini 4 Carbon", "Gemini 3.8 Flash"],
+};
+
+function opt(name, co, { sel, hl, q } = {}) {
+  const [n, tag] = name.split("|");
+  const shown = q ? n.replace(new RegExp(`(${q})`, "i"), "<mark>$1</mark>") : n;
+  return `<div class="opt ${hl ? "hl" : ""}" role="option" aria-selected="${!!sel}"><span class="tick">${sel ? icon("check") : ""}</span><span class="nm">${shown}</span>${tag ? `<span class="tag">${tag}</span>` : ""}${co ? `<span class="co">${co}</span>` : ""}</div>`;
+}
+
+function popover({ query, top, left, results }) {
+  let body;
+  if (results === "none")
+    body = `<div class="empty"><b>Cap model coincideix amb «${query}»</b>Prova amb el nom de l'empresa, com «google» o «mistral».</div>`;
+  else if (query)
+    body = `<div class="gh">Anthropic<small>3</small></div>
+      ${opt("Claude Sonnet 5.5", "", { sel: true, hl: true, q: query })}${opt("Claude Sonnet 5", "", { q: query })}${opt("Claude Sonnet 4.6", "", { q: query })}`;
+  else
+    body = `<div class="gh">Recomanats</div>
+      ${recommended.map(([n, c], i) => opt(n, c, { sel: i === 0, hl: i === 0 })).join("")}
+      ${Object.entries(all)
+        .map(([co, ms]) => `<div class="gh">${co}<small>${ms.length}</small></div>${ms.map((m) => opt(m)).join("")}`)
+        .join("")}`;
+  return `<div class="pop" role="dialog" aria-label="Tria el model" style="top:${top}px;left:${left}px">
+    <div class="search">${icon("search")}<span class="${query ? "" : "ph"}">${query || "Cerca entre 370 models"}</span>${query ? "" : "<kbd>↑↓ ↵</kbd>"}</div>
+    <div class="list" role="listbox">${body}</div>
+    <div class="foot"><span>${results === "none" ? "0 models" : query ? "3 de 370 models" : "370 models"}</span><span>Esc per tancar</span></div>
+  </div>`;
+}
+
+function settings({ query, results }) {
+  const tabs = [["gear", "General"], ["paint", "Aparença"], ["mic", "Àudio"], ["text", "Transcripció"], ["brain", "Intel·ligència", true]];
+  return `<div class="st">
+    <nav>${tabs.map(([ic, n, on]) => `<div class="${on ? "on" : ""}">${icon(ic)}${n}</div>`).join("")}</nav>
+    <main>
+      <div class="grp-t">Resum</div>
+      <div class="grp">
+        <div class="srow"><div class="l">Genera el resum en acabar la gravació<div class="h">Un model de llenguatge llegeix la transcripció i en fa el títol, el resum, les decisions i les tasques.</div></div><div class="toggle"></div></div>
+        <div class="srow"><div class="l">LLM<div class="h">Més ràpid i amb més qualitat, però la transcripció s'envia a OpenRouter.</div></div><span class="picker">OpenRouter${icon("chev")}</span></div>
+        <div class="ssub"><div class="l">Compte connectat a OpenRouter<div class="h">Clau desada al clauer, acaba en …7f3a</div></div><span class="sbtn danger" style="height:24px">Desconnecta</span></div>
+        <div class="srow"><div class="l">Model<div class="h">Els més grans escriuen millor i costen més per resum.</div></div><span class="picker open">Claude Sonnet 5.5 <em>Anthropic</em>${icon("chev")}</span></div>
+        <div class="srow"><div class="l">Idioma del resum</div><span class="picker">El de la interfície${icon("chev")}</span></div>
+      </div>
+      ${popover({ query, results, top: 266, left: 432 })}
+    </main>
+  </div>`;
+}
+
+document.getElementById("s1").innerHTML = onboarding({ where: "local" });
+document.getElementById("s2").innerHTML = onboarding({ where: "cloud", who: "gemini" });
+document.getElementById("s3").innerHTML = onboarding({ where: "cloud", who: "openrouter", connected: true, picker: true });
+{
+  // Opens above its button, left edges aligned (there's no room below, in a 540 pt window).
+  const win = document.querySelector("#s3 .ob");
+  win.insertAdjacentHTML("beforeend", popover({ top: 0, left: 0 }));
+  const pop = win.querySelector(".pop");
+  const place = () => {
+    const w = win.getBoundingClientRect(), b = document.getElementById("ob-picker").getBoundingClientRect();
+    pop.style.left = `${b.left - w.left}px`;
+    pop.style.top = `${b.top - w.top - pop.offsetHeight - 6}px`;
+  };
+  place();
+  addEventListener("resize", place);
+}
+document.getElementById("s4").innerHTML = settings({ query: "sonnet" });
+document.getElementById("s5").innerHTML = settings({ query: "lama 5", results: "none" });
+
+for (const b of document.querySelectorAll("[data-theme-set],[data-mode-set]")) {
+  b.addEventListener("click", () => {
+    const key = b.dataset.themeSet ? "theme" : "mode";
+    document.documentElement.dataset[key] = b.dataset.themeSet || b.dataset.modeSet;
+    for (const s of b.parentElement.children) s.setAttribute("aria-pressed", s === b);
+  });
+}
+</script>
+</body>
+</html>

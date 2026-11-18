@@ -22,12 +22,14 @@
     "linux": {
       "deb": {
         "depends": [
-          "libgomp1"
+          "libgomp1",
+          "libpulse0"
         ]
       },
       "rpm": {
         "depends": [
-          "libgomp"
+          "libgomp",
+          "pulseaudio-libs"
         ]
       }
     },

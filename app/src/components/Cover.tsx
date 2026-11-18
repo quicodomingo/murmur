@@ -151,6 +151,20 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
   const cover = renameInCover(meeting.cover!, namedSpeakers(meeting));
   const talk = talkTime(meeting);
   const order = toneOrder(meeting, speakerIds(meeting));
+  // The chart: the voices with a colour, and the grey fragments together at the end, "Altres (5)".
+  const minor = talk.filter((s) => !isYou(meeting, s.speaker) && !order.includes(s.speaker));
+  const bars =
+    minor.length > 1
+      ? [
+          ...talk.filter((s) => !minor.includes(s)),
+          {
+            speaker: -1,
+            name: t("talkOthers", { count: minor.length }),
+            seconds: minor.reduce((n, s) => n + s.seconds, 0),
+            share: minor.reduce((n, s) => n + s.share, 0),
+          },
+        ]
+      : talk;
   // Owners are names the model read in the transcript: match them to speakers for the colour.
   const ownerSpeaker = (owner: string) => {
     const lower = (s: string) => s.toLocaleLowerCase(locale());
@@ -210,16 +224,16 @@ function Ready({ meeting, blocked, onGenerate, onJump, onShowTranscript, onTasks
             <div
               className="flex h-2.5 gap-0.5 overflow-hidden rounded-full"
               role="img"
-              aria-label={talk
+              aria-label={bars
                 .map((s) => (s.share < 0.01 ? t("talkShareTiny", { name: s.name }) : t("talkShare", { name: s.name, share: Math.round(s.share * 100) })))
                 .join(", ")}
             >
-              {talk.map((s) => (
+              {bars.map((s) => (
                 <span key={s.speaker} className="h-full" style={{ width: `${s.share * 100}%`, background: speakerTone(s.speaker, isYou(meeting, s.speaker), order).solid }} />
               ))}
             </div>
             <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
-              {talk.map((s) => (
+              {bars.map((s) => (
                 <li key={s.speaker} className="flex items-center gap-2 text-[13px]">
                   <i className="block size-2 shrink-0 rounded-[2px]" style={{ background: speakerTone(s.speaker, isYou(meeting, s.speaker), order).solid }} aria-hidden />
                   <span className="min-w-0 flex-1 truncate font-medium">{s.name}</span>

@@ -23,11 +23,25 @@ const HUES = 4;
 /** In a call, the microphone's first voice is the user ("Tu"), always in the theme's `you` colour. */
 export const isYou = (m: Pick<Meeting, "sources">, speaker: number) => !!(m.sources?.mic && m.sources.system) && speaker === 0;
 
+/** Less of the talk than this, and a speaker is more a stray fragment of voice than a person: grey. */
+export const MINOR_SHARE = 0.02;
+
 /**
- * A meeting's speakers in colour order, without "Tu": the room's voices and then the call's, so
- * the two channels' numbering (0, 1… and 100, 101…) doesn't give two people the same colour.
+ * A meeting's speakers in colour order, without "Tu". While recording, as they come: the room's
+ * voices and then the call's, so a colour never changes under someone talking. Once it's over,
+ * who talked most first, so the four colours go to the four main voices; the ones with less than
+ * MINOR_SHARE of the talk are left out, and go grey (speakerTone).
  */
-export const toneOrder = (m: Pick<Meeting, "sources">, ids: number[]) => ids.filter((id) => !isYou(m, id));
+export function toneOrder(m: Pick<Meeting, "sources" | "status" | "utterances">, ids: number[]): number[] {
+  const others = ids.filter((id) => !isYou(m, id));
+  if (m.status === "recording") return others;
+  const seconds = new Map<number, number>();
+  for (const u of m.utterances) seconds.set(u.speaker, (seconds.get(u.speaker) ?? 0) + Math.max(0, u.end - u.start));
+  const all = [...seconds.values()].reduce((a, b) => a + b, 0);
+  if (!all) return others;
+  const of = (id: number) => seconds.get(id) ?? 0;
+  return others.filter((id) => of(id) / all >= MINOR_SHARE).sort((a, b) => of(b) - of(a) || a - b);
+}
 
 /** Which of the theme's speaker colours (1 to 4) a speaker gets, by its place in `order`. */
 export function speakerHue(speaker: number, order?: number[]): number {
@@ -35,9 +49,11 @@ export function speakerHue(speaker: number, order?: number[]): number {
   return ((slot >= 0 ? slot : speaker >= SYSTEM_SPEAKER_BASE ? speaker - SYSTEM_SPEAKER_BASE : speaker) % HUES) + 1;
 }
 
-/** Solid colour (charts), tint (tag background) and text colour of a speaker, by its place in `order`. */
+/** Solid colour (charts), tint (tag background) and text colour of a speaker, by its place in
+ * `order`; grey if `order` (from toneOrder) leaves it out. */
 export function speakerTone(speaker: number, you = false, order?: number[]) {
   if (you) return { solid: "var(--mm-you)", tint: "var(--mm-you)", text: "var(--mm-on-you)" };
+  if (order && !order.includes(speaker)) return { solid: "var(--mm-text-tertiary)", tint: "var(--mm-fill-subtle)", text: "var(--mm-text-secondary)" };
   const n = speakerHue(speaker, order);
   return { solid: `var(--mm-speaker-${n})`, tint: `var(--mm-speaker-${n}-tint)`, text: `var(--mm-speaker-${n}-text)` };
 }
@@ -66,17 +82,18 @@ type Props = {
   onMerge: (to: number, version: number) => void;
   /** Guests of the calendar event: picking one names this speaker after them. */
   guests?: string[] | null;
+  /** The meeting's colour order (toneOrder). */
+  order: number[];
 };
 
 /**
  * Speaker flag that opens a native-style menu to reassign the utterance, move all of this
  * speaker's lines to another one, or rename the speaker.
  */
-export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, onMerge, guests: invited }: Props) {
+export function SpeakerFlag({ speaker, speakers, version, onReassign, onRename, onMerge, guests: invited, order }: Props) {
   // Meetings saved before calendars had no guests (null from the database).
   const { t } = useTranslation("speakers");
   const guests = invited ?? [];
-  const order = speakers.filter((s) => !s.you).map((s) => s.id);
   const name = speakers.find((s) => s.id === speaker)?.name ?? t("defaultName", { n: speaker + 1 });
   // The numbering version is captured when renaming starts: the final pass may renumber meanwhile.
   const [renaming, setRenaming] = useState<{ id: number; version: number } | null>(null);

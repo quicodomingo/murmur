@@ -6,6 +6,34 @@
   "dontShow": "Don't show this again",
   "ok": "Got It",
   "releases": {
+    "0.17.0": [
+      {
+        "title": "You choose what happens at the end",
+        "text": "When a meeting ends or you open a file, you choose the steps: speakers, Whisper, punctuation and summary. Murmur remembers your choice, and whatever you leave for later is in the meeting's menu."
+      },
+      {
+        "title": "The calendar, on Windows and Linux too",
+        "text": "Add the iCal link of a Google, Outlook or iCloud calendar and Murmur will remind you before each meeting, with its title and guests. On the Mac, it adds to the system's calendars.",
+        "link": "calendar",
+        "linkLabel": "Settings › Calendar"
+      },
+      {
+        "title": "System audio on Linux too",
+        "text": "Murmur can now record what your computer plays, like the voices on a call, with PulseAudio or PipeWire, and keeps them apart from yours.",
+        "link": "audio",
+        "linkLabel": "Settings › Audio"
+      },
+      {
+        "title": "Summaries with Gemini or OpenRouter too",
+        "text": "Besides Claude and OpenAI, you can now have Gemini or any of OpenRouter's models write the summary, with your own key. Pick the model with a search box.",
+        "link": "intelligence",
+        "linkLabel": "Settings › Intelligence"
+      },
+      {
+        "title": "No half-recorded meetings",
+        "text": "While recording, your computer no longer goes to sleep. And if the microphone stops sending sound (a device change, headphones disconnecting), Murmur tells you right away and opens it again."
+      }
+    ],
     "0.15.0": [
       {
         "title": "The graphics card, on Windows and Linux too",

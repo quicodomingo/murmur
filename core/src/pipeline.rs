@@ -399,7 +399,7 @@ impl<'m> Pipeline<'m> {
                             }
                         });
                         if echoed {
-                            log::info!("dropped mic echo: {text}");
+                            log::info!("dropped a mic sentence echoing the call ({} words)", text.split_whitespace().count());
                             continue;
                         }
                     }

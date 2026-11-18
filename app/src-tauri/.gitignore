@@ -9,3 +9,7 @@
 # Copied by build.rs on Windows (the sherpa-onnx DLLs for the installer)
 /windows-dlls/
 /linux-libs/
+
+# Google Calendar's OAuth client (the JSON downloaded from Google Cloud): build.rs bakes it into
+# the app. Not in the repository; CI takes it from the MURMUR_GOOGLE_CLIENT_* secrets.
+/google-oauth.json

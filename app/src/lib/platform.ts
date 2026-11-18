@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { GOOGLE_CALENDAR } from "./features";
 
 /**
  * The system Murmur runs on. The webview's user agent says it at once (WKWebView on macOS,
@@ -30,7 +31,12 @@ export interface Capabilities {
   os: Os;
   systemAudio: boolean;
   screenshots: boolean;
+  /** Calendars at all: iCal links everywhere, and the system's on the Mac. */
   calendar: boolean;
+  /** The system's own calendar (macOS, EventKit). */
+  systemCalendar: boolean;
+  /** Signing in with Google Calendar (builds with the OAuth client). */
+  googleCalendar: boolean;
   meetingDetection: boolean;
   /** The extension of the audio to listen to or export: "m4a" on the Mac, "ogg" elsewhere. */
   audioExtension: string;
@@ -39,9 +45,11 @@ export interface Capabilities {
 /** Until the backend answers (or in a browser), what this OS can do in this version. */
 export let capabilities: Capabilities = {
   os: OS,
-  systemAudio: OS !== "linux",
+  systemAudio: true,
   screenshots: isMac,
-  calendar: isMac,
+  calendar: true,
+  systemCalendar: isMac,
+  googleCalendar: false,
   meetingDetection: isMac,
   audioExtension: isMac ? "m4a" : "ogg",
 };
@@ -50,7 +58,9 @@ export let capabilities: Capabilities = {
 export async function loadCapabilities() {
   if (!("__TAURI_INTERNALS__" in window)) return;
   try {
-    capabilities = await invoke<Capabilities>("platform");
+    // An older backend has no systemCalendar: it was the Mac's calendar or nothing.
+    const c = await invoke<Capabilities>("platform");
+    capabilities = { ...c, systemCalendar: c.systemCalendar ?? c.calendar, googleCalendar: GOOGLE_CALENDAR && (c.googleCalendar ?? false) };
   } catch {
     // An older backend: keep the defaults.
   }

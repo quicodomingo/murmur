@@ -28,8 +28,13 @@ type Phase = "checking" | "uptodate" | "updating" | "restarting" | "done" | "fai
  * version of the app and of the installed models and installs everything pending in one go:
  * models first (the longest), then the app, which restarts. Opened by hand, it also says when
  * everything is up to date; on its own it only shows up when there's something to install.
+ *
+ * `idle`: nothing would be lost by restarting (no recording, no final pass, no "Què en faig ara?",
+ * no file being opened). `hidden`: while recording, it waits out of sight. It stays mounted: what it
+ * started has to see `idle` change. On its own, the check waits for it; opened by hand, it checks and
+ * downloads, but the app is only installed and restarted once Murmur is idle.
  */
-export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: boolean; onClose: () => void }) {
+export function UpdatesDialog({ run, manual, idle, hidden, onClose }: { run: number; manual: boolean; idle: boolean; hidden: boolean; onClose: () => void }) {
   const { t } = useTranslation("updates");
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("checking");
@@ -37,12 +42,20 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
   const [appProgress, setAppProgress] = useState<number | null>(null);
   const models = useModels();
   const cancelled = useRef(false);
+  const idleRef = useRef(idle);
+  idleRef.current = idle;
+  /** The app is downloaded and waits for Murmur to be idle to install and restart. */
+  const [waiting, setWaiting] = useState(false);
+  /** The last `run` started: one waiting for `idle` starts when it comes. */
+  const started = useRef(0);
 
   const patch = (key: string, change: Partial<Item>) => setItems((list) => list.map((i) => (i.key === key ? { ...i, ...change } : i)));
 
   useEffect(() => {
-    if (!run || !backend.isTauri()) return;
+    if (!run || started.current === run || !backend.isTauri() || (!manual && !idle)) return;
+    started.current = run;
     cancelled.current = false;
+    setWaiting(false);
     setPhase("checking");
     setItems([]);
     setAppProgress(null);
@@ -81,6 +94,9 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
       if (app && !cancelled.current) {
         const ok = await installApp(app);
         if (ok) {
+          // Restarting (on Windows, already installing) ends a recording or a final pass: wait.
+          await untilIdle();
+          if (cancelled.current) return;
           setPhase("restarting");
           await relaunch();
           return;
@@ -90,18 +106,28 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
       setPhase(failed ? "failed" : "done");
     })();
 
+    async function untilIdle() {
+      if (idleRef.current) return;
+      setWaiting(true);
+      while (!idleRef.current) await new Promise((r) => setTimeout(r, 1000));
+      setWaiting(false);
+    }
+
     async function installApp(app: Update): Promise<boolean> {
       patch("app", { state: "active" });
       let total = 0;
       let got = 0;
       try {
-        await app.downloadAndInstall((e) => {
+        await app.download((e) => {
           if (e.event === "Started") total = e.data.contentLength ?? 0;
           if (e.event === "Progress") {
             got += e.data.chunkLength;
             if (total) setAppProgress(got / total);
           }
         });
+        await untilIdle();
+        if (cancelled.current) return false;
+        await app.install();
         patch("app", { state: "done" });
         return true;
       } catch (e) {
@@ -109,9 +135,9 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
         return false;
       }
     }
-    // A new check every time `run` changes.
+    // A new check every time `run` changes (once Murmur is idle, if it came on its own).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run]);
+  }, [run, idle]);
 
   const close = () => {
     if (phase === "updating") {
@@ -135,7 +161,7 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && phase !== "restarting" && close()}>
+    <Dialog open={open && !hidden} onOpenChange={(o) => !o && phase !== "restarting" && close()}>
       <DialogContent className="sm:max-w-[440px]" showCloseButton={false}>
         <div className="flex items-center gap-3">
           <LogoIcon size={36} />
@@ -157,7 +183,9 @@ export function UpdatesDialog({ run, manual, onClose }: { run: number; manual: b
               {phase === "uptodate"
                 ? t("upToDateHint")
                 : phase === "updating"
-                  ? t("updatingHint")
+                  ? waiting
+                    ? t("waitingHint")
+                    : t("updatingHint")
                   : phase === "failed"
                     ? t("failedHint")
                     : " "}

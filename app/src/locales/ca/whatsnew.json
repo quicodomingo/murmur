@@ -6,6 +6,34 @@
   "dontShow": "No ho tornis a mostrar",
   "ok": "Entesos",
   "releases": {
+    "0.17.0": [
+      {
+        "title": "Tu tries què es fa en acabar",
+        "text": "En acabar una reunió o obrir un fitxer, tries quins passos vols: parlants, Whisper, puntuació i resum. Murmur recorda l'elecció, i el que deixis per a més tard ho pots fer des del menú de la reunió."
+      },
+      {
+        "title": "El calendari, també a Windows i Linux",
+        "text": "Afegeix l'enllaç iCal d'un calendari de Google, Outlook o iCloud i Murmur t'avisarà abans de cada reunió, amb el títol i els convidats. Al Mac, s'hi sumen els calendaris del sistema.",
+        "link": "calendar",
+        "linkLabel": "Configuració › Calendari"
+      },
+      {
+        "title": "A Linux, també l'àudio del sistema",
+        "text": "Murmur ja pot gravar el que sona a l'ordinador, com les veus d'una trucada, amb PulseAudio o PipeWire, i les separa de la teva.",
+        "link": "audio",
+        "linkLabel": "Configuració › Àudio"
+      },
+      {
+        "title": "El resum, també amb Gemini o OpenRouter",
+        "text": "A més de Claude i OpenAI, ara pots fer escriure el resum a Gemini o a qualsevol dels models d'OpenRouter, amb la teva clau. El model es tria amb un buscador.",
+        "link": "intelligence",
+        "linkLabel": "Configuració › Intel·ligència"
+      },
+      {
+        "title": "Cap reunió a mitges",
+        "text": "Mentre grava, l'ordinador ja no s'adorm. I si el micròfon deixa d'enviar so (un canvi de dispositiu, uns auriculars que es desconnecten), Murmur t'ho diu de seguida i el torna a obrir."
+      }
+    ],
     "0.15.0": [
       {
         "title": "La targeta gràfica, també a Windows i Linux",

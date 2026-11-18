@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ca" data-theme="acid" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Què fa en acabar</title>
+<link rel="stylesheet" href="../../app/src/murmur-theme.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0 0 60px; background: var(--mm-fill-subtle); color: var(--mm-text-primary); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  [data-mode="dark"] body { background: var(--mm-sidebar); }
+  .i { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  .top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: var(--mm-background); border-bottom: 1px solid var(--mm-separator); }
+  .top h1 { margin: 0; font-size: 14px; flex: 1; }
+  .switch { display: flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; }
+  .switch button { all: unset; cursor: pointer; padding: 2px 12px; border-radius: 5px; color: var(--mm-text-secondary); }
+  .switch button[aria-pressed="true"] { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+  .lead, h2, .cap { width: 1040px; margin-left: auto; margin-right: auto; }
+  .lead { margin-top: 28px; color: var(--mm-text-secondary); }
+  .lead b, .cap b { color: var(--mm-text-primary); }
+  h2 { margin-top: 40px; margin-bottom: 10px; font-size: 15px; }
+  .cap { margin-top: 12px; color: var(--mm-text-secondary); }
+  .stage { width: 1040px; margin: 0 auto; }
+
+  /* Main window */
+  .window { width: 1040px; height: 600px; background: var(--mm-background); border-radius: 12px; overflow: hidden; display: flex; box-shadow: 0 20px 50px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); position: relative; }
+  nav { width: 230px; flex: none; background: var(--mm-sidebar); border-right: 1px solid var(--mm-separator); padding: 52px 8px 0; }
+  .new { margin: 0 4px 10px; height: 32px; border-radius: 8px; background: var(--mm-new-meeting); color: var(--mm-on-new-meeting); display: flex; align-items: center; gap: 8px; padding: 0 10px; font-weight: 600; }
+  nav h3 { margin: 10px 0 4px; padding: 0 8px; font-size: 11px; font-weight: 600; color: var(--mm-text-secondary); }
+  .row { position: relative; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border-radius: 6px; }
+  .row .t { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .row small { font-size: 11px; color: var(--mm-text-secondary); }
+  .row.sel { background: var(--mm-sidebar-selection); font-weight: 500; }
+  .row.sel::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--mm-sidebar-selection-bar); }
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .toolbar { height: 52px; flex: none; border-bottom: 1px solid var(--mm-separator); display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+  .toolbar b { font-size: 14px; }
+  .seg { display: flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; margin-left: 8px; }
+  .seg span { padding: 2px 12px; border-radius: 5px; color: var(--mm-text-secondary); }
+  .seg span.on { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+  .sp { flex: 1; }
+  .muted { color: var(--mm-text-secondary); }
+  article { max-width: 640px; width: 100%; margin: 0 auto; padding: 26px 32px; }
+  article h1 { margin: 0; font-size: 26px; letter-spacing: -.015em; }
+  .meta { margin-top: 4px; color: var(--mm-text-secondary); }
+  .utt { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; font-size: 15px; line-height: 1.6; color: var(--mm-text-secondary); }
+  .flag { font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 5px; margin-right: 6px; }
+  .s1 { background: var(--mm-speaker-1-tint); color: var(--mm-speaker-1-text); }
+  .s2 { background: var(--mm-speaker-2-tint); color: var(--mm-speaker-2-text); }
+  .you { background: var(--mm-you); color: var(--mm-on-you); }
+
+  /* The card: what happens now */
+  .card { margin-top: 18px; border-radius: 12px; background: var(--mm-background); box-shadow: 0 0 0 1px var(--mm-separator), 0 8px 24px -12px rgb(0 0 0 / .18); overflow: hidden; }
+  .card .head { display: flex; align-items: baseline; gap: 8px; padding: 14px 16px 6px; }
+  .card .head b { font-size: 14px; }
+  .card .head span { font-size: 12px; color: var(--mm-text-secondary); }
+  .steps { padding: 2px 8px 6px; }
+  .step { display: flex; align-items: flex-start; gap: 10px; padding: 7px 8px; border-radius: 8px; }
+  .step { cursor: default; user-select: none; }
+  .step:not(.off):not(.isdone):hover { background: var(--mm-fill-subtle); }
+  .box { width: 16px; height: 16px; border-radius: 4px; flex: none; margin-top: 1px; display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px var(--mm-separator); }
+  .box.on { background: var(--mm-text-primary); color: var(--mm-background); box-shadow: none; }
+  .box .i { width: 11px; height: 11px; stroke-width: 3.2; }
+  .step .what { flex: 1; min-width: 0; }
+  .step .name { font-weight: 500; }
+  .step .why { font-size: 12px; color: var(--mm-text-secondary); }
+  .step .time { font-size: 12px; color: var(--mm-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .step.off { opacity: .5; }
+  .step .get { font-size: 12px; color: var(--mm-link); white-space: nowrap; }
+  .done { width: 16px; height: 16px; flex: none; margin-top: 1px; display: grid; place-items: center; color: var(--mm-text-tertiary); }
+  .done .i { width: 13px; height: 13px; stroke-width: 2.6; }
+  .step.isdone .name, .step.isdone .why { color: var(--mm-text-tertiary); }
+  .menu { position: absolute; top: 46px; right: 14px; width: 260px; padding: 5px; border-radius: 9px; background: var(--mm-background); box-shadow: 0 10px 30px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); z-index: 3; }
+  .menu div { height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 5px; }
+  .menu div.hl { background: var(--mm-sidebar-selection); }
+  .menu div small { margin-left: auto; color: var(--mm-text-tertiary); }
+  .menu hr { border: 0; border-top: 1px solid var(--mm-separator); margin: 4px 6px; }
+  .warn { margin: 0 16px 8px; padding: 7px 10px; border-radius: 7px; background: var(--mm-fill-subtle); font-size: 12px; color: var(--mm-text-secondary); }
+  .card .foot { display: flex; align-items: center; gap: 10px; padding: 10px 16px 12px; border-top: 1px solid var(--mm-separator); }
+  .card .foot .note { flex: 1; font-size: 12px; color: var(--mm-text-secondary); }
+  .btn { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 7px; font-size: 13px; }
+  .btn.ghost { color: var(--mm-text-secondary); }
+  .btn.primary { background: var(--mm-accent); color: var(--mm-on-accent); font-weight: 600; }
+  .count { height: 3px; background: var(--mm-separator); }
+  .count i { display: block; height: 100%; width: 62%; background: var(--mm-text-tertiary); }
+
+  /* Settings */
+  .st { width: 820px; height: 520px; background: var(--mm-settings-background); border-radius: 12px; overflow: hidden; display: flex; box-shadow: 0 20px 50px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); margin: 0 auto; }
+  .st nav { width: 184px; padding: 40px 8px 8px; }
+  .st nav div { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 6px; color: var(--mm-text-secondary); }
+  .st nav div.on { background: var(--mm-sidebar-selection); color: var(--mm-text-primary); font-weight: 500; }
+  .st main { padding: 40px 24px 24px; }
+  .grp-t { padding: 0 4px 6px; font-size: 12px; font-weight: 600; color: var(--mm-text-secondary); display: flex; align-items: center; }
+  .grp { border: 1px solid var(--mm-separator); border-radius: 10px; background: var(--mm-background); }
+  .srow { display: flex; align-items: center; gap: 16px; padding: 9px 12px; }
+  .srow + .srow { border-top: 1px solid var(--mm-separator); }
+  .srow .l { flex: 1; }
+  .srow .h { font-size: 11px; color: var(--mm-text-secondary); margin-top: 1px; }
+  .toggle { width: 30px; height: 18px; border-radius: 9px; background: var(--mm-toggle-on); position: relative; flex: none; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--mm-toggle-knob); }
+  .toggle.offt { background: var(--mm-toggle-off); }
+  .toggle.offt::after { right: auto; left: 2px; }
+  table.matrix { width: 100%; border-collapse: collapse; }
+  .matrix th { font-size: 11px; font-weight: 600; color: var(--mm-text-secondary); text-align: center; padding: 8px 6px 4px; width: 92px; }
+  .matrix th:first-child { text-align: left; width: auto; padding-left: 12px; }
+  .matrix td { padding: 8px 6px; border-top: 1px solid var(--mm-separator); text-align: center; }
+  .matrix td:first-child { text-align: left; padding-left: 12px; }
+  .matrix td .box { margin: 0 auto; }
+  .matrix .h { font-size: 11px; color: var(--mm-text-secondary); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></symbol>
+</svg>
+
+<div class="top">
+  <h1>Què fa Murmur en acabar · cada vegada</h1>
+  <div class="switch" role="group" aria-label="Mode">
+    <button data-mode-set="light" aria-pressed="true">Clar</button>
+    <button data-mode-set="dark" aria-pressed="false">Fosc</button>
+  </div>
+</div>
+
+<p class="lead">Ara, el que es fa en acabar (parlants, Whisper, puntuació i resum) es tria a Configuració i val per a tot: també per a una nota de veu, que no necessita resum. Proposta: <b>en acabar, Murmur diu què farà i ho pots canviar</b> abans que comenci, sense que t'aturi. Recorda l'última tria <b>per separat</b> per a les gravacions i per als fitxers, perquè no són la mateixa feina.</p>
+
+<h2>1 · Acabes de gravar una reunió</h2>
+<div class="stage" id="s1"></div>
+<p class="cap">La targeta surt a dalt de la reunió en aturar. Ja ve marcada com l'últim cop que vas gravar. Cada pas diu per a què serveix i quant trigarà <b>en aquesta reunió</b> (34 min). Si no hi toques res, comença sola en 10 s (la barra de sota); «Comença ara» no espera, i «Deixa-ho així» no en fa cap. Les caselles són caselles perquè els passos es poden combinar com vulguis. Aturat des de l'indicador amb Murmur al darrere, no pregunta: fa l'última tria, i l'avís «Gravació aturada» ho diu.</p>
+
+<h2>2 · Obres una nota de veu</h2>
+<div class="stage" id="s2"></div>
+<p class="cap">Amb un fitxer, la tria és la dels fitxers: l'últim cop només vas voler el text net, sense resum. Amb «Català + castellà», Whisper encara no hi pot ajudar i surt apagat amb el motiu. Si el model d'un pas no és a l'ordinador, el pas diu quant ocupa i «Descarrega»: marcar-lo el descarrega i el fa quan és a punt.</p>
+
+<h2>3 · Més tard: el que no s'ha fet</h2>
+<div class="stage" id="s4"></div>
+<p class="cap">Al menú «···» de la reunió, «Acaba de processar…» torna a obrir la mateixa targeta, sense compte enrere: el que ja s'ha fet surt amb ✓ i «Fet», i el que falta, marcat. Els passos fets es poden tornar a fer des de les opcions que ja hi ha («Torna a transcriure en…», «Torna a generar» el resum). Sense «Desa l'àudio», Whisper i els parlants només es poden fer en acabar (després ja no hi ha l'àudio): la targeta ho avisa en aquell moment, i al menú no s'ofereixen. Una reunió amb passos pendents porta un punt discret al costat del títol a la llista, i a dalt de la reunió una línia «Sense resum · Fes-lo».</p>
+
+<h2>4 · Configuració › Transcripció › En acabar</h2>
+<div class="stage" id="s3"></div>
+<p class="cap">Els interruptors d'ara («Verificació de parlants», «Torna a escoltar amb Whisper», «Puntuació i majúscules») i «Genera el resum» d'Intel·ligència passen a ser això: el que es farà, per a gravacions i per a fitxers, i que la targeta actualitza cada cop. «Pregunta-m'ho en acabar» apagat vol dir que es fa directament, sense targeta. Les reunions del mòbil fan el mateix que les gravacions. Un pas que no s'ha fet es pot fer després des del menú de la reunió («Torna a escoltar amb Whisper», «Fes el resum»…), com ara.</p>
+
+<script>
+const icon = (id) => `<svg class="i"><use href="#${id}"/></svg>`;
+const box = (on) => `<span class="box ${on ? "on" : ""}" role="checkbox" aria-checked="${on}">${on ? icon("check") : ""}</span>`;
+
+function step({ on, name, why, time = "", off, get, done }) {
+  if (done) return `<div class="step isdone"><span class="done">${icon("check")}</span><div class="what"><div class="name">${name}</div><div class="why">${why}</div></div><span class="time">Fet</span></div>`;
+  // The whole row is the checkbox's label: a click anywhere on it ticks or unticks it.
+  return `<label class="step ${off ? "off" : ""}">${box(on && !off)}<div class="what"><div class="name">${name}</div><div class="why">${why}</div></div>${
+    get ? `<span class="get">${get}</span>` : `<span class="time">${time}</span>`}</label>`;
+}
+
+function card({ title, sub, steps, note, warn, later }) {
+  return `<div class="card" role="group" aria-label="${title}">
+    <div class="head"><b>${title}</b></div>
+    <div class="steps">${steps.map(step).join("")}</div>
+    ${warn ? `<div class="warn">${warn}</div>` : ""}
+    <div class="foot"><span class="note">${note}</span><span class="btn ghost">${later ? "Cancel·la" : "Deixa-ho així"}</span><span class="btn primary">${later ? "Fes-ho" : "Comença ara"}</span></div>
+    ${later ? "" : `<div class="count" aria-hidden="true"><i></i></div>`}
+  </div>`;
+}
+
+function window_({ title, meta, cardHtml, rows, utt }) {
+  return `<div class="window">
+    <nav><div class="new">+ Nova reunió</div><h3>Avui</h3>${rows}</nav>
+    <main><div class="toolbar"><b>${title}</b><div class="seg"><span>Resum</span><span class="on">Transcripció</span><span>Notes</span></div><div class="sp"></div><span class="muted">${meta}</span></div>
+      <article><h1>${title}</h1><div class="meta">${meta}</div>${cardHtml}<div class="utt">${utt}</div></article>
+    </main>
+  </div>`;
+}
+
+document.getElementById("s1").innerHTML = window_({
+  title: "Revisió del llançament",
+  meta: "Avui, 10:00 · 34 min",
+  rows: `<div class="row sel"><span class="t">Revisió del llançament</span><small>34 min</small></div><div class="row"><span class="t">Seguiment setmanal</span><small>25 min</small></div>`,
+  cardHtml: card({
+    title: "Què en faig ara?",
+    sub: "com l'últim cop que vas gravar",
+    steps: [
+      { on: true, name: "Revisa qui parla", why: "Torna a escoltar les veus i corregeix qui ha dit cada frase.", time: "≈ 1 min" },
+      { on: true, name: "Torna a escoltar amb Whisper", why: "Reescriu el text, més precís, amb el Whisper.", time: "≈ 6 min" },
+      { on: true, name: "Puntuació i majúscules", why: "Hi posa els punts, les comes i les majúscules.", time: "≈ 20 s" },
+      { on: true, name: "Fes el resum", why: "Títol, resum, decisions i tasques, amb Gemma en aquest ordinador.", time: "≈ 3 min" },
+    ],
+    note: "Començarà en 7 s. Ho recordarà per a la propera gravació.",
+    warn: "L'àudio no es desa: el que no facis ara, de Whisper i dels parlants, ja no es podrà fer després.",
+  }),
+  utt: `<div><span class="flag you">Tu</span>Bon dia a tothom. Avui la idea és tancar el calendari del llançament…</div><div><span class="flag s1">Sala 1</span>Perfecte. Jo he portat les captures de l'última versió.</div>`,
+});
+
+window.cardFn = card;
+document.getElementById("s2").innerHTML = window_({
+  title: "Nota de veu 14 nov.",
+  meta: "Avui, 12:40 · 3 min · Català + castellà",
+  rows: `<div class="row sel">${icon("file")}<span class="t">Nota de veu 14 nov.</span><small>3 min</small></div><div class="row"><span class="t">Revisió del llançament</span><small>34 min</small></div>`,
+  cardHtml: card({
+    title: "Què en faig ara?",
+    sub: "com l'últim fitxer que vas obrir",
+    steps: [
+      { on: false, name: "Revisa qui parla", why: "Torna a escoltar les veus i corregeix qui ha dit cada frase.", time: "≈ 10 s" },
+      { on: false, off: true, name: "Torna a escoltar amb Whisper", why: "Amb català i castellà barrejats, encara no: passaria una llengua a l'altra.", time: "" },
+      { on: true, name: "Puntuació i majúscules", why: "Hi posa els punts, les comes i les majúscules.", time: "" , get: "128 MB · Descarrega" },
+      { on: false, name: "Fes el resum", why: "Títol, resum, decisions i tasques, amb Claude Sonnet 5.5 (al núvol, amb la teva clau).", time: "≈ 15 s" },
+    ],
+    note: "Començarà en 7 s. Ho recordarà per al proper fitxer.",
+  }),
+  utt: `<div><span class="flag s2">Sala 1</span>vale doncs recordar-me de trucar al proveïdor demà al matí i després…</div>`,
+});
+
+document.getElementById("s4").innerHTML = window_({
+  title: "Nota de veu 14 nov.",
+  meta: "Avui, 12:40 · 3 min · Català + castellà",
+  rows: `<div class="row sel">${icon("file")}<span class="t">Nota de veu 14 nov.</span><small>3 min</small></div><div class="row"><span class="t">Revisió del llançament</span><small>34 min</small></div>`,
+  cardHtml: card({
+    title: "Acaba de processar",
+    steps: [
+      { on: true, name: "Revisa qui parla", why: "Torna a escoltar les veus i corregeix qui ha dit cada frase.", time: "≈ 10 s" },
+      { off: true, name: "Torna a escoltar amb Whisper", why: "Amb català i castellà barrejats, encara no: passaria una llengua a l'altra." },
+      { done: true, name: "Puntuació i majúscules", why: "Hi posa els punts, les comes i les majúscules." },
+      { on: true, name: "Fes el resum", why: "Títol, resum, decisions i tasques, amb Claude Sonnet 5.5 (al núvol, amb la teva clau).", time: "≈ 15 s" },
+    ],
+    note: "",
+    later: true,
+  }),
+  utt: `<div><span class="flag s2">Sala 1</span>Vale, doncs recordar-me de trucar al proveïdor demà al matí i després…</div>`,
+}).replace('<div class="sp"></div>', `<div class="sp"></div><div class="menu"><div>Copia en Markdown</div><div>Exporta…</div><hr><div class="hl">Acaba de processar…</div><div>Torna a transcriure en<small>›</small></div><hr><div>Esborra la reunió</div></div>`);
+
+const row = (name, why, rec, file, off) =>
+  `<tr><td><div>${name}</div><div class="h">${why}</div></td><td>${box(rec)}</td><td>${box(file)}</td></tr>`;
+document.getElementById("s3").innerHTML = `<div class="st">
+  <nav><div>General</div><div>Aparença</div><div>Àudio</div><div class="on">Transcripció</div><div>Intel·ligència</div></nav>
+  <main>
+    <div class="grp-t">En acabar</div>
+    <div class="grp">
+      <div class="srow"><div class="l">Pregunta-m'ho en acabar<div class="h">Una targeta a dalt de la reunió diu què farà, i ho pots canviar. Si no hi toques res, comença sola.</div></div><span class="toggle"></span></div>
+      <table class="matrix">
+        <tr><th>Què fa</th><th>Gravacions</th><th>Fitxers</th></tr>
+        ${row("Revisa qui parla", "Verificació de parlants", true, false)}
+        ${row("Torna a escoltar amb Whisper", "Whisper català del BSC · turbo per al castellà i l'anglès", true, true)}
+        ${row("Puntuació i majúscules", "Model de Softcatalà", true, true)}
+        ${row("Fes el resum", "Amb el model triat a Intel·ligència", true, false)}
+      </table>
+    </div>
+  </main>
+</div>`;
+
+document.addEventListener("click", (e) => {
+  const row = e.target.closest("label.step");
+  if (!row || row.classList.contains("off")) return;
+  const b = row.querySelector(".box");
+  const on = b.getAttribute("aria-checked") !== "true";
+  b.setAttribute("aria-checked", on);
+  b.classList.toggle("on", on);
+  b.innerHTML = on ? icon("check") : "";
+});
+
+for (const b of document.querySelectorAll("[data-mode-set]")) {
+  b.addEventListener("click", () => {
+    document.documentElement.dataset.mode = b.dataset.modeSet;
+    for (const s of b.parentElement.children) s.setAttribute("aria-pressed", s === b);
+  });
+}
+</script>
+</body>
+</html>

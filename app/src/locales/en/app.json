@@ -107,6 +107,8 @@
   "moreActions": "More actions",
   "whisperCaOffer": "There's a new Whisper for Catalan",
   "whisperCaOfferText": "The Barcelona Supercomputing Center's: in our tests, better than the current one for Central, Valencian and Balearic Catalan. It takes {{size}}.",
+  "whisperOffer": "Let Whisper go over your meetings",
+  "whisperOfferText": "When a meeting ends, Whisper listens to it again and rewrites the text, with punctuation and capitals. All on this computer. It takes {{size}}.",
   "introNamed": "“{{speaker}}” is {{name}}",
   "introHint": "If there's more than one of you in the room, each can say “Murmur, I'm…” and Murmur will add the name.",
   "undo": "Undo",
@@ -125,5 +127,58 @@
   "notionSaved": "Saved to Notion",
   "openInNotion": "Open in Notion",
   "notionSaving": "Saving to Notion…",
-  "notionConnectFirst": "Connect Notion in Settings › Export."
+  "notionConnectFirst": "Connect Notion in Settings › Export.",
+  "micLost": "The microphone isn't sending sound",
+  "micLostDetail": "Murmur is opening it again. If it doesn't come back, check that it's connected or choose another in Settings › Audio.",
+  "micBack": "The microphone is working again",
+  "after": {
+    "title": "What should I do now?",
+    "laterTitle": "Finish Processing",
+    "menu": "Finish Processing…",
+    "pendingLabel": "Has steps left",
+    "name": {
+      "speakers": "Check who speaks",
+      "text": "Listen again with Whisper",
+      "punctuation": "Punctuation and capitals",
+      "cover": "Write the summary"
+    },
+    "what": {
+      "speakers": "Listens to the voices again and fixes who said each sentence.",
+      "text": "Rewrites the text, more accurately, with Whisper.",
+      "punctuation": "Adds full stops, commas and capitals.",
+      "cover": "Title, summary, decisions and tasks, with {{engine}}."
+    },
+    "why": {
+      "speakers": {
+        "model": "There isn't enough audio to check it.",
+        "audio": "It needs the meeting's audio, which wasn't saved."
+      },
+      "text": {
+        "mixed": "Not yet with Catalan and Spanish mixed: it would turn one language into the other.",
+        "model": "Download Whisper in Settings › Transcription first.",
+        "audio": "It needs the meeting's audio, which wasn't saved."
+      },
+      "punctuation": {
+        "model": "Catalan only, and its model needs downloading in Settings › Transcription."
+      },
+      "cover": {
+        "engine": "It needs the local model or a key, in Settings › Intelligence."
+      }
+    },
+    "engineLocal": "Gemma, on this computer",
+    "seconds_one": "≈ {{count}} s",
+    "seconds_other": "≈ {{count}} s",
+    "minutes_one": "≈ {{count}} min",
+    "minutes_other": "≈ {{count}} min",
+    "done": "Done",
+    "noAudio": "The audio isn't saved: whatever you don't do now with Whisper and the speakers can't be done later.",
+    "countdown_one": "Starting in {{count}} s.",
+    "countdown_other": "Starting in {{count}} s.",
+    "rememberRecording": "It'll remember this for the next recording.",
+    "rememberFile": "It'll remember this for the next file.",
+    "skip": "Leave It",
+    "startNow": "Start Now",
+    "doIt": "Do It",
+    "makeSummary": "Write the Summary"
+  }
 }

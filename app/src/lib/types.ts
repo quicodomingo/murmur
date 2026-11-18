@@ -60,6 +60,8 @@ export type Meeting = {
   parts?: MeetingPart[];
   /** The phone it was recorded on, if it came from one (mobile.rs). */
   device?: MeetingDevice | null;
+  /** Steps left undone when it ended that can still be done ("Acaba de processar…"). */
+  pending?: PostStage[];
 };
 
 /** A paired phone, as a meeting remembers it: its key (hex) and its name. */
@@ -106,7 +108,7 @@ export type Cover = {
 };
 
 /** What the sidebar shows; the full meeting is loaded when opened. */
-export type MeetingSummary = Pick<Meeting, "id" | "title" | "createdAt" | "duration" | "status" | "tags" | "shares" | "device">;
+export type MeetingSummary = Pick<Meeting, "id" | "title" | "createdAt" | "duration" | "status" | "tags" | "shares" | "device" | "pending">;
 
 /** A full-text search result (db.rs `Hit`). Matches are wrapped in \u0002 … \u0003. */
 export type SearchHit = {
@@ -158,9 +160,10 @@ export type Translation = { lang: "ca" | "es" | "en"; texts: Record<string, stri
 
 /** What the local language model is doing (lib.rs run_llm). */
 /** Who can write the cover instead of the local model, with the user's own API key (cloud.rs). */
-export type CloudProvider = "anthropic" | "openai";
+export type CloudProvider = "anthropic" | "openai" | "gemini" | "openrouter";
 export type CloudEngine = { provider: CloudProvider; model: string };
-export type CloudModel = { id: string; name: string };
+/** `group`: the company behind the model, in OpenRouter's list. */
+export type CloudModel = { id: string; name: string; group?: string };
 
 export type LlmProgress = { job: string; step: string; done: number; total: number; readSeconds: number | null };
 export type LlmTask = { id: string; prompt: string; maxTokens: number; schema: string | null };

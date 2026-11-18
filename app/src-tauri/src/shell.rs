@@ -281,6 +281,26 @@ pub fn toast_continue(app: AppHandle) {
     }
 }
 
+/// The microphone went quiet while recording (lib.rs), or came back. With Murmur not in front,
+/// the alert says so, since the meeting is being lost; it goes away by itself once it's back.
+pub fn mic_lost(app: &AppHandle, lost: bool) {
+    if lost {
+        let focused = app.get_webview_window("main").is_some_and(|w| w.is_focused().unwrap_or(false) && w.is_visible().unwrap_or(false));
+        if !focused {
+            show_toast(app, "mic", tr!("toast_mic_lost").into(), tr!("toast_mic_lost_detail").into(), None, 120, None);
+        }
+    } else if shell(app).toast.lock().unwrap().as_ref().is_some_and(|t| t.kind == "mic") {
+        hide_toast(app);
+    }
+}
+
+/// "Obre Murmur" on an alert that only informs.
+#[tauri::command]
+pub fn toast_open(app: AppHandle) {
+    hide_toast(&app);
+    show_main(&app);
+}
+
 fn show_toast(app: &AppHandle, kind: &'static str, title: String, subtitle: String, start: Option<f64>, seconds: u32, meeting: Option<String>) {
     let toast = {
         let shell = shell(app);
@@ -362,7 +382,7 @@ fn upcoming_meeting(app: &AppHandle) -> Option<calendar::EventInfo> {
     }
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).ok()?.as_secs_f64() * 1000.0;
     let announced = shell(app).announced.lock().unwrap().clone();
-    calendar::events(now - CALENDAR_LATE_S * 1000.0, now + CALENDAR_LEAD_S * 1000.0, watch.calendar_ids.as_deref())
+    calendar::events(now - CALENDAR_LATE_S * 1000.0, now + CALENDAR_LEAD_S * 1000.0, watch.calendar_ids.as_deref(), watch.system)
         .into_iter()
         .filter(|e| e.start >= now - CALENDAR_LATE_S * 1000.0 && e.start <= now + CALENDAR_LEAD_S * 1000.0)
         .filter(|e| watch.include_no_guests || e.is_meeting())

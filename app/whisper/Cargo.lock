@@ -169,6 +169,7 @@ dependencies = [
  "serde",
  "serde_json",
  "whisper-rs",
+ "whisper-rs-sys",
 ]
 
 [[package]]

@@ -3,7 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { join } from "@tauri-apps/api/path";
 import { ask, open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
-import { Camera, Captions, Copy, FileAudio, MoreHorizontal, FileDown, FileText, FolderOpen, Gem, Globe, NotebookText, Images, Languages, Link2, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
+import { Camera, Captions, Copy, FileAudio, MoreHorizontal, FileDown, FileText, FolderOpen, Gem, Globe, NotebookText, Images, Languages, Link2, ListChecks, Sparkles, Maximize2, Mic, PanelLeft, PanelRight, Share, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -37,7 +37,7 @@ import { Transcript } from "@/components/Transcript";
 import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as backend from "@/lib/backend";
-import { currentEvent, guestNames, useCalendarSync } from "@/lib/calendar";
+import { currentEvent, guestNames, systemCalendarOn, useCalendarSync } from "@/lib/calendar";
 import { clock, duration, speakerIds, speakerName } from "@/lib/format";
 import { exportMeeting, saveMarkdown, toMarkdown, type ExportContent, type ExportFormat } from "@/lib/export";
 import { defaultTitle } from "@/lib/cover";
@@ -47,20 +47,21 @@ import { translateMeeting, useTranslating } from "@/lib/translate";
 import { offerGlossary } from "@/lib/glossary";
 import { bytes, downloadModel, modelInstalled, useModels } from "@/lib/models";
 import { ensurePermissions } from "@/lib/permissions";
-import { usePostProcess } from "@/lib/postprocess";
+import { usePostProcess, type AfterStep } from "@/lib/postprocess";
+import { AfterCard, AFTER_COUNTDOWN_MS } from "@/components/AfterCard";
 import { MarkdownSwitch, RoomMenu, StartOptions, type StartChoice } from "@/components/StartOptions";
 import { countBucket, minutesBucket, setAnalyticsAllowed, track } from "@/lib/analytics";
 import { introducedName, matchName } from "@/lib/intro";
 import { reveal } from "@/lib/reveal";
-import { finalPassModel } from "@/lib/finalpass";
+import { finalPassModel, preferredFinalModel } from "@/lib/finalpass";
 import { CONTINUE_MS } from "@/lib/parts";
 import { hasAudio, playAt, release, stopUnless } from "@/lib/player";
-import { stepTextZoom, useSettings } from "@/lib/settings";
+import { afterSteps, rememberSteps, stepTextZoom, useSettings, type AfterSteps } from "@/lib/settings";
 import { activeShares, expired, revokeShare } from "@/lib/share";
 import { notesDoc } from "@/lib/notes";
 import { capabilities, hasMod, isMac, shortcut } from "@/lib/platform";
 import { useMeetings } from "@/lib/store";
-import { SYSTEM_SPEAKER_BASE, type Language, type Meeting, type ModelId, type SearchHit, type Utterance } from "@/lib/types";
+import { SYSTEM_SPEAKER_BASE, type Language, type Meeting, type ModelId, type PostStage, type SearchHit, type Utterance } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { copyText } from "@/lib/clipboard";
 import { MarkerBackground, useMarker } from "@/lib/motion";
@@ -284,6 +285,21 @@ export default function App() {
   };
   /** The meeting stopped last and when: "Continua" stays on its toolbar for a while (CONTINUE_MS). */
   const [stoppedAt, setStoppedAt] = useState<{ id: string; at: number } | null>(null);
+  /**
+   * "Què en faig ara?" (AfterCard): the steps of a meeting that just ended, or of one opened again
+   * from the menu (`later`). `deadline`: when it starts by itself; null once touched.
+   */
+  const [after, setAfter] = useState<{
+    id: string;
+    steps: AfterStep[];
+    chosen: Set<PostStage>;
+    deadline: number | null;
+    file: boolean;
+    later?: boolean;
+    done?: Set<PostStage>;
+  } | null>(null);
+  /** Stopped from the indicator with Murmur behind: the steps run as last time, without asking. */
+  const runUnasked = useRef(new Set<string>());
   useEffect(() => {
     if (!stoppedAt) return;
     const timer = setTimeout(() => setStoppedAt(null), stoppedAt.at + CONTINUE_MS - Date.now());
@@ -354,6 +370,7 @@ export default function App() {
           if (stoppedFromIndicator.current)
             backend.showStoppedToast(rec.id, `${rec.title} · ${duration(rec.duration)}`, CONTINUE_MS / 1000).catch(() => {});
         }
+        if (rec && stoppedFromIndicator.current) runUnasked.current.add(rec.id);
         stoppedFromIndicator.current = false;
       },
       onError: (message) => toast.error(message),
@@ -377,6 +394,90 @@ export default function App() {
     });
     return () => void unlisten.then((u) => u());
   }, [dispatch, post.rustStageStarted, post.rustDone]);
+
+  /** The settings' four steps as stages, and back (for remembering a choice). */
+  const STAGE_OF: Record<keyof AfterSteps, PostStage> = { verifySpeakers: "speakers", finalPass: "text", punctuate: "punctuation", summarize: "cover" };
+  const stagesOf = (steps: AfterSteps) => new Set((Object.keys(STAGE_OF) as (keyof AfterSteps)[]).filter((k) => steps[k]).map((k) => STAGE_OF[k]));
+
+  /** A meeting ended (lib.rs final-pass-ready): ask what to do, or do what was chosen last time. */
+  const readyRef = useRef((_e: backend.FinalPassReady) => {});
+  readyRef.current = (e) => {
+    const id = e.meetingId;
+    const file = post.isFile(id);
+    const steps = post.stepsFor(e);
+    const chosen = new Set([...stagesOf(afterSteps(settings, file))].filter((s) => steps.find((x) => x.stage === s)?.possible));
+    // Another one still waiting (files in a row): it goes with what it has.
+    if (after && !after.later) startAfter(after);
+    if (!settings.askAfter || runUnasked.current.delete(id)) {
+      post.choose(id, steps, chosen);
+      return;
+    }
+    post.remember(id, steps);
+    setAfter({ id, steps, chosen, deadline: Date.now() + AFTER_COUNTDOWN_MS, file });
+  };
+
+  /** "Comença ara", or the countdown ran out: run the chosen steps and remember them. */
+  const startAfter = (a: NonNullable<typeof after>) => {
+    setAfter((now) => (now?.id === a.id ? null : now));
+    if (a.later) return void finishLater(a.id, a.chosen);
+    post.choose(a.id, a.steps, a.chosen);
+    const remembered = { ...afterSteps(settings, a.file) };
+    for (const k of Object.keys(STAGE_OF) as (keyof AfterSteps)[]) {
+      // A step that couldn't be done keeps what was chosen before.
+      if (a.steps.find((x) => x.stage === STAGE_OF[k])?.possible) remembered[k] = a.chosen.has(STAGE_OF[k]);
+    }
+    updateSettings(rememberSteps(remembered, a.file));
+  };
+  const startAfterRef = useRef(startAfter);
+  startAfterRef.current = startAfter;
+  useEffect(() => {
+    if (!after?.deadline) return;
+    const timer = setTimeout(() => startAfterRef.current(after), Math.max(0, after.deadline - Date.now()));
+    return () => clearTimeout(timer);
+  }, [after]);
+
+  /** "Acaba de processar…": the steps a meeting has left, to do now from its saved transcript and audio. */
+  const openLater = (m: Meeting) => {
+    const language = m.language ?? settings.language;
+    const audio = !!m.audioPath;
+    const model = finalPassModel(language);
+    const pending = new Set(m.pending ?? []);
+    const catalan = language === "ca" || language === "ca-es";
+    const words = m.utterances.reduce((n, u) => n + u.text.split(/\s+/).length, 0);
+    const steps: AfterStep[] = [
+      { stage: "speakers", possible: audio && pending.has("speakers"), reason: "audio", seconds: m.duration * 0.15 },
+      { stage: "text", possible: audio && pending.has("text") && !!model && modelInstalled(model), reason: !model ? "mixed" : !audio ? "audio" : "model", seconds: 5 + m.duration * (model === "whisper-ca" ? 0.25 : 0.15) },
+      { stage: "punctuation", possible: pending.has("punctuation") && catalan && modelInstalled("punctuation"), reason: "model", seconds: 2 + words / 800 },
+      { stage: "cover", possible: pending.has("cover") && coverReady(settings), reason: "engine", seconds: 60 },
+    ];
+    // Done: not pending, and something that could ever be done for it (Whisper needs one language).
+    const could: Record<PostStage, boolean> = { speakers: true, text: !!model, punctuation: catalan, cover: true };
+    const done = new Set(steps.filter((s) => !pending.has(s.stage) && could[s.stage]).map((s) => s.stage));
+    setAfter({ id: m.id, steps, chosen: new Set(steps.filter((s) => s.possible).map((s) => s.stage)), deadline: null, file: false, later: true, done });
+  };
+
+  const finishLater = async (id: string, chosen: Set<PostStage>) => {
+    const m = state.open[id];
+    if (!m || !chosen.size) return;
+    const language = m.language ?? settings.language;
+    const speakers = chosen.has("speakers");
+    const text = chosen.has("text");
+    post.planLater(id, chosen, language);
+    track("after_later", { speakers, text, punctuation: chosen.has("punctuation"), summary: chosen.has("cover") });
+    if (!(speakers || text) || !m.audioPath) return void post.finishText(id, [...chosen].filter((s) => s === "punctuation" || s === "cover"));
+    const channels = [0, SYSTEM_SPEAKER_BASE]
+      .map((base) => ({
+        base,
+        spans: m.utterances.filter((u) => (u.speaker >= SYSTEM_SPEAKER_BASE) === (base >= SYSTEM_SPEAKER_BASE)).map((u) => [u.start, u.end] as [number, number]),
+      }))
+      .filter((c) => c.spans.length);
+    try {
+      await backend.retranscribeMeeting(id, m.audioPath, text ? language : null, channels, m.guests ?? [], speakers ? settings.maxSpeakers : undefined);
+    } catch (e) {
+      toast.error(String(e));
+      dispatch({ type: "postDone", id });
+    }
+  };
 
   // "Configuració…" and "Quant a Murmur" in the app menu; start/stop from the menu bar or an alert.
   const stopRef = useRef<() => void>(() => {});
@@ -413,6 +514,15 @@ export default function App() {
         stopRef.current();
       }),
       backend.onContinueRequest((id) => continueRef.current(id)),
+      backend.onFinalPassReady((e) => readyRef.current(e)),
+      // The meeting is being lost: say so until the microphone sends sound again (lib.rs reopens it).
+      backend.onMicLost((lost) => {
+        if (lost) toast.warning(t("micLost"), { id: "mic-lost", description: t("micLostDetail"), duration: Infinity });
+        else {
+          toast.dismiss("mic-lost");
+          toast.success(t("micBack"));
+        }
+      }),
       backend.onCaptureRequest(() => captureRef.current()),
       backend.onOpenAudio(() => openAudioRef.current()),
       backend.onOpenedFiles(takeOpened),
@@ -446,7 +556,7 @@ export default function App() {
   useEffect(() => {
     if (!backend.isTauri()) return;
     backend
-      .setCalendarWatch({ enabled: settings.calendarEnabled && settings.calendarAlerts, calendarIds: settings.calendarIds, includeNoGuests: settings.calendarNoGuests })
+      .setCalendarWatch({ enabled: settings.calendarAlerts, system: systemCalendarOn(settings), calendarIds: settings.calendarIds, includeNoGuests: settings.calendarNoGuests })
       .catch(() => {});
   }, [settings.calendarEnabled, settings.calendarAlerts, settings.calendarIds, settings.calendarNoGuests]);
 
@@ -559,9 +669,10 @@ export default function App() {
     obsidianPending.current.add(m.id);
     notionPending.current.add(m.id);
     // Whisper only for a single language (told "Catalan", it would turn Spanish into Catalan).
+    // Its audio is kept for whatever can be done, and the steps are chosen when it ends (AfterCard).
     const finalModel = finalPassModel(language);
-    const finalText = settings.finalPass && !!finalModel && modelInstalled(finalModel);
-    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language });
+    const finalText = !!finalModel && modelInstalled(finalModel);
+    post.planRecording(m.id, { verifySpeakers: true, finalText, language });
     backend.getGlossary().then((g) => (glossaryTerms.current = g)).catch(() => {});
     track("recording_started", { language, mic: sources.mic, system: sources.system, room: roomSpeakers, whisper: finalText, summary: settings.summarize ? settings.coverEngine : "off" });
     startedAt.current = Date.now();
@@ -576,7 +687,7 @@ export default function App() {
         recordingsDir: settings.recordingsDir,
         maxSpeakers: settings.maxSpeakers,
         threshold: settings.threshold,
-        verifySpeakers: settings.verifySpeakers,
+        verifySpeakers: true,
         roomSpeakers,
         language,
         finalText,
@@ -632,8 +743,8 @@ export default function App() {
     // Its audio file is about to grow: the player loads it again afterwards.
     release(m.id);
     const finalModel = finalPassModel(language);
-    const finalText = settings.finalPass && !!finalModel && modelInstalled(finalModel);
-    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language, from: m.duration });
+    const finalText = !!finalModel && modelInstalled(finalModel);
+    post.planRecording(m.id, { verifySpeakers: true, finalText, language, from: m.duration });
     track("recording_continued", { language, whisper: finalText });
     dispatch({ type: "resumed", id: m.id, part: { startedAt: Date.now(), at: m.duration } });
     setMarkdown((list) => ({ ...list, [m.id]: settings.saveMarkdown && !!settings.markdownDir }));
@@ -651,7 +762,7 @@ export default function App() {
         recordingsDir: settings.recordingsDir,
         maxSpeakers: settings.maxSpeakers,
         threshold: settings.threshold,
-        verifySpeakers: settings.verifySpeakers,
+        verifySpeakers: true,
         roomSpeakers: settings.roomSpeakers,
         language,
         finalText,
@@ -720,8 +831,8 @@ export default function App() {
     obsidianPending.current.add(m.id);
     notionPending.current.add(m.id);
     const finalModel = finalPassModel(language);
-    const finalText = settings.finalPass && !!finalModel && modelInstalled(finalModel);
-    post.planRecording(m.id, { verifySpeakers: settings.verifySpeakers, finalText, language });
+    const finalText = !!finalModel && modelInstalled(finalModel);
+    post.planRecording(m.id, { verifySpeakers: true, finalText, language, file: true });
     track("file_opened", { language, detected: !!detected.language, whisper: finalText });
     try {
       const { audioPath: audio } = await backend.startRecording({
@@ -733,7 +844,7 @@ export default function App() {
         recordingsDir: settings.recordingsDir,
         maxSpeakers: settings.maxSpeakers,
         threshold: settings.threshold,
-        verifySpeakers: settings.verifySpeakers,
+        verifySpeakers: true,
         roomSpeakers: true,
         language,
         finalText,
@@ -884,12 +995,15 @@ export default function App() {
     }
   };
 
-  // Settings › General › Panell principal: the other panel goes on the right.
-  const notesPrimary = settings.primaryPanel === "notes";
-
   const run = meeting ? (state.finalPass[meeting.id] ?? null) : null;
+  // The Summary tab: the meeting has one, is writing one, or it's ticked on "Què en faig ara?".
   const coverAvailable =
-    !!meeting && meeting.status !== "recording" && (!!meeting.cover || !!run?.steps.includes("cover") || settings.summarize);
+    !!meeting &&
+    meeting.status !== "recording" &&
+    (!!meeting.cover || !!run?.steps.includes("cover") || (after?.id === meeting.id && !after.later && after.chosen.has("cover")));
+  // Settings › General › Panell principal: the other panel goes on the right. A meeting without
+  // a summary opens on its transcript, with the notes beside it.
+  const notesPrimary = settings.primaryPanel === "notes" && (!meeting || meeting.status === "recording" || coverAvailable);
   const showCover = coverAvailable && view.cover;
   const viewMarker = useMarker(viewTrack, coverAvailable ? (view.cover ? "cover" : "text") : null, [notesPrimary, meeting?.id, settings.uiLanguage]);
   const engine = coverEngine(settings);
@@ -1158,24 +1272,27 @@ export default function App() {
     setUpdates({ run: 1, manual: false });
   }, [state.loaded, onboarding.open, transcriptionReady, settings.checkUpdates]);
 
-  // Meetings in Catalan and no BSC Whisper yet (0.12): offer it once, never downloading 1.1 GB unasked.
-  const offeredCatalanWhisper = useRef(false);
+  // The Whisper for the meetings' language isn't there (0.12: the BSC's for Catalan; later, the
+  // turbo for Spanish and English, which the onboarding didn't download before): offer it once,
+  // never downloading unasked. Meetings in two languages have none to offer yet.
+  const offeredWhisper = useRef(false);
   useEffect(() => {
-    if (offeredCatalanWhisper.current || !state.loaded || !models.loaded || onboarding.open || whatsNew) return;
-    const status = models.status["whisper-ca"];
-    if (settings.language !== "ca" || !settings.finalPass || !status || status.installed || !status.downloadable) return;
-    offeredCatalanWhisper.current = true;
-    const key = "murmur.whisperCaOffered.v1";
+    if (offeredWhisper.current || !state.loaded || !models.loaded || onboarding.open || whatsNew) return;
+    const id = preferredFinalModel(settings.language);
+    const status = id && models.status[id];
+    if (!id || !settings.finalPass || !status || status.installed || !status.downloadable) return;
+    offeredWhisper.current = true;
+    const key = id === "whisper-ca" ? "murmur.whisperCaOffered.v1" : "murmur.whisperOffered.v1";
     try {
       if (localStorage.getItem(key)) return;
       localStorage.setItem(key, "1");
     } catch {
       return;
     }
-    toast(t("whisperCaOffer"), {
-      description: t("whisperCaOfferText", { size: bytes(status.bytes) }),
+    toast(t(id === "whisper-ca" ? "whisperCaOffer" : "whisperOffer"), {
+      description: t(id === "whisper-ca" ? "whisperCaOfferText" : "whisperOfferText", { size: bytes(status.bytes) }),
       duration: 20_000,
-      action: { label: t("settings:model.download"), onClick: () => void downloadModel("whisper-ca") },
+      action: { label: t("settings:model.download"), onClick: () => void downloadModel(id) },
     });
   }, [state.loaded, models.loaded, models.status, onboarding.open, whatsNew, settings.language, settings.finalPass, t]);
 
@@ -1274,7 +1391,7 @@ export default function App() {
           />
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="relative flex min-w-0 flex-1 flex-col">
           <header data-tauri-drag-region className={cn("flex h-[52px] shrink-0 items-center gap-2 border-b border-border px-3", !showSidebar && "pl-[84px] pc:pl-3")}>
             <ToolbarButton label={showSidebar ? t("hideSidebar") : t("showSidebar")} onClick={() => setShowSidebar((v) => !v)}>
               <PanelLeft className="size-4" />
@@ -1419,6 +1536,22 @@ export default function App() {
                       >
                         <FolderOpen className="size-3.5" /> {meeting.audioPath ? t("showAudioInFinder") : t("audioNotSaved")}
                       </DropdownMenuItem>
+                      {!meeting.cover && !meeting.pending?.includes("cover") && meeting.status === "done" && meeting.utterances.length > 0 && (
+                        <DropdownMenuItem
+                          disabled={!!state.finalPass[meeting.id] || !!coverBlocked}
+                          onSelect={() => {
+                            setView({ cover: true });
+                            void post.generateCover(meeting.id);
+                          }}
+                        >
+                          <Sparkles className="size-3.5" /> {t("after.makeSummary")}
+                        </DropdownMenuItem>
+                      )}
+                      {!!meeting.pending?.length && meeting.status === "done" && (
+                        <DropdownMenuItem disabled={!!state.finalPass[meeting.id]} onSelect={() => openLater(meeting)}>
+                          <ListChecks className="size-3.5" /> {t("after.menu")}
+                        </DropdownMenuItem>
+                      )}
                       {meeting.audioPath && meeting.utterances.length > 0 && (
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger disabled={meeting.status !== "done" || !!state.finalPass[meeting.id]}>
@@ -1566,6 +1699,37 @@ export default function App() {
             )}
           </header>
 
+          {/* Over the meeting, not pushing it down: it's a question, and it goes away. */}
+          {meeting && after?.id === meeting.id && (
+            <div className="pointer-events-none absolute inset-x-0 top-[52px] z-30 px-6 pt-3">
+              <div className="pointer-events-auto mx-auto max-w-[600px] duration-200 animate-in fade-in-0 slide-in-from-top-2 motion-reduce:animate-none">
+                <AfterCard
+                  steps={after.steps}
+                  chosen={after.chosen}
+                  deadline={after.deadline}
+                  later={after.later}
+                  done={after.done}
+                  file={after.file}
+                  noAudio={!meeting.audioPath}
+                  engineName={coverEngine(settings) ? cloudModelName(coverEngine(settings)!) : t("after.engineLocal")}
+                  onToggle={(stage) =>
+                    setAfter((a) => {
+                      if (!a) return a;
+                      const chosen = new Set(a.chosen);
+                      if (chosen.has(stage)) chosen.delete(stage);
+                      else chosen.add(stage);
+                      return { ...a, chosen, deadline: null };
+                    })
+                  }
+                  onStart={() => startAfter(after)}
+                  onSkip={() => {
+                    setAfter(null);
+                    if (!after.later) post.choose(after.id, after.steps, new Set());
+                  }}
+                />
+              </div>
+            </div>
+          )}
           <div className="flex min-h-0 flex-1">
             {!meeting ? (
               <main className="min-w-0 flex-1">
@@ -1673,8 +1837,14 @@ export default function App() {
           }}
         />
       )}
-      {!recording && <UpdatesDialog run={updates.run} manual={updates.manual} onClose={() => {}} />}
-      {onboarding.open && <Onboarding open onClose={closeOnboarding} onChange={updateSettings} startAtModels={onboarding.atModels} />}
+      <UpdatesDialog
+        run={updates.run}
+        manual={updates.manual}
+        idle={!recording && !busy && !importing && !after && !Object.keys(state.finalPass).length}
+        hidden={!!recording}
+        onClose={() => {}}
+      />
+      {onboarding.open && <Onboarding open onClose={closeOnboarding} onChange={updateSettings} startAtModels={onboarding.atModels} cloudModels={settings.cloudModels} language={settings.language} />}
       {calendarSync.syncing && !showSettings && !showSidebar && (
         <button
           type="button"

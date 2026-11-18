@@ -107,6 +107,8 @@
   "moreActions": "Més accions",
   "whisperCaOffer": "Hi ha un Whisper nou per al català",
   "whisperCaOfferText": "El del Barcelona Supercomputing Center: en les nostres proves, millor que l'actual amb el central, el valencià i el balear. Ocupa {{size}}.",
+  "whisperOffer": "Fes que Whisper repassi les reunions",
+  "whisperOfferText": "En acabar, Whisper torna a escoltar la reunió i en reescriu el text, amb puntuació i majúscules. Tot en aquest ordinador. Ocupa {{size}}.",
   "introNamed": "«{{speaker}}» és {{name}}",
   "introHint": "Si sou més d'un a la sala, cadascú pot dir «Murmur, sóc…» i Murmur hi posarà el nom.",
   "undo": "Desfés",
@@ -125,5 +127,58 @@
   "notionSaved": "Desada a Notion",
   "openInNotion": "Obre a Notion",
   "notionSaving": "Desant a Notion…",
-  "notionConnectFirst": "Connecta Notion a Configuració › Exportar."
+  "notionConnectFirst": "Connecta Notion a Configuració › Exportar.",
+  "micLost": "El micròfon no envia so",
+  "micLostDetail": "Murmur l'està tornant a obrir. Si no torna, comprova que està connectat o tria'n un altre a Configuració › Àudio.",
+  "micBack": "El micròfon torna a funcionar",
+  "after": {
+    "title": "Què en faig ara?",
+    "laterTitle": "Acaba de processar",
+    "menu": "Acaba de processar…",
+    "pendingLabel": "Té passos per fer",
+    "name": {
+      "speakers": "Revisa qui parla",
+      "text": "Torna a escoltar amb Whisper",
+      "punctuation": "Puntuació i majúscules",
+      "cover": "Fes el resum"
+    },
+    "what": {
+      "speakers": "Torna a escoltar les veus i corregeix qui ha dit cada frase.",
+      "text": "Reescriu el text, més precís, amb el Whisper.",
+      "punctuation": "Hi posa els punts, les comes i les majúscules.",
+      "cover": "Títol, resum, decisions i tasques, amb {{engine}}."
+    },
+    "why": {
+      "speakers": {
+        "model": "No hi ha prou àudio per revisar-ho.",
+        "audio": "Cal l'àudio de la reunió, i no es va desar."
+      },
+      "text": {
+        "mixed": "Amb català i castellà barrejats, encara no: passaria una llengua a l'altra.",
+        "model": "Cal descarregar el Whisper a Configuració › Transcripció.",
+        "audio": "Cal l'àudio de la reunió, i no es va desar."
+      },
+      "punctuation": {
+        "model": "Només en català, i cal descarregar-ne el model a Configuració › Transcripció."
+      },
+      "cover": {
+        "engine": "Cal el model local o una clau, a Configuració › Intel·ligència."
+      }
+    },
+    "engineLocal": "Gemma, en aquest ordinador",
+    "seconds_one": "≈ {{count}} s",
+    "seconds_other": "≈ {{count}} s",
+    "minutes_one": "≈ {{count}} min",
+    "minutes_other": "≈ {{count}} min",
+    "done": "Fet",
+    "noAudio": "L'àudio no es desa: el que no facis ara de Whisper i dels parlants ja no es podrà fer després.",
+    "countdown_one": "Començarà en {{count}} s.",
+    "countdown_other": "Començarà en {{count}} s.",
+    "rememberRecording": "Ho recordarà per a la propera gravació.",
+    "rememberFile": "Ho recordarà per al proper fitxer.",
+    "skip": "Deixa-ho així",
+    "startNow": "Comença ara",
+    "doIt": "Fes-ho",
+    "makeSummary": "Fes el resum"
+  }
 }

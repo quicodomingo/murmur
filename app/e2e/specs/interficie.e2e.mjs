@@ -39,9 +39,11 @@ describe("Murmur a " + process.platform, () => {
     await browser.waitUntil(async () => (await pageText()).includes(ca("settings:tabs.audio")), { timeoutMsg: "No s'ha obert la configuració" });
   });
 
-  it("no ofereix el calendari de macOS", async () => {
-    const labels = await browser.execute(() => [...document.querySelectorAll("[role=dialog] button")].map((b) => b.innerText.trim()));
-    if (labels.includes(ca("settings:tabs.calendar"))) throw new Error("La pestanya Calendari només és per a macOS");
+  it("el calendari, amb enllaços iCal i sense el de macOS", async () => {
+    const tab = await $(`button=${ca("settings:tabs.calendar")}`);
+    await tab.click();
+    await browser.waitUntil(async () => (await pageText()).includes(ca("settings:calendar.ical")), { timeoutMsg: "No hi ha els enllaços iCal" });
+    if ((await pageText()).includes(ca("settings:calendar.macCalendar"))) throw new Error("El calendari del sistema només és per a macOS");
   });
 
   it("a la pestanya Àudio, sense els permisos de macOS", async () => {
@@ -51,8 +53,7 @@ describe("Murmur a " + process.platform, () => {
     const text = await pageText();
     if (text.includes(ca("settings:permissions.title"))) throw new Error("Els permisos són de macOS");
     const system = text.includes(ca("settings:audio.system"));
-    // A Windows, l'àudio de l'altra banda de la trucada (WASAPI); a Linux encara no.
-    if (linux && system) throw new Error("A Linux no hi ha àudio del sistema");
-    if (!linux && !system) throw new Error("A Windows hi ha d'haver l'àudio del sistema");
+    // L'àudio de l'altra banda de la trucada: WASAPI a Windows, el monitor de PulseAudio a Linux.
+    if (!system) throw new Error("Hi ha d'haver l'àudio del sistema");
   });
 });

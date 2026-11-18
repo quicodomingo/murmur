@@ -16,6 +16,7 @@
   "talk": "Qui ha parlat",
   "talkShare": "{{name}} {{share}}%",
   "talkShareTiny": "{{name}} menys de l'1%",
+  "talkOthers": "Altres ({{count}})",
   "talkMinutes": "{{minutes}} min",
   "talkUnderMinute": "<1 min",
   "summary": "Resum",

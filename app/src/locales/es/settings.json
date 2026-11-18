@@ -47,11 +47,13 @@
     "compactHint": "Murmur se estrecha, junto a la llamada y siempre delante, solo con las notas.",
     "showWhatsNew": "Mostrar las novedades después de actualizar",
     "showWhatsNewHint": "Un resumen de lo que trae cada versión nueva, la primera vez que abres Murmur.",
-    "showWhatsNewNow": "Mostrarlas"
+    "showWhatsNewNow": "Mostrarlas",
+    "log": "Registro",
+    "logHint": "Un archivo con lo que hace Murmur por dentro (grabaciones, modelos, errores), para enviarlo si algo falla. No hay nada de lo que se dice en las reuniones, ni títulos, ni nombres, y no sale del ordenador si no lo envías tú.",
+    "showLog": "Mostrar el registro"
   },
   "calendar": {
-    "footnote": "Murmur lee los calendarios que tienes en la app Calendario de macOS. Para añadir Google Calendar, añade la cuenta en Ajustes del Sistema › Cuentas de Internet.",
-    "connection": "Conexión",
+    "connection": "Conexiones",
     "macCalendar": "Calendario de macOS",
     "denied": "Denegado. Activa Murmur en Ajustes del Sistema › Privacidad y seguridad › Calendarios.",
     "disconnected": "Desconectado: Murmur no lo lee. macOS aún le da permiso; puedes retirarlo en Ajustes del Sistema.",
@@ -69,8 +71,58 @@
     "all": "Todos",
     "syncing": "Sincronizando los calendarios…",
     "empty": "No hay ningún calendario",
-    "emptyHint": "Añade uno en la app Calendario de macOS.",
-    "watch": "Vigilar {{name}}"
+    "emptyHint": "Añade uno en la app Calendario de macOS o con un enlace iCal.",
+    "watch": "Vigilar {{name}}",
+    "privacy": "Murmur solo lee los calendarios (título, hora, invitados y el enlace de la videollamada) para avisarte y ponerle nombre a la reunión. Nunca escribe nada en ellos, y los enlaces y el acceso a Google se guardan en el llavero del sistema.",
+    "privacyMac": "Murmur solo lee los calendarios (título, hora, invitados y el enlace de la videollamada) para avisarte y ponerle nombre a la reunión. Nunca escribe nada en ellos. El de macOS incluye las cuentas añadidas en Ajustes del Sistema › Cuentas de Internet, y los enlaces y el acceso a Google se guardan en el llavero.",
+    "google": "Google Calendar",
+    "googleHint": "Inicia sesión con tu cuenta de Google. Solo lee los calendarios.",
+    "googleSignIn": "Iniciar sesión…",
+    "googleWaiting": "Sigue en el navegador: inicia sesión y da permiso para leer los calendarios.",
+    "googleConnected": "Conectado",
+    "googleConnectedToast": "Google Calendar conectado ({{email}})",
+    "googleDisconnectTitle": "¿Quieres desconectar Google Calendar?",
+    "googleDisconnectMessage": "Murmur dejará de leer tus calendarios de Google y borrará el acceso del llavero. Los calendarios no cambian.",
+    "fromGoogle": "Google · {{email}}",
+    "ical": "Enlace iCal",
+    "icalHint": "Google, Outlook, iCloud o cualquier calendario que dé un enlace .ics.",
+    "icalAdd": "Añadir un enlace…",
+    "icalLabel": "Enlace del calendario en formato iCal",
+    "icalChecking": "Comprobando…",
+    "icalAddButton": "Añadir",
+    "icalWhere": "¿Dónde encuentro el enlace?",
+    "icalHelp": {
+      "google": {
+        "name": "Google",
+        "steps": [
+          "Abre Google Calendar en el navegador y ve a Configuración (la rueda dentada).",
+          "A la izquierda, en «Configuración de mis calendarios», elige el calendario.",
+          "En «Integrar el calendario», copia la «Dirección secreta en formato iCal»."
+        ]
+      },
+      "outlook": {
+        "name": "Outlook",
+        "steps": [
+          "Abre Outlook en el navegador y ve a Configuración › Calendario › Calendarios compartidos.",
+          "En «Publicar un calendario», elige el calendario y «Puede ver todos los detalles», y pulsa Publicar.",
+          "Copia el enlace ICS."
+        ]
+      },
+      "icloud": {
+        "name": "iCloud",
+        "steps": [
+          "En la app Calendario del iPhone, toca Calendarios y la «i» del calendario.",
+          "Activa «Calendario público» y toca «Compartir enlace» para copiarlo.",
+          "Pégalo aquí: empieza por webcal://."
+        ]
+      }
+    },
+    "icalRead": "{{host}} · leído {{when}}",
+    "icalRemove": "Quitar",
+    "icalRemoveTitle": "¿Quieres quitar este calendario?",
+    "icalRemoveMessage": "Murmur dejará de leer «{{name}}» y borrará su enlace del llavero. El calendario no cambia.",
+    "icalAdded": "«{{name}}» añadido",
+    "fromLink": "Enlace iCal · {{host}}"
   },
   "appearance": {
     "theme": "Tema",
@@ -161,7 +213,7 @@
     "thresholdHint": "Más alto separa más las voces; más bajo las agrupa.",
     "thresholdDefault": "Volver al valor por defecto ({{value}})",
     "reset": "Restablecer",
-    "afterRecording": "Al terminar la grabación",
+    "afterRecording": "Al terminar una reunión",
     "verifySpeakers": "Verificación de hablantes",
     "verifySpeakersHint": "Vuelve a analizar toda la reunión para separar mejor las voces. Puede tardar unos minutos (unos 7 por hora de reunión), pero puedes seguir trabajando mientras tanto.",
     "finalPass": "Volver a escuchar con Whisper",
@@ -190,7 +242,15 @@
       "summary": "Resumen y notas",
       "transcript": "Transcripción"
     },
-    "markdownContentHint": "«Todo» guarda dos archivos: el resumen con las notas y la transcripción. Si una reunión no tiene resumen, se guarda todo en uno solo."
+    "markdownContentHint": "«Todo» guarda dos archivos: el resumen con las notas y la transcripción. Si una reunión no tiene resumen, se guarda todo en uno solo.",
+    "askAfter": "Preguntármelo al terminar",
+    "askAfterHint": "Una tarjeta encima de la reunión dice qué hará, y puedes cambiarlo. Si no tocas nada, empieza sola en 10 segundos.",
+    "afterWhat": "Qué hace",
+    "afterRecordings": "Grabaciones",
+    "afterFiles": "Archivos",
+    "afterFor": "{{step}}, para {{kind}}",
+    "summarize": "Haz el resumen",
+    "summarizeHint": "Título, resumen, decisiones y tareas, con el modelo elegido en Inteligencia."
   },
   "intelligence": {
     "cover": "Resumen",
@@ -204,17 +264,23 @@
     "coverLanguageMeeting": "El de la reunión",
     "engine": "LLM",
     "engineLocal": "Este Mac",
+    "engineCloud": "En la nube, con tu clave",
     "engineLocalHint": "Gemma, en el ordenador. La transcripción no sale de aquí, pero tarda unos 2–3 minutos para una reunión de 20 minutos.",
     "engineCloudHint": "Más rápido y con más calidad, pero la transcripción se envía a {{provider}}. Hace falta una clave de API propia, que se paga aparte según el uso.",
     "providers": {
       "anthropic": "Claude",
-      "openai": "OpenAI"
+      "openai": "OpenAI",
+      "gemini": "Gemini",
+      "openrouter": "OpenRouter"
     },
     "companies": {
       "anthropic": "Anthropic",
-      "openai": "OpenAI"
+      "openai": "OpenAI",
+      "gemini": "Google",
+      "openrouter": "OpenRouter"
     },
-    "privacyCloud": "Cada vez que se genera un resumen, el texto de la transcripción y las notas se envían a {{provider}}. El audio nunca sale de este ordenador, y la clave se guarda en el llavero de macOS."
+    "privacyCloud": "Cada vez que se genera un resumen, el texto de la transcripción y las notas se envían a {{provider}}. El audio nunca sale de este ordenador, y la clave se guarda en el llavero de macOS.",
+    "privacyRouter": "Cada vez que se genera un resumen, el texto de la transcripción y las notas se envían a OpenRouter, que los pasa a la empresa del modelo que hayas elegido. El audio nunca sale de este ordenador, y la clave se guarda en el llavero."
   },
   "model": {
     "deleteMessage": "Se borrará {{name}} ({{size}}). Puedes volver a descargarlo cuando quieras.",
@@ -252,7 +318,12 @@
   },
   "cloud": {
     "keyLabel": "Clave de API de {{company}}",
-    "keyHint": "No sirve la suscripción a Claude o ChatGPT: hace falta una clave de API, que se factura aparte según el uso.",
+    "keyHints": {
+      "anthropic": "No sirve la suscripción a Claude o ChatGPT: hace falta una clave de API, que se factura aparte según el uso.",
+      "openai": "No sirve la suscripción a Claude o ChatGPT: hace falta una clave de API, que se factura aparte según el uso.",
+      "gemini": "No sirve la suscripción a Gemini: hace falta una clave de API. Tiene un nivel gratuito con límites, y a partir de ahí se paga según el uso.",
+      "openrouter": "OpenRouter funciona con crédito de prepago: añades dinero y cada resumen gasta un poco. Con una sola clave tienes modelos de muchas empresas."
+    },
     "createKey": "Crea una en {{site}}",
     "connect": "Conectar",
     "checking": "Comprobando…",
@@ -376,5 +447,17 @@
     "notionUsePrivate": "Usar páginas privadas",
     "notionAuto": "Guardar cada reunión al terminar",
     "notionPrivacy": "A Notion solo se envía el texto de la reunión (resumen, notas y transcripción), directamente a tu espacio, cuando la exportas o al terminar si lo tienes activado. El audio y las capturas, nunca."
+  },
+  "modelPicker": {
+    "search": "Busca entre {{count}} modelos",
+    "recommended": "Recomendados",
+    "free": "Gratis",
+    "count_one": "{{count}} modelo",
+    "count_other": "{{count}} modelos",
+    "matches_one": "{{shown}} de {{count}} modelo",
+    "matches_other": "{{shown}} de {{count}} modelos",
+    "none": "Ningún modelo coincide con «{{query}}»",
+    "noneHint": "Prueba con el nombre de la empresa, como «google» o «mistral».",
+    "escape": "Esc para cerrar"
   }
 }

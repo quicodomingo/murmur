@@ -6,6 +6,9 @@ import App from "./App";
 import { ErrorScreen } from "./components/ErrorScreen";
 import { IndicatorWindow } from "./components/IndicatorWindow";
 import { Onboarding } from "./components/Onboarding";
+import { AfterCard, AFTER_COUNTDOWN_MS } from "./components/AfterCard";
+import type { AfterStep } from "./lib/postprocess";
+import type { PostStage } from "./lib/types";
 import { ToastWindow } from "./components/ToastWindow";
 import { WhatsNewDialog } from "./components/WhatsNewDialog";
 import { releasesBetween } from "./lib/whatsnew";
@@ -36,7 +39,7 @@ if (!import.meta.env.DEV) {
 // transparent around their content.
 // In a browser during development, "?window=indicator" or "?window=toast" shows that window on its own
 // ("?window=whatsnew": the version notes; "?window=onboarding": the welcome screens, from the start;
-// "?window=about": the About window).
+// "?window=about": the About window; "?window=after": "Què en faig ara?", with "&later" as from the menu).
 const devLabel = import.meta.env.DEV ? new URLSearchParams(location.search).get("window") : null;
 const label = "__TAURI_INTERNALS__" in window ? getCurrentWindow().label : (devLabel ?? "main");
 const isToast = label === "toast";
@@ -49,6 +52,8 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <WhatsNewDialog releases={releasesBetween(null, "999.0.0")} manual={false} onLink={() => {}} onClose={() => {}} />
     ) : devLabel === "about" ? (
       <AboutDialog open onOpenChange={() => {}} />
+    ) : devLabel === "after" ? (
+      <AfterPreview />
     ) : devLabel === "onboarding" ? (
       <Onboarding open startAtModels={false} onChange={() => {}} onClose={() => location.reload()} />
     ) : isToast ? (
@@ -62,3 +67,40 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     )}
   </React.StrictMode>,
 );
+
+/** "?window=after" in a browser during development: the card with sample steps. */
+function AfterPreview() {
+  const later = new URLSearchParams(location.search).has("later");
+  const steps: AfterStep[] = [
+    { stage: "speakers", possible: true, seconds: 300 },
+    { stage: "text", possible: !later, reason: "mixed", seconds: 510 },
+    { stage: "punctuation", possible: true, seconds: 20 },
+    { stage: "cover", possible: true, seconds: 180 },
+  ];
+  const [chosen, setChosen] = React.useState(new Set<PostStage>(later ? ["speakers", "cover"] : ["speakers", "text", "punctuation", "cover"]));
+  const [deadline, setDeadline] = React.useState<number | null>(later ? null : Date.now() + AFTER_COUNTDOWN_MS);
+  return (
+    <div className="mx-auto mt-10 max-w-[640px] px-6">
+      <AfterCard
+        steps={steps}
+        chosen={chosen}
+        deadline={deadline}
+        later={later}
+        done={later ? new Set<PostStage>(["punctuation"]) : undefined}
+        noAudio={!later}
+        engineName="Gemma, en aquest ordinador"
+        onToggle={(stage) => {
+          setDeadline(null);
+          setChosen((s) => {
+            const next = new Set(s);
+            if (next.has(stage)) next.delete(stage);
+            else next.add(stage);
+            return next;
+          });
+        }}
+        onStart={() => console.log("start", [...chosen])}
+        onSkip={() => console.log("skip")}
+      />
+    </div>
+  );
+}

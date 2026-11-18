@@ -1,0 +1,61 @@
+<!doctype html>
+<!--
+  La imatge de «Murmur per a iPhone» a les novetats de l'app (app/public/whatsnew/), 880 × 400.
+  mobil.html?lang=ca|es|en&mode=light|dark: l'ordinador amb la llista de reunions i, al davant,
+  el mòbil amb la mateixa llista. render.sh les fa totes amb Chrome. Les captures són les de la
+  landing (data/captures-landing, no es pugen) i les de l'App Store (docs/appstore/<idioma>/).
+  Els colors són els tokens del tema Negre i àcid (app/src/murmur-theme.css).
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Novetats · Murmur per a iPhone</title>
+<link rel="stylesheet" href="../../app/src/murmur-theme.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 880px; height: 400px; overflow: hidden; }
+  body { position: relative; background: var(--mm-fill-subtle); }
+  [data-mode="dark"] body { background: var(--mm-logo-background); }
+
+  /* A soft acid light behind the phone: the brand, never as text or a line. */
+  .glow {
+    position: absolute; right: -120px; top: -160px; width: 560px; height: 560px; border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--mm-accent) 55%, transparent), transparent);
+    opacity: .55;
+  }
+  [data-mode="dark"] .glow { opacity: .35; }
+
+  .window {
+    position: absolute; left: 44px; top: 46px; width: 640px; height: 400px; overflow: hidden;
+    border-radius: 12px; background: var(--mm-background);
+    box-shadow: 0 0 0 1px var(--mm-separator), 0 24px 60px -20px rgb(0 0 0 / .35);
+  }
+  .window .bar { height: 22px; display: flex; gap: 6px; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--mm-separator); }
+  .window .bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--mm-separator); }
+  /* The capture's top left: the sidebar and the start of the summary. */
+  .window img { display: block; width: 1120px; height: auto; margin-top: 0; }
+
+  .phone {
+    position: absolute; left: 616px; top: 34px; width: 222px; padding: 6px;
+    border-radius: 40px; background: #050505;
+    box-shadow: 0 0 0 1.5px #2E2E2E, 0 30px 70px -20px rgb(0 0 0 / .55);
+  }
+  .phone .screen { height: 420px; overflow: hidden; border-radius: 34px; background: #fff; }
+  .phone img { display: block; width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="window"><div class="bar"><i></i><i></i><i></i></div><img id="desktop" alt=""></div>
+<div class="phone"><div class="screen"><img id="mobile" alt=""></div></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const lang = q.get("lang") || "ca";
+  const dark = q.get("mode") === "dark";
+  document.documentElement.dataset.theme = "acid";
+  document.documentElement.dataset.mode = dark ? "dark" : "light";
+  document.getElementById("desktop").src = `../../data/captures-landing/${lang}-0${dark ? 4 : 3}-resum${dark ? "-fosc" : ""}.png`;
+  document.getElementById("mobile").src = `../appstore/${lang}/1-llista.png`;
+</script>
+</body>
+</html>

@@ -72,6 +72,12 @@
     "required": "Necessari",
     "transcriptionText": "Converteix la veu en text, en català i altres llengües, dins d'aquest Mac.",
     "alwaysIncluded": "Sempre inclòs",
+    "languageQuestion": "En quina llengua són majoritàriament les teves reunions?",
+    "whisperName": "Repàs en acabar",
+    "whisperTextCa": "Quan acaba la reunió, el Whisper català del BSC la torna a escoltar i en reescriu el text, més net. Tot en aquest ordinador.",
+    "whisperText": "Quan acaba la reunió, Whisper la torna a escoltar i en reescriu el text, amb puntuació i majúscules. Tot en aquest ordinador.",
+    "whisperMixed": "Amb reunions en dues llengües, encara no: Whisper passaria el castellà al català. Hi estem treballant.",
+    "whisperToggle": "Inclou el repàs en acabar",
     "optional": "Opcional",
     "offline": "Un cop descarregats, funcionen sense connexió. L'àudio i el text de les reunions no surten mai d'aquest ordinador.",
     "close": "Tanca",
@@ -83,21 +89,37 @@
     "waiting": "En espera",
     "percent": "{{value}} %",
     "summaryName": "Resums",
-    "summaryText": "Títol, resum, decisions i tasques de cada reunió. Tria qui els escriu:",
+    "summaryText": "Títol, resum, decisions i tasques de cada reunió. Tria on s'escriuen:",
     "writers": {
       "local": "Gemma, en aquest Mac",
+      "cloud": "Al núvol",
+      "none": "Ara no",
       "anthropic": "Claude",
       "openai": "ChatGPT",
-      "none": "Ara no"
+      "gemini": "Gemini",
+      "openrouter": "OpenRouter"
     },
+    "writerNotes": {
+      "anthropic": "d'Anthropic",
+      "openai": "d'OpenAI",
+      "gemini": "de Google",
+      "openrouter": "Molts models, una clau"
+    },
+    "whichCompany": "Qui l'escriu",
     "localText": "Gemma 4, de Google, funciona dins d'aquest Mac. Pesa {{size}} i necessita un Mac amb 16 GB de memòria.",
     "noneText": "Pots triar-ho més endavant a Configuració › Intel·ligència.",
-    "cloudText": "Només s'envia el text de la reunió a {{name}}, mai l'àudio. Cal una clau d'API, que es factura a part segons l'ús: la subscripció no serveix.",
+    "cloudTexts": {
+      "anthropic": "Només s'envia el text de la reunió a {{name}}, mai l'àudio. Cal una clau d'API, que es factura a part segons l'ús: la subscripció no serveix.",
+      "openai": "Només s'envia el text de la reunió a {{name}}, mai l'àudio. Cal una clau d'API, que es factura a part segons l'ús: la subscripció no serveix.",
+      "gemini": "Només s'envia el text de la reunió a {{name}}, mai l'àudio. Cal una clau d'API, que té un nivell gratuït amb límits: la subscripció no serveix.",
+      "openrouter": "Només s'envia el text de la reunió a {{name}}, que el passa a l'empresa del model que triïs, mai l'àudio. Cal una clau d'API amb crèdit de prepagament."
+    },
     "cloudCreateKey": "Crea'n una a {{site}}",
     "cloudKey": "Clau d'API de {{name}}",
     "cloudConnect": "Connecta",
     "cloudChecking": "Comprovant…",
     "cloudConnected": "{{name}} connectat. Clau desada al clauer, acaba en …{{hint}}",
+    "model": "Model:",
     "offlineCloud": "L'àudio no surt mai d'aquest ordinador. Per fer els resums, només s'envia el text de la reunió, amb la teva clau.",
     "analytics": "Envia estadístiques d'ús anònimes: quines funcions es fan servir, sense res del que es diu a les reunions. Ho pots canviar a Configuració › General."
   },

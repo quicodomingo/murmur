@@ -1,6 +1,30 @@
 fn main() {
     bundled_libs();
+    google_oauth();
     tauri_build::build()
+}
+
+/// Google Calendar's OAuth client (google.rs), baked in when there is one: from
+/// `MURMUR_GOOGLE_CLIENT_ID` and `MURMUR_GOOGLE_CLIENT_SECRET` (the release, from the repository's
+/// secrets), or from `google-oauth.json`, the file Google Cloud gives (local builds; not in the
+/// repository). Without it the app builds the same, with no Google sign-in: forks, test builds.
+/// A desktop app's client secret can't stay secret (Google says so for installed apps): it's kept
+/// out of the public code only so that it isn't copied as is.
+fn google_oauth() {
+    println!("cargo:rerun-if-env-changed=MURMUR_GOOGLE_CLIENT_ID");
+    println!("cargo:rerun-if-env-changed=MURMUR_GOOGLE_CLIENT_SECRET");
+    let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("google-oauth.json");
+    println!("cargo:rerun-if-changed={}", file.display());
+    let from_env = std::env::var("MURMUR_GOOGLE_CLIENT_ID").ok().zip(std::env::var("MURMUR_GOOGLE_CLIENT_SECRET").ok());
+    let from_file = || {
+        let json: serde_json::Value = serde_json::from_slice(&std::fs::read(&file).ok()?).ok()?;
+        let client = json.get("installed")?;
+        Some((client["client_id"].as_str()?.to_string(), client["client_secret"].as_str()?.to_string()))
+    };
+    if let Some((id, secret)) = from_env.filter(|(id, secret)| !id.is_empty() && !secret.is_empty()).or_else(from_file) {
+        println!("cargo:rustc-env=MURMUR_GOOGLE_CLIENT_ID={id}");
+        println!("cargo:rustc-env=MURMUR_GOOGLE_CLIENT_SECRET={secret}");
+    }
 }
 
 /// Windows and Linux: sherpa-onnx comes as shared libraries (Cargo.toml says why), which

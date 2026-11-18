@@ -107,7 +107,14 @@ export type Action =
   | { type: "shares"; id: string; shares: ShareLink[] }
   | { type: "language"; id: string; language: Language }
   | { type: "removeScreen"; id: string; path: string }
-  | { type: "postDone"; id: string };
+  | { type: "postDone"; id: string }
+  /** The steps left undone when it ended, that can still be done later. */
+  /** The steps left to do since it ended (chosen and not yet done, or left for later). */
+  | { type: "pending"; id: string; steps: PostStage[] };
+
+/** A step done: it's no longer pending. */
+const done = (m: Meeting, stage: PostStage | null): Meeting =>
+  stage && m.pending?.includes(stage) ? { ...m, pending: m.pending.filter((s) => s !== stage) } : m;
 
 const summaryOf = (m: Meeting): MeetingSummary => ({
   id: m.id,
@@ -118,6 +125,7 @@ const summaryOf = (m: Meeting): MeetingSummary => ({
   tags: m.tags,
   shares: m.shares,
   device: m.device,
+  pending: m.pending,
 });
 
 /** Tag names ignore capitals: the first spelling of each one stays. */
@@ -262,32 +270,44 @@ export function reducer(state: State, action: Action): State {
       );
       return { ...state, finalPass, postPause: action.reason };
     }
+    case "pending":
+      return updateMeeting(state, action.id, (m) => ({ ...m, pending: action.steps }));
     case "speakersVerified":
-      return updateMeeting(state, action.id, (m) => relabel(m, action.base, action.assignments));
+      return updateMeeting(state, action.id, (m) => done(relabel(m, action.base, action.assignments), "speakers"));
     case "retranscribed": {
       const byStart = new Map(action.texts.map((t) => [t.start.toFixed(2), t.text]));
       const inChannel = (speaker: number) => (action.base >= SYSTEM_SPEAKER_BASE) === (speaker >= SYSTEM_SPEAKER_BASE);
-      return updateMeeting(state, action.id, (m) => ({
-        ...m,
-        // Lines the user corrected keep their text.
-        utterances: m.utterances.map((u) => {
-          const text = inChannel(u.speaker) && !u.edited ? byStart.get(u.start.toFixed(2)) : undefined;
-          return text && text !== u.text ? { ...u, text } : u;
-        }),
-      }));
+      return updateMeeting(state, action.id, (m) =>
+        done(
+          {
+            ...m,
+            // Lines the user corrected keep their text.
+            utterances: m.utterances.map((u) => {
+              const text = inChannel(u.speaker) && !u.edited ? byStart.get(u.start.toFixed(2)) : undefined;
+              return text && text !== u.text ? { ...u, text } : u;
+            }),
+          },
+          "text",
+        ),
+      );
     }
     case "punctuated": {
       const byId = new Map(action.changes.map((c) => [c.utteranceId, c]));
-      return updateMeeting(state, action.id, (m) => ({
-        ...m,
-        utterances: m.utterances.map((u) => {
-          const c = byId.get(u.id);
-          return c && !u.edited && u.text === c.from && c.to !== u.text ? { ...u, text: c.to } : u;
-        }),
-      }));
+      return updateMeeting(state, action.id, (m) =>
+        done(
+          {
+            ...m,
+            utterances: m.utterances.map((u) => {
+              const c = byId.get(u.id);
+              return c && !u.edited && u.text === c.from && c.to !== u.text ? { ...u, text: c.to } : u;
+            }),
+          },
+          "punctuation",
+        ),
+      );
     }
     case "cover":
-      return updateMeeting(state, action.id, (m) => ({ ...m, cover: action.cover, title: action.title ?? m.title }));
+      return updateMeeting(state, action.id, (m) => done({ ...m, cover: action.cover, title: action.title ?? m.title }, action.cover ? "cover" : null));
     case "translation":
       return updateMeeting(state, action.id, (m) => ({ ...m, translation: action.translation }));
     case "tags":
@@ -311,9 +331,11 @@ export function reducer(state: State, action: Action): State {
     case "coverTasks":
       return updateMeeting(state, action.id, (m) => (m.cover ? { ...m, cover: { ...m.cover, tasks: action.tasks } } : m));
     case "postDone": {
-      const { [action.id]: _done, ...finalPass } = state.finalPass;
+      const { [action.id]: run, ...finalPass } = state.finalPass;
+      // The run's steps are over (one that had nothing to change doesn't say so on its own).
+      const over = (m: Meeting) => (run?.steps.reduce(done, m) ?? m);
       return updateMeeting({ ...state, finalPass }, action.id, (m) =>
-        m.status === "processing" ? { ...m, status: "done" } : m,
+        over(m.status === "processing" ? { ...m, status: "done" } : m),
       );
     }
     case "title":
@@ -351,9 +373,8 @@ export function reducer(state: State, action: Action): State {
 
 /**
  * Applies the final pass' speakers to the utterances of one channel (`base` 0 = mic,
- * SYSTEM_SPEAKER_BASE = system). Every speaker of the meeting follows the verified speaker that
- * took over most of their lines: their name moves with them, and so do the lines set by hand
- * (`speakerLocked`), which otherwise keep their person.
+ * SYSTEM_SPEAKER_BASE = system). Each verified speaker keeps the number (and so the name) of the
+ * live speaker it took most lines from; the lines set by hand (`speakerLocked`) stay as they are.
  */
 export function relabel(m: Meeting, base: number, assignments: Assignment[]): Meeting {
   const inChannel = (speaker: number) => (base >= SYSTEM_SPEAKER_BASE ? speaker >= SYSTEM_SPEAKER_BASE : speaker < SYSTEM_SPEAKER_BASE);
@@ -369,43 +390,35 @@ export function relabel(m: Meeting, base: number, assignments: Assignment[]): Me
     v.set(next, (v.get(next) ?? 0) + 1);
     votes.set(u.speaker, v);
   }
-  // Each old speaker maps to its majority new speaker (one old speaker per new one, strongest first).
-  const follow = new Map<number, number>();
-  const taken = new Set<number>();
+  // Each new speaker takes the number of the old one it has most lines of (one each, strongest
+  // first), so numbers and names stay put: the user's voice, recognised live as speaker 0 ("Tu"),
+  // is still 0 after the check, whatever order the voices appear in.
+  const numberOf = new Map<number, number>();
+  const kept = new Set<number>();
   const ranked = [...votes.entries()]
     .flatMap(([old, v]) => [...v.entries()].map(([next, n]) => ({ old, next, n })))
     .sort((a, b) => b.n - a.n);
   for (const { old, next } of ranked) {
-    if (follow.has(old) || taken.has(next)) continue;
-    follow.set(old, next);
-    taken.add(next);
+    if (numberOf.has(next) || kept.has(old)) continue;
+    numberOf.set(next, old);
+    kept.add(old);
   }
-  // Old speakers that lost every line (e.g. only hand-set lines left) get an unused id.
-  const ids = [...m.utterances.map((u) => u.speaker), ...assignments.map((a) => a.speaker)];
-  let fresh = Math.max(base, ...ids) + 1;
-  const verifiedIds = new Set(assignments.map((a) => a.speaker));
-  const target = (old: number) => {
-    if (!follow.has(old)) follow.set(old, taken.has(old) || verifiedIds.has(old) ? fresh++ : old);
-    taken.add(follow.get(old)!);
-    return follow.get(old)!;
+  // A voice the live transcription didn't tell apart gets a number nobody has had.
+  const used = [...m.utterances.map((u) => u.speaker), ...Object.keys(m.speakerNames).map(Number)].filter(inChannel);
+  let fresh = Math.max(base - 1, ...used) + 1;
+  const number = (next: number) => {
+    if (!numberOf.has(next)) numberOf.set(next, fresh++);
+    return numberOf.get(next)!;
   };
 
   const utterances = m.utterances.map((u) => {
-    if (!inChannel(u.speaker)) return u;
-    const next = u.speakerLocked ? target(u.speaker) : (verified(u) ?? target(u.speaker));
-    return next === u.speaker ? u : { ...u, speaker: next };
+    const next = verified(u);
+    if (next === undefined) return u;
+    const speaker = number(next);
+    return speaker === u.speaker ? u : { ...u, speaker };
   });
-  const speakerNames: Record<number, string> = {};
-  for (const [id, name] of Object.entries(m.speakerNames)) {
-    const old = Number(id);
-    speakerNames[inChannel(old) ? target(old) : old] = name;
-  }
-  // Every old number of this channel → its new number (for actions started before this point).
-  const speakerRemap: Record<number, number> = {};
-  for (const old of new Set([...m.utterances.map((u) => u.speaker), ...Object.keys(m.speakerNames).map(Number)])) {
-    if (inChannel(old)) speakerRemap[old] = target(old);
-  }
-  return { ...m, utterances, speakerNames, speakersVersion: (m.speakersVersion ?? 0) + 1, speakerRemap };
+  // Numbers don't change meaning: a menu opened before this still points at the right voice.
+  return { ...m, utterances, speakersVersion: (m.speakersVersion ?? 0) + 1, speakerRemap: {} };
 }
 
 /** A speaker number chosen on an older numbering, translated to the current one. */
@@ -474,6 +487,7 @@ function diff(saved: Meeting, next: Meeting): backend.Changes | null {
   if (saved.tags !== next.tags && next.tags) meta.tags = next.tags;
   if (saved.shares !== next.shares && next.shares) meta.shares = next.shares;
   if (saved.parts !== next.parts && next.parts) meta.parts = next.parts;
+  if (saved.pending !== next.pending && next.pending) meta.pending = next.pending;
   if (Object.keys(meta).length) changes.meta = meta;
   if (saved.utterances !== next.utterances) {
     const before = new Map(saved.utterances.map((u) => [u.id, u]));

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS meetings (
     parts         TEXT,
     translation   TEXT,
     device        TEXT,
+    pending       TEXT,
     updated_at    REAL NOT NULL DEFAULT 0
 );
 
@@ -128,6 +129,9 @@ pub struct Summary {
     pub shares: Value,
     /// The phone it was recorded on (`{id, name}`), if it came from one.
     pub device: Value,
+    /// Steps left undone after recording (["speakers", "text", "punctuation", "cover"]): the
+    /// sidebar marks the meeting, and "Acaba de processar…" offers them.
+    pub pending: Value,
 }
 
 /// Metadata fields the UI can change; absent fields are left alone.
@@ -158,6 +162,8 @@ pub struct MetaPatch {
     pub translation: Option<Value>,
     /// Its tags, in order; replaces the ones it had.
     pub tags: Option<Vec<String>>,
+    /// The steps left undone after recording, that can still be done.
+    pub pending: Option<Value>,
 }
 
 /// A field that was sent, even as null (plain `Option` would read null as absent).
@@ -253,7 +259,7 @@ impl Db {
 
     pub fn list(&self) -> Result<Vec<Summary>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, title, created_at, duration, status, shares, device FROM meetings ORDER BY created_at DESC",
+            "SELECT id, title, created_at, duration, status, shares, device, pending FROM meetings ORDER BY created_at DESC",
         )?;
         let rows = stmt.query_map([], |r| {
             Ok(Summary {
@@ -268,6 +274,7 @@ impl Db {
                     .and_then(|s| serde_json::from_str(&s).ok())
                     .unwrap_or(json!([])),
                 device: r.get::<_, Option<String>>(6)?.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or(Value::Null),
+                pending: r.get::<_, Option<String>>(7)?.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or(json!([])),
             })
         })?;
         let mut list: Vec<Summary> = rows.collect::<rusqlite::Result<_>>()?;
@@ -390,7 +397,7 @@ impl Db {
             .conn
             .query_row(
                 "SELECT id, title, created_at, duration, status, speaker_names, sources, audio_path,
-                        notes_doc, legacy_notes, cover, guests, screens, language, shares, parts, translation, device
+                        notes_doc, legacy_notes, cover, guests, screens, language, shares, parts, translation, device, pending
                  FROM meetings WHERE id = ?1",
                 [id],
                 |r| {
@@ -414,6 +421,7 @@ impl Db {
                         "parts": parse(r.get(15)?).unwrap_or(json!([])),
                         "translation": parse(r.get(16)?),
                         "device": parse(r.get(17)?),
+                        "pending": parse(r.get(18)?).unwrap_or(json!([])),
                     }))
                 },
             )
@@ -465,8 +473,8 @@ impl Db {
         tx.execute(
             "INSERT INTO meetings (id, title, created_at, duration, status, speaker_names, sources,
                                    audio_path, notes_doc, legacy_notes, cover, guests, screens, language, shares, parts, translation,
-                                   device, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+                                   device, pending, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
             params![
                 id,
                 meeting
@@ -498,6 +506,7 @@ impl Db {
                 text("parts"),
                 text("translation"),
                 text("device"),
+                text("pending"),
                 now(),
             ],
         )?;
@@ -583,6 +592,12 @@ impl Db {
             if let Some(v) = meta.parts {
                 tx.execute(
                     "UPDATE meetings SET parts = ?2 WHERE id = ?1",
+                    params![id, v.to_string()],
+                )?;
+            }
+            if let Some(v) = meta.pending {
+                tx.execute(
+                    "UPDATE meetings SET pending = ?2 WHERE id = ?1",
                     params![id, v.to_string()],
                 )?;
             }
@@ -738,6 +753,9 @@ fn migrate(conn: &Connection) -> Result<()> {
     }
     if !has("meetings", "device")? {
         conn.execute("ALTER TABLE meetings ADD COLUMN device TEXT", [])?;
+    }
+    if !has("meetings", "pending")? {
+        conn.execute("ALTER TABLE meetings ADD COLUMN pending TEXT", [])?;
     }
     if !has("meetings", "updated_at")? {
         conn.execute("ALTER TABLE meetings ADD COLUMN updated_at REAL NOT NULL DEFAULT 0", [])?;
@@ -895,6 +913,20 @@ mod tests {
         assert_eq!(m["language"], "ca-es");
         assert_eq!(m["utterances"].as_array().unwrap().len(), 2);
         assert_eq!(db.list().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn steps_left_undone_are_kept_and_listed() {
+        let mut db = Db::in_memory().unwrap();
+        db.put(&meeting()).unwrap();
+        assert_eq!(db.get("m1").unwrap().unwrap()["pending"], json!([]));
+        db.apply("m1", Changes { meta: Some(MetaPatch { pending: Some(json!(["cover"])), ..Default::default() }), ..Default::default() }).unwrap();
+        assert_eq!(db.get("m1").unwrap().unwrap()["pending"], json!(["cover"]));
+        assert_eq!(db.list().unwrap()[0].pending, json!(["cover"]));
+        let mut m = meeting();
+        m["pending"] = json!(["speakers", "text"]);
+        db.put(&m).unwrap();
+        assert_eq!(db.get("m1").unwrap().unwrap()["pending"], json!(["speakers", "text"]));
     }
 
     #[test]

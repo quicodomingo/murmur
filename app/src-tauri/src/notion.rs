@@ -4,28 +4,22 @@
 //! between. The grant (client id, access and refresh tokens) lives in the keychain; tokens rotate
 //! on each refresh. Only the meeting's text goes to Notion, when the user exports it.
 
-use std::io::{BufRead, BufReader, Write};
-use std::net::TcpListener;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use anyhow::{Result, anyhow, bail};
-use base64::Engine as _;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 
 use crate::i18n::tr;
+use crate::oauth::{self, enc};
 
 const MCP: &str = "https://mcp.notion.com/mcp";
 const METADATA: &str = "https://mcp.notion.com/.well-known/oauth-authorization-server";
 const ISSUER: &str = "https://mcp.notion.com";
 const SERVICE: &str = "com.quicodomingo.murmur.notion";
 const ACCOUNT: &str = "grant";
-/// How long the browser has to come back.
-const SIGN_IN: Duration = Duration::from_secs(5 * 60);
 /// Refresh this long before the access token expires.
 const MARGIN_S: f64 = 300.0;
 /// Over this, the transcript goes to its own subpages (Notion refuses content too big for one call).
@@ -114,9 +108,7 @@ pub fn connect(open: impl Fn(&str) -> Result<()>) -> Result<String> {
     let (authorize, token, register) = (field("authorization_endpoint")?, field("token_endpoint")?, field("registration_endpoint")?);
 
     // The browser comes back here, on this computer only.
-    let listener = TcpListener::bind("127.0.0.1:0")?;
-    listener.set_nonblocking(true)?;
-    let redirect = format!("http://127.0.0.1:{}/callback", listener.local_addr()?.port());
+    let (listener, redirect) = oauth::listen()?;
 
     let reg: Value = agent()
         .post(&register)
@@ -131,12 +123,7 @@ pub fn connect(open: impl Fn(&str) -> Result<()>) -> Result<String> {
         .into_json()?;
     let client_id = reg["client_id"].as_str().ok_or_else(|| anyhow!("Notion: no client id"))?.to_string();
 
-    let mut random = [0u8; 32];
-    crate::keychain::random_bytes(&mut random);
-    let verifier = B64.encode(random);
-    let challenge = B64.encode(Sha256::digest(verifier.as_bytes()));
-    crate::keychain::random_bytes(&mut random[..16]);
-    let state = B64.encode(&random[..16]);
+    let oauth::Pkce { verifier, challenge, state } = oauth::Pkce::new();
     let url = format!(
         "{authorize}?response_type=code&client_id={}&redirect_uri={}&state={state}&code_challenge={challenge}&code_challenge_method=S256&resource={}&prompt=consent",
         enc(&client_id),
@@ -145,7 +132,13 @@ pub fn connect(open: impl Fn(&str) -> Result<()>) -> Result<String> {
     );
     open(&url)?;
 
-    let code = wait_for_code(&listener, &state)?;
+    let texts = oauth::Texts {
+        cancelled: tr!("notion_cancelled").into(),
+        timed_out: tr!("notion_timed_out").into(),
+        signed_in_page: tr!("notion_signed_in_page").into(),
+        refused: |e| tr!("notion_refused", error = e),
+    };
+    let code = oauth::wait_for_code(&listener, &state, &CANCEL, Some(ISSUER), &texts)?;
     let tok: Value = agent()
         .post(&token)
         .send_form(&[
@@ -167,83 +160,6 @@ pub fn connect(open: impl Fn(&str) -> Result<()>) -> Result<String> {
     };
     store(&grant)?;
     Ok(grant.workspace)
-}
-
-fn enc(s: &str) -> String {
-    s.bytes()
-        .map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
-            _ => format!("%{b:02X}"),
-        })
-        .collect()
-}
-
-fn dec(s: &str) -> String {
-    let bytes = s.as_bytes();
-    let mut out = vec![];
-    let mut i = 0;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'%' if i + 2 < bytes.len() => {
-                out.push(u8::from_str_radix(&s[i + 1..i + 3], 16).unwrap_or(b'?'));
-                i += 3;
-            }
-            b'+' => {
-                out.push(b' ');
-                i += 1;
-            }
-            b => {
-                out.push(b);
-                i += 1;
-            }
-        }
-    }
-    String::from_utf8_lossy(&out).into_owned()
-}
-
-/// Waits for the browser's redirect and answers it with a page that says it can be closed.
-fn wait_for_code(listener: &TcpListener, state: &str) -> Result<String> {
-    let until = Instant::now() + SIGN_IN;
-    loop {
-        if CANCEL.load(Ordering::SeqCst) {
-            bail!(tr!("notion_cancelled"));
-        }
-        if Instant::now() > until {
-            bail!(tr!("notion_timed_out"));
-        }
-        let (mut stream, _) = match listener.accept() {
-            Ok(s) => s,
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                std::thread::sleep(Duration::from_millis(200));
-                continue;
-            }
-            Err(e) => return Err(e.into()),
-        };
-        stream.set_nonblocking(false)?;
-        stream.set_read_timeout(Some(Duration::from_secs(5)))?;
-        let mut line = String::new();
-        BufReader::new(&stream).read_line(&mut line)?;
-        // "GET /callback?code=…&state=… HTTP/1.1"
-        let target = line.split_whitespace().nth(1).unwrap_or("");
-        let Some(query) = target.strip_prefix("/callback?") else {
-            let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
-            continue;
-        };
-        let param = |k: &str| query.split('&').find_map(|kv| kv.strip_prefix(k).and_then(|v| v.strip_prefix('='))).map(dec);
-        let page = tr!("notion_signed_in_page");
-        let body = format!("<!doctype html><meta charset=utf-8><title>Murmur</title><p style=\"font:16px -apple-system,system-ui,sans-serif;margin:4em auto;max-width:28em\">{page}</p>");
-        let _ = write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
-        if param("state").as_deref() != Some(state) {
-            bail!("Notion: state mismatch");
-        }
-        if let Some(e) = param("error") {
-            bail!(tr!("notion_refused", error = e));
-        }
-        if param("iss").is_some_and(|i| i != ISSUER) {
-            bail!("Notion: unexpected issuer");
-        }
-        return param("code").ok_or_else(|| anyhow!("Notion: no code"));
-    }
 }
 
 /// A valid access token, refreshing it first if it's about to expire.
@@ -396,8 +312,6 @@ mod tests {
 
     #[test]
     fn urls_and_long_transcripts() {
-        assert_eq!(enc("http://127.0.0.1:5/callback"), "http%3A%2F%2F127.0.0.1%3A5%2Fcallback");
-        assert_eq!(dec("a%2Fb+c"), "a/b c");
         assert_eq!(page_id_from_url("https://app.notion.com/p/67482b946939821d988f81f10c5d7fc1?pvs=204").as_deref(), Some("67482b946939821d988f81f10c5d7fc1"));
         let text = (0..100).map(|i| format!("Frase {i}.")).collect::<Vec<_>>().join("\n\n");
         let parts = split(&text, 200);

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ca" data-theme="acid" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendaris</title>
+<link rel="stylesheet" href="../../app/src/murmur-theme.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0 0 60px; background: var(--mm-fill-subtle); color: var(--mm-text-primary); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  [data-mode="dark"] body { background: var(--mm-sidebar); }
+  .i { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: var(--mm-background); border-bottom: 1px solid var(--mm-separator); }
+  .top h1 { margin: 0; font-size: 14px; flex: 1; }
+  .switch { display: flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; }
+  .switch button { all: unset; cursor: pointer; padding: 2px 12px; border-radius: 5px; color: var(--mm-text-secondary); }
+  .switch button[aria-pressed="true"] { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+  .lead, h2, .cap { width: 820px; margin-left: auto; margin-right: auto; }
+  .lead { margin-top: 28px; color: var(--mm-text-secondary); }
+  .lead b, .cap b { color: var(--mm-text-primary); }
+  h2 { margin-top: 40px; margin-bottom: 10px; font-size: 15px; }
+  .cap { margin-top: 12px; color: var(--mm-text-secondary); }
+
+  .st { width: 820px; min-height: 520px; margin: 0 auto; background: var(--mm-settings-background); border-radius: 12px; overflow: hidden; display: flex; box-shadow: 0 20px 50px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); }
+  .st nav { width: 184px; flex: none; background: var(--mm-sidebar); border-right: 1px solid var(--mm-separator); padding: 40px 8px 8px; }
+  .st nav div { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 6px; color: var(--mm-text-secondary); }
+  .st nav div.on { background: var(--mm-sidebar-selection); color: var(--mm-text-primary); font-weight: 500; }
+  .st main { flex: 1; min-width: 0; padding: 36px 24px 24px; }
+  .gt { padding: 0 4px 6px; font-size: 12px; font-weight: 600; color: var(--mm-text-secondary); }
+  .grp { border: 1px solid var(--mm-separator); border-radius: 10px; background: var(--mm-background); margin-bottom: 18px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+  .row + .row, .row + .sub, .sub + .row { border-top: 1px solid var(--mm-separator); }
+  .row .l { flex: 1; min-width: 0; }
+  .row .h { font-size: 11px; color: var(--mm-text-secondary); margin-top: 1px; }
+  .logo { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; background: var(--mm-fill-subtle); flex: none; color: var(--mm-text-secondary); }
+  .btn { height: 26px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 6px; font-size: 13px; background: var(--mm-background); box-shadow: inset 0 0 0 1px var(--mm-separator); white-space: nowrap; }
+  .btn.danger { color: var(--mm-recording-label); }
+  .btn.primary { background: var(--mm-accent); color: var(--mm-on-accent); box-shadow: none; font-weight: 600; }
+  .ok { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--mm-text-secondary); }
+  .ok i { width: 7px; height: 7px; border-radius: 50%; background: var(--mm-toggle-on); }
+  .sub { padding: 10px 12px 12px 52px; background: var(--mm-fill-subtle); }
+  .field { min-width: 0; text-overflow: ellipsis; height: 28px; border-radius: 6px; background: var(--mm-background); box-shadow: inset 0 0 0 1px var(--mm-text-secondary), 0 0 0 3px var(--mm-separator); padding: 0 8px; display: flex; align-items: center; font: 12px ui-monospace, "SF Mono", Consolas, monospace; color: var(--mm-text-primary); overflow: hidden; white-space: nowrap; }
+  .help { margin-top: 10px; font-size: 12px; color: var(--mm-text-secondary); }
+  .help b { color: var(--mm-text-primary); font-weight: 600; }
+  .help ol { margin: 4px 0 0; padding-left: 18px; }
+  .help li + li { margin-top: 2px; }
+  .tabs { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; }
+  .tabs span { color: var(--mm-text-secondary); padding-bottom: 3px; }
+  .tabs span.on { color: var(--mm-text-primary); font-weight: 600; box-shadow: inset 0 -2px 0 var(--mm-text-primary); }
+  .note { margin: -10px 4px 18px; font-size: 11px; color: var(--mm-text-secondary); display: flex; gap: 6px; }
+  .cal { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
+  .cal + .cal { border-top: 1px solid var(--mm-separator); }
+  .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .cal .l { flex: 1; }
+  .cal .h { font-size: 11px; color: var(--mm-text-secondary); }
+  .toggle { width: 30px; height: 18px; border-radius: 9px; background: var(--mm-toggle-on); position: relative; flex: none; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--mm-toggle-knob); }
+  .toggle.off { background: var(--mm-toggle-off); }
+  .toggle.off::after { right: auto; left: 2px; }
+  .badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: var(--mm-fill-subtle); color: var(--mm-text-secondary); margin-left: 6px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="g" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12h6"/></symbol>
+  <symbol id="link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.66 0l3-3a4 4 0 00-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 00-5.66 0l-3 3a4 4 0 005.66 5.66l1-1"/></symbol>
+  <symbol id="apple" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 9h8M8 13h5"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
+</svg>
+
+<div class="top">
+  <h1>Configuració › Calendari · Google, enllaços iCal i el calendari del sistema</h1>
+  <div class="switch" role="group" aria-label="Mode">
+    <button data-mode-set="light" aria-pressed="true">Clar</button>
+    <button data-mode-set="dark" aria-pressed="false">Fosc</button>
+  </div>
+</div>
+
+<p class="lead">El calendari serveix per avisar quan comença una reunió i posar-li el títol i els convidats. Ara només hi és al Mac, amb el calendari del sistema. Proposta: <b>una llista de connexions</b> igual als tres sistemes: el calendari del sistema (només al Mac), <b>Google</b> amb el seu inici de sessió, i <b>enllaços iCal</b> per a qualsevol altre (Outlook, iCloud, el de la feina). A sota, els calendaris de totes les connexions junts, amb el seu interruptor, com ara.</p>
+
+<h2>1 · Windows, sense res connectat</h2>
+<div id="s1"></div>
+<p class="cap">Dues maneres de connectar-ho, cadascuna amb el que en llegeix. Google obre el navegador per iniciar la sessió (només hi demana llegir els calendaris). L'enllaç iCal no demana cap compte.</p>
+
+<h2>2 · Afegint un enllaç iCal</h2>
+<div id="s2"></div>
+<p class="cap">El camp surt a la mateixa fila. A sota, com trobar l'enllaç a Google, Outlook i iCloud, en pestanyes. Murmur el prova abans de desar-lo (que sigui un calendari i se'n llegeixi el nom) i el desa al clauer: és un enllaç secret, qui el té pot veure el calendari. Es llegeix cada 5 minuts.</p>
+
+<h2>3 · Google i un enllaç connectats</h2>
+<div id="s3"></div>
+<p class="cap">Cada connexió diu de quin compte és i té «Desconnecta». Els calendaris de totes surten junts, amb el color i d'on vénen, i cadascun s'activa o no. La nota de privadesa diu què es llegeix i que no s'escriu mai res al calendari.</p>
+
+<h2>4 · Mac</h2>
+<div id="s4"></div>
+<p class="cap">Al Mac, el calendari del sistema continua sent la primera opció (ja inclou els comptes afegits a macOS, també Google). Google i els enllaços hi són per a qui no vol afegir el compte al sistema. Si un mateix calendari arriba per dos camins, es mostra una vegada.</p>
+
+<script>
+const icon = (id) => `<svg class="i"><use href="#${id}"/></svg>`;
+const nav = `<nav><div>General</div><div>Aparença</div><div class="on">${icon("cal")} Calendari</div><div>Àudio</div><div>Transcripció</div><div>Intel·ligència</div></nav>`;
+const google = (connected) => `<div class="row"><span class="logo">${icon("g")}</span><div class="l">Google Calendar<div class="h">${connected ? "marta@estudinord.cat" : "Inicia la sessió amb el teu compte de Google. Només hi llegeix els calendaris."}</div></div>${connected ? `<span class="ok"><i></i>Connectat</span><span class="btn danger">Desconnecta</span>` : `<span class="btn">Inicia la sessió…</span>`}</div>`;
+const ical = (links, adding) => `<div class="row"><span class="logo">${icon("link")}</span><div class="l">Enllaç iCal<div class="h">Outlook, iCloud o qualsevol calendari que doni un enllaç .ics.</div></div>${adding ? "" : `<span class="btn">Afegeix un enllaç…</span>`}</div>${
+  links.map((l) => `<div class="row"><span class="logo" style="background:none"></span><div class="l">${l.name}<div class="h">${l.host} · llegit fa 2 min</div></div><span class="btn danger">Treu</span></div>`).join("")}${
+  adding ? `<div class="sub"><div style="display:flex;gap:6px"><div class="field" style="flex:1">https://calendar.google.com/calendar/ical/marta%40estudino…/basic.ics</div><span class="btn primary">Afegeix</span><span class="btn">Cancel·la</span></div>
+    <div class="help"><b>On trobo l'enllaç?</b><div class="tabs"><span class="on">Google</span><span>Outlook</span><span>iCloud</span></div>
+    <ol><li>Obre Google Calendar al navegador › Configuració.</li><li>A l'esquerra, tria el calendari a «Configuració dels meus calendaris».</li><li>Copia l'«Adreça secreta en format iCal».</li></ol></div></div>` : ""}`;
+const system = `<div class="row"><span class="logo">${icon("apple")}</span><div class="l">Calendari de macOS<div class="h">Els calendaris de l'app Calendari, amb els comptes afegits a macOS.</div></div><span class="ok"><i></i>Connectat</span></div>`;
+const cals = (rows) => `<div class="gt">Calendaris que vigila</div><div class="grp">${rows.map(([c, n, h, on]) => `<div class="cal"><span class="dot" style="background:var(${c})"></span><div class="l">${n}<div class="h">${h}</div></div><span class="toggle ${on ? "" : "off"}"></span></div>`).join("")}</div>`;
+const note = `<p class="note">${icon("lock")}<span>Murmur només llegeix els calendaris (títol, hora, convidats i l'enllaç de la videotrucada) per avisar-te i posar-li nom a la reunió. No hi escriu mai res, i els enllaços i l'accés a Google es desen al clauer del sistema.</span></p>`;
+const page = (main) => `<div class="st">${nav}<main>${main}</main></div>`;
+
+document.getElementById("s1").innerHTML = page(`<div class="gt">Connexions</div><div class="grp">${google(false)}${ical([], false)}</div>${note}`);
+document.getElementById("s2").innerHTML = page(`<div class="gt">Connexions</div><div class="grp">${google(false)}${ical([], true)}</div>${note}`);
+document.getElementById("s3").innerHTML = page(`<div class="gt">Connexions</div><div class="grp">${google(true)}${ical([{ name: "Feina (Outlook)", host: "outlook.office365.com" }], false)}</div>${note}${cals([
+  ["--mm-speaker-1", "Marta", "Google · marta@estudinord.cat", true],
+  ["--mm-speaker-2", "Estudi Nord", "Google · marta@estudinord.cat", true],
+  ["--mm-speaker-3", "Festius", "Google · marta@estudinord.cat", false],
+  ["--mm-speaker-4", "Feina (Outlook)", "Enllaç iCal · outlook.office365.com", true],
+])}`);
+document.getElementById("s4").innerHTML = page(`<div class="gt">Connexions</div><div class="grp">${system}${google(false)}${ical([], false)}</div>${note}${cals([
+  ["--mm-speaker-1", "Casa", "iCloud", true],
+  ["--mm-speaker-2", "Estudi Nord", "marta@estudinord.cat (Google, des de macOS)", true],
+])}`);
+
+for (const b of document.querySelectorAll("[data-mode-set]")) {
+  b.addEventListener("click", () => {
+    document.documentElement.dataset.mode = b.dataset.modeSet;
+    for (const s of b.parentElement.children) s.setAttribute("aria-pressed", s === b);
+  });
+}
+</script>
+</body>
+</html>

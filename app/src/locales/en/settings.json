@@ -47,11 +47,13 @@
     "compactHint": "Murmur becomes narrow, next to the call and always on top, with just the notes.",
     "showWhatsNew": "Show What's New After Updating",
     "showWhatsNewHint": "A summary of what each new version brings, the first time you open Murmur.",
-    "showWhatsNewNow": "Show Now"
+    "showWhatsNewNow": "Show Now",
+    "log": "Log",
+    "logHint": "A file with what Murmur does inside (recordings, models, errors), to send if something goes wrong. It has nothing of what's said in meetings, no titles and no names, and it doesn't leave your computer unless you send it.",
+    "showLog": "Show Log"
   },
   "calendar": {
-    "footnote": "Murmur reads the calendars in the macOS Calendar app. To add Google Calendar, add the account in System Settings › Internet Accounts.",
-    "connection": "Connection",
+    "connection": "Connections",
     "macCalendar": "macOS Calendar",
     "denied": "Denied. Turn on Murmur in System Settings › Privacy & Security › Calendars.",
     "disconnected": "Disconnected: Murmur doesn't read it. macOS still gives it permission; you can remove it in System Settings.",
@@ -69,8 +71,58 @@
     "all": "All",
     "syncing": "Syncing calendars…",
     "empty": "No calendars",
-    "emptyHint": "Add one in the macOS Calendar app.",
-    "watch": "Watch {{name}}"
+    "emptyHint": "Add one in the macOS Calendar app or with an iCal link.",
+    "watch": "Watch {{name}}",
+    "privacy": "Murmur only reads your calendars (title, time, guests and the video call link) to alert you and name the meeting. It never writes anything to them, and the links and the Google access are saved in the system keychain.",
+    "privacyMac": "Murmur only reads your calendars (title, time, guests and the video call link) to alert you and name the meeting. It never writes anything to them. The macOS one includes the accounts added in System Settings › Internet Accounts, and the links and the Google access are saved in the keychain.",
+    "google": "Google Calendar",
+    "googleHint": "Sign in with your Google account. It only reads your calendars.",
+    "googleSignIn": "Sign in…",
+    "googleWaiting": "Continue in the browser: sign in and allow reading your calendars.",
+    "googleConnected": "Connected",
+    "googleConnectedToast": "Google Calendar connected ({{email}})",
+    "googleDisconnectTitle": "Disconnect Google Calendar?",
+    "googleDisconnectMessage": "Murmur will stop reading your Google calendars and delete its access from the keychain. The calendars don't change.",
+    "fromGoogle": "Google · {{email}}",
+    "ical": "iCal Link",
+    "icalHint": "Google, Outlook, iCloud or any calendar that gives an .ics link.",
+    "icalAdd": "Add a Link…",
+    "icalLabel": "The calendar's link in iCal format",
+    "icalChecking": "Checking…",
+    "icalAddButton": "Add",
+    "icalWhere": "Where do I find the link?",
+    "icalHelp": {
+      "google": {
+        "name": "Google",
+        "steps": [
+          "Open Google Calendar in your browser and go to Settings (the gear).",
+          "On the left, under “Settings for my calendars”, pick the calendar.",
+          "Under “Integrate calendar”, copy the “Secret address in iCal format”."
+        ]
+      },
+      "outlook": {
+        "name": "Outlook",
+        "steps": [
+          "Open Outlook in your browser and go to Settings › Calendar › Shared calendars.",
+          "Under “Publish a calendar”, pick the calendar and “Can view all details”, then Publish.",
+          "Copy the ICS link."
+        ]
+      },
+      "icloud": {
+        "name": "iCloud",
+        "steps": [
+          "In the iPhone's Calendar app, tap Calendars and the “i” next to the calendar.",
+          "Turn on “Public Calendar” and tap “Share Link” to copy it.",
+          "Paste it here: it starts with webcal://."
+        ]
+      }
+    },
+    "icalRead": "{{host}} · read {{when}}",
+    "icalRemove": "Remove",
+    "icalRemoveTitle": "Remove this calendar?",
+    "icalRemoveMessage": "Murmur will stop reading “{{name}}” and delete its link from the keychain. The calendar itself doesn't change.",
+    "icalAdded": "“{{name}}” added",
+    "fromLink": "iCal link · {{host}}"
   },
   "appearance": {
     "theme": "Theme",
@@ -161,7 +213,7 @@
     "thresholdHint": "Higher separates voices more; lower groups them.",
     "thresholdDefault": "Back to the default value ({{value}})",
     "reset": "Reset",
-    "afterRecording": "When Recording Ends",
+    "afterRecording": "When a Meeting Ends",
     "verifySpeakers": "Speaker Verification",
     "verifySpeakersHint": "Analyzes the whole meeting again to separate voices better. It can take a few minutes (about 7 per hour of meeting), but you can keep working meanwhile.",
     "finalPass": "Listen again with Whisper",
@@ -190,7 +242,15 @@
       "summary": "Summary and notes",
       "transcript": "Transcript"
     },
-    "markdownContentHint": "“Everything” saves two files: the summary with the notes, and the transcript. If a meeting has no summary, everything goes in one."
+    "markdownContentHint": "“Everything” saves two files: the summary with the notes, and the transcript. If a meeting has no summary, everything goes in one.",
+    "askAfter": "Ask me when it ends",
+    "askAfterHint": "A card above the meeting says what it'll do, and you can change it. If you touch nothing, it starts by itself after 10 seconds.",
+    "afterWhat": "What it does",
+    "afterRecordings": "Recordings",
+    "afterFiles": "Files",
+    "afterFor": "{{step}}, for {{kind}}",
+    "summarize": "Write the summary",
+    "summarizeHint": "Title, summary, decisions and tasks, with the model chosen in Intelligence."
   },
   "intelligence": {
     "cover": "Summary",
@@ -204,17 +264,23 @@
     "coverLanguageMeeting": "Meeting",
     "engine": "LLM",
     "engineLocal": "This Mac",
+    "engineCloud": "In the cloud, with your key",
     "engineLocalHint": "Gemma, on the computer. The transcript stays here, but it takes about 2–3 minutes for a 20-minute meeting.",
     "engineCloudHint": "Faster and better, but the transcript is sent to {{provider}}. You need your own API key, billed separately by usage.",
     "providers": {
       "anthropic": "Claude",
-      "openai": "OpenAI"
+      "openai": "OpenAI",
+      "gemini": "Gemini",
+      "openrouter": "OpenRouter"
     },
     "companies": {
       "anthropic": "Anthropic",
-      "openai": "OpenAI"
+      "openai": "OpenAI",
+      "gemini": "Google",
+      "openrouter": "OpenRouter"
     },
-    "privacyCloud": "Each time a summary is generated, the transcript's text and the notes are sent to {{provider}}. The audio never leaves this computer, and the key is saved in the macOS keychain."
+    "privacyCloud": "Each time a summary is generated, the transcript's text and the notes are sent to {{provider}}. The audio never leaves this computer, and the key is saved in the macOS keychain.",
+    "privacyRouter": "Each time a summary is generated, the transcript's text and the notes are sent to OpenRouter, which passes them on to the company behind the model you chose. The audio never leaves this computer, and the key is saved in the keychain."
   },
   "model": {
     "deleteMessage": "{{name}} ({{size}}) will be deleted. You can download it again whenever you want.",
@@ -252,7 +318,12 @@
   },
   "cloud": {
     "keyLabel": "{{company}} API key",
-    "keyHint": "A Claude or ChatGPT subscription won't do: you need an API key, billed separately by usage.",
+    "keyHints": {
+      "anthropic": "A Claude or ChatGPT subscription won't do: you need an API key, billed separately by usage.",
+      "openai": "A Claude or ChatGPT subscription won't do: you need an API key, billed separately by usage.",
+      "gemini": "A Gemini subscription won't do: you need an API key. There's a free tier with limits, and beyond that it's billed by usage.",
+      "openrouter": "OpenRouter runs on prepaid credit: you add money and each summary uses a little. One key gives you models from many companies."
+    },
     "createKey": "Create one at {{site}}",
     "connect": "Connect",
     "checking": "Checking…",
@@ -376,5 +447,17 @@
     "notionUsePrivate": "Use private pages",
     "notionAuto": "Save Each Meeting When It Ends",
     "notionPrivacy": "Only the meeting's text (summary, notes and transcript) goes to Notion, straight to your workspace, when you export it or when it ends if that's on. Never the audio or the screenshots."
+  },
+  "modelPicker": {
+    "search": "Search {{count}} models",
+    "recommended": "Recommended",
+    "free": "Free",
+    "count_one": "{{count}} model",
+    "count_other": "{{count}} models",
+    "matches_one": "{{shown}} of {{count}} model",
+    "matches_other": "{{shown}} of {{count}} models",
+    "none": "No model matches “{{query}}”",
+    "noneHint": "Try the company's name, like “google” or “mistral”.",
+    "escape": "Esc to close"
   }
 }

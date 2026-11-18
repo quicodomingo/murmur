@@ -64,7 +64,7 @@ impl Llm {
         if std::env::var_os("MURMUR_NO_GPU").is_none() {
             match load(999) {
                 Ok(model) => return Ok(Self { model }),
-                Err(e) => eprintln!("Gemma a la GPU: {e:#}; es fa amb el processador"),
+                Err(e) => log::warn!("Gemma on the GPU failed, using the CPU: {e:#}"),
             }
         }
         Ok(Self { model: load(0)? })
@@ -87,10 +87,13 @@ impl Llm {
         // to RAM, and the model stays on the GPU.
         let ctx = match self.model.new_context(backend()?, params()) {
             Ok(ctx) => ctx,
-            Err(_) => self
+            Err(e) => {
+                log::warn!("Gemma's context doesn't fit on the GPU, KV cache in RAM: {e:#}");
+                self
                 .model
                 .new_context(backend()?, params().with_offload_kqv(false))
-                .context(tr!("llm_context_failed"))?,
+                .context(tr!("llm_context_failed"))?
+            }
         };
         let mut session = Session { model: &self.model, ctx, prefix_len: 0, read_seconds: 0.0, pausable };
         let t0 = Instant::now();

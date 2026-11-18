@@ -10,7 +10,8 @@ export type Marker = { x: number; y: number; w: number; h: number; animate: bool
  * segmented controls, the meetings list). The chosen child carries `data-marker="<key>"`; the
  * container is `relative` and the child's offset parent. It only animates once it has been
  * placed: opening a window or a list shouldn't slide it in from the corner. `deps`: anything else
- * that moves the children (the list changing, the labels' language).
+ * that moves the children (the list changing, the labels' language); a change in the chosen
+ * child's own size is followed on its own.
  */
 export function useMarker(container: RefObject<HTMLElement | null>, key: string | null | undefined, deps: unknown[] = []): Marker | null {
   const [marker, setMarker] = useState<Marker | null>(null);
@@ -25,6 +26,18 @@ export function useMarker(container: RefObject<HTMLElement | null>, key: string 
     const next = { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, animate: placed.current };
     placed.current = true;
     setMarker(next);
+    // The chosen child can change size after it's placed: the font loading, a label that becomes
+    // bolder or wider (English "Summary" overflowed its background). Follow it, without sliding.
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      setMarker((m) => {
+        const now = { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+        if (m && m.x === now.x && m.y === now.y && m.w === now.w && m.h === now.h) return m;
+        return { ...now, animate: false };
+      });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [key, ...deps]);
   return marker;
 }

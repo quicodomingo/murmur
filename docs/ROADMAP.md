@@ -130,9 +130,14 @@ Entre reunions (bloc 5):
 - [x] Actualitzacions de l'app i dels models en obrir Murmur (repositori `quicodomingo/murmur-releases`), descàrregues amb comprovació d'espai i SHA-256. Versió 0.2.0.
 - [ ] Primera publicació (0.2.0) i provar una actualització real amb la 0.2.1.
 - [x] Portada: tasques editables, notes com a font, avís de portada desactualitzada i «PDF o envia…».
-- [ ] Google Calendar directe (OAuth) per a Windows, si cal.
-- [x] Intel·ligència: la portada amb el model local o amb Claude / OpenAI i la clau pròpia, desada al clauer del sistema, triant el model. Només s'envia text (transcripció i notes), mai àudio.
-- [ ] Provar la portada amb Claude i OpenAI amb claus reals i comparar-la amb Gemma (qualitat, temps i cost per reunió).
+- [x] Intel·ligència: la portada amb el model local o amb Claude / OpenAI / Gemini / OpenRouter i la clau pròpia, desada al clauer del sistema, triant el model. Només s'envia text (transcripció i notes), mai àudio.
+- [ ] Provar la portada amb Claude, OpenAI, Gemini i OpenRouter amb claus reals i comparar-la amb Gemma (qualitat, temps i cost per reunió).
+- [x] En acabar una reunió, «Què en faig ara?»: els passos (parlants, Whisper, puntuació, resum) es trien cada cop, recordats per a gravacions i per a fitxers, i el que no es fa queda pendent per a «Acaba de processar…».
+- [x] Calendaris amb un enllaç iCal a tots els sistemes (Google, Outlook, iCloud), amb els esdeveniments que es repeteixen i les zones d'Outlook.
+- [x] Google Calendar amb el seu inici de sessió (OAuth) a tots els sistemes: projecte de Google Cloud, client «Desktop», permisos `calendar.calendarlist.readonly` i `calendar.events.readonly`.
+- [ ] La verificació de Google (pàgina de privadesa amb el paràgraf de *Limited Use*, vídeo, justificació dels permisos) per sortir del mode de proves: fins llavors només hi poden entrar els usuaris de prova i la sessió caduca cada 7 dies. Mentrestant, a l'app publicada no surt (`GOOGLE_CALENDAR`, a `app/src/lib/features.ts`): quan Google ho aprovi, es posa a `true` i es torna a explicar als README.
+- [ ] Whisper frase a frase per a les reunions en català i castellà, només amb GPU: mesurar-lo amb `examples/mixed_probe.rs` (WER i RTF) en reunions reals barrejades i, si val la pena, fer-lo servir a la passada final i oferir els dos Whisper a qui tingui «Català + castellà».
+- [ ] Mesurar els models «Recomanats» d'OpenRouter (`RECOMMENDED`, `lib/cloud.ts`) amb el banc de proves abans de deixar-los com a recomanació: ara són un model conegut per empresa.
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
 - [x] Triar l'idioma i si sou més gent a la sala just abans de gravar (pantalla inicial, barra lateral i avisos), i canviar «Som més a la sala» durant la gravació.
 - [x] Tornar a transcriure una reunió desada en un altre idioma (català, castellà o anglès) amb Whisper, des del menú del títol.
@@ -179,12 +184,13 @@ Entre reunions (bloc 5):
 - [x] Windows: àudio del sistema amb loopback WASAPI.
 - [x] CI a macOS, Windows i Linux, i publicació automàtica de les versions en pujar l'etiqueta.
 - [x] Proves e2e: el motor transcriu un àudio de veritat a les tres plataformes, i la interfície amb `tauri-driver` a Windows i Linux.
-- [ ] Linux: àudio del sistema (el monitor de PipeWire o PulseAudio).
+- [x] Linux: àudio del sistema (el monitor de la sortida per defecte, amb PulseAudio o PipeWire).
 - [ ] Windows i Linux: captures de pantalla (`xcap` o similar).
 - [ ] Windows i Linux: «Reunió detectada» (qui fa servir el micròfon).
 - [ ] Windows i Linux: calendari (Google o Outlook directes, amb OAuth).
 - [ ] Windows: signar l'instal·lador perquè SmartScreen no avisi.
 - [x] Windows i Linux: acceleració per GPU (Vulkan) per a Whisper i Gemma, amb el processador si no hi ha gràfica o no hi cap.
+- [x] Si `murmur-whisper` peta a la gràfica (Vulkan a Linux amb el Whisper del BSC, #9), es repeteix amb el processador, i fins a la versió següent ja hi va directament.
 - [ ] Mesurar Vulkan en PC de veritat (NVIDIA, AMD, Intel integrada) amb el banc de proves: factor de temps real de Whisper i velocitat del resum, comparats amb el processador.
 - [x] Windows ARM (Snapdragon): compilació nativa, instal·lador `_arm64-setup.exe` i actualitzacions.
 - [ ] Windows ARM: provar-la en un Snapdragon de veritat i mesurar; si cal, Gemma a la GPU Adreno amb OpenCL.
@@ -213,6 +219,7 @@ Entre reunions (bloc 5):
   - [x] La pàgina de privadesa a la web, les captures en castellà i anglès, i enviar-la a revisió.
   - [x] Publicar la versió de l'ordinador que ensenya Configuració › Mòbil (0.16.0) abans que l'app surti a la botiga.
   - [x] Publicada a l'App Store el 17 de novembre de 2026 (https://apps.apple.com/app/id6835415829).
+  - [ ] Quan l'app de l'iPhone sigui a l'App Store de la UE: `PHONE_APP` a `true` (`app/src/lib/features.ts`; amaga Configuració › Mòbil i la icona de sincronització a l'app publicada), el paràgraf dels README que està comentat, i la novetat de l'iPhone amb la imatge (la de la 0.16.0, que no va sortir).
   - [ ] La secció de l'iPhone a la landing: textos i captures a [`docs/LANDING.md`](LANDING.md).
   - [ ] Les edicions després de revisar en tots dos sentits (avui el mòbil només conserva el títol i els noms que hi canvies).
   - [ ] iPad, iPhone Duo i Android.

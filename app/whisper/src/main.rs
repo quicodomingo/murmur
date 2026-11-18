@@ -5,9 +5,11 @@
 //!     murmur-whisper <model.bin> <ca|es|en>  < job.json
 //!
 //! Job (stdin): `{"channels": [{"pcm": "<16 kHz mono s16le file>", "spans": [{"start": s, "end": s}]}]}`.
-//! Output (stdout), one JSON object per line: `{"progress": 0.4}` as it goes, then
-//! `{"channel": i, "texts": [{"start": s, "text": "…"}]}` per channel. Utterances Whisper heard
-//! nothing in, or where it went wrong, are left out (they keep their live text).
+//! Output (stdout), one JSON object per chunk (below) as each is done:
+//! `{"progress": 0.4, "channel": i, "texts": [{"start": s, "text": "…"}]}`, the texts of that
+//! chunk's utterances. Utterances Whisper heard nothing in, or where it went wrong, are left out
+//! (they keep their live text). `"skip": n` in the job leaves out the first n chunks, done by an
+//! earlier run that crashed: the chunks only depend on the spans, so they're the same ones.
 //!
 //!     murmur-whisper <model.bin> detect  < job.json
 //!
@@ -53,6 +55,8 @@ const HALLUCINATIONS: &[&str] = &[
 #[derive(Deserialize)]
 struct Job {
     channels: Vec<ChannelJob>,
+    #[serde(default)]
+    skip: usize,
 }
 
 #[derive(Deserialize)]
@@ -106,23 +110,88 @@ fn dtw_preset(model: &str) -> Result<DtwModelPreset> {
     Ok(if text_layers >= 32 { DtwModelPreset::LargeV3 } else { DtwModelPreset::LargeV3Turbo })
 }
 
-/// Whisper on the GPU (Metal, or Vulkan if built with it), and on the CPU if that fails: a GPU
-/// without room for the model, or a driver that won't take it. `MURMUR_NO_GPU` skips the GPU.
-/// Without a usable GPU at all (no Vulkan driver), whisper.cpp already runs on the CPU.
+/// What a GPU needs free besides the model file: the KV caches and compute buffers (about 1.2 GB
+/// for large-v3, most of it the decoder's 600 MB), and a margin.
+#[cfg(not(target_os = "macos"))]
+const GPU_HEADROOM: usize = 1300 << 20;
+
+/// The GPU whisper.cpp should take (its `gpu_device`: GPUs counted as it counts them), or None for
+/// the CPU. On Windows and Linux (Vulkan), only a dedicated GPU with room for the model: an
+/// integrated one shares the RAM and is slower than the CPU (a UHD 620 did half the job in the time
+/// the CPU does all of it), and a GPU without room makes whisper.cpp crash instead of failing
+/// (an MX150 with 2 GB, issue #9). Every GPU found goes to the log with its verdict.
+#[cfg(not(target_os = "macos"))]
+fn pick_gpu(model: &str) -> Option<i32> {
+    use std::ffi::CStr;
+    use whisper_rs_sys::{
+        ggml_backend_dev_count, ggml_backend_dev_description, ggml_backend_dev_get, ggml_backend_dev_memory,
+        ggml_backend_dev_type, ggml_backend_dev_type_GGML_BACKEND_DEVICE_TYPE_GPU as GPU,
+        ggml_backend_dev_type_GGML_BACKEND_DEVICE_TYPE_IGPU as IGPU,
+    };
+    let need = std::fs::metadata(model).map_or(0, |m| m.len() as usize) + GPU_HEADROOM;
+    let mut chosen = None;
+    let mut index = 0;
+    // SAFETY: ggml's device registry lives for the whole process; the pointers it hands out stay valid.
+    unsafe {
+        for i in 0..ggml_backend_dev_count() {
+            let dev = ggml_backend_dev_get(i);
+            let kind = ggml_backend_dev_type(dev);
+            if kind != GPU && kind != IGPU {
+                continue;
+            }
+            let name = CStr::from_ptr(ggml_backend_dev_description(dev)).to_string_lossy();
+            let (mut free, mut total) = (0usize, 0usize);
+            ggml_backend_dev_memory(dev, &mut free, &mut total);
+            let verdict = if kind == IGPU {
+                "integrada, no s'hi fa"
+            } else if free < need {
+                "no hi cap"
+            } else if chosen.is_none() {
+                chosen = Some(index);
+                "s'hi fa"
+            } else {
+                "ja n'hi ha una altra"
+            };
+            eprintln!("Whisper: GPU {index}, {name}, {} MB lliures de {} (cal {}): {verdict}", free >> 20, total >> 20, need >> 20);
+            index += 1;
+        }
+    }
+    chosen
+}
+
+/// On the Mac, Metal: one GPU, sharing the RAM, and much faster than the CPU.
+#[cfg(target_os = "macos")]
+fn pick_gpu(_model: &str) -> Option<i32> {
+    Some(0)
+}
+
+/// Whisper on the GPU `pick_gpu` chooses, and on the CPU if there's none or loading fails there (a
+/// driver that won't take it). `MURMUR_NO_GPU` skips the GPU. Without a GPU build (no Vulkan),
+/// there's no GPU to pick.
 fn load(model: &str, configure: impl Fn(&mut WhisperContextParameters)) -> Result<WhisperContext> {
-    let with = |gpu: bool| {
+    let with = |gpu: Option<i32>| {
         let mut params = WhisperContextParameters::default();
-        params.use_gpu(gpu);
+        params.use_gpu(gpu.is_some());
+        if let Some(device) = gpu {
+            params.gpu_device(device);
+        }
         configure(&mut params);
         WhisperContext::new_with_params(model, params)
     };
     if std::env::var_os("MURMUR_NO_GPU").is_none() {
-        match with(true) {
-            Ok(ctx) => return Ok(ctx),
-            Err(e) => eprintln!("Whisper a la GPU: {e}; es fa amb el processador"),
+        if let Some(device) = pick_gpu(model) {
+            match with(Some(device)) {
+                Ok(ctx) => {
+                    eprintln!("Whisper: model carregat amb la GPU activada");
+                    return Ok(ctx);
+                }
+                Err(e) => eprintln!("Whisper a la GPU: {e}; es fa amb el processador"),
+            }
         }
     }
-    with(false).context("no s'ha pogut carregar Whisper")
+    let ctx = with(None).context("no s'ha pogut carregar Whisper")?;
+    eprintln!("Whisper: model carregat amb el processador (sense GPU)");
+    Ok(ctx)
 }
 
 fn run() -> Result<()> {
@@ -157,8 +226,11 @@ fn run() -> Result<()> {
     let mut out = std::io::stdout().lock();
     for (i, (channel, chunks)) in job.channels.iter().zip(&all).enumerate() {
         let samples = &audio[i];
-        let mut words: Vec<Vec<String>> = vec![vec![]; channel.spans.len()];
         for placed in chunks {
+            done += 1;
+            if done <= job.skip {
+                continue;
+            }
             let mut buf: Vec<f32> = vec![];
             for p in placed {
                 let span = channel.spans[p.span];
@@ -178,30 +250,27 @@ fn run() -> Result<()> {
                 }
                 eprintln!();
             }
-            if let Some(heard) = heard {
-                for (t, word) in heard {
-                    // The utterance playing at that moment (a word in a gap goes to the one before).
-                    let at = placed.iter().rposition(|p| p.offset <= t + 0.1).unwrap_or(0);
-                    words[placed[at].span].push(word);
-                }
+            let mut words: Vec<Vec<String>> = vec![vec![]; placed.len()];
+            for (t, word) in heard.into_iter().flatten() {
+                // The utterance playing at that moment (a word in a gap goes to the one before).
+                let at = placed.iter().rposition(|p| p.offset <= t + 0.1).unwrap_or(0);
+                words[at].push(word);
             }
-            done += 1;
-            writeln!(out, "{}", serde_json::json!({ "progress": done as f32 / total as f32 }))?;
+            let texts: Vec<Text> = placed
+                .iter()
+                .zip(words)
+                .filter_map(|(p, words)| {
+                    let text = words.join(" ");
+                    let lower = text.to_lowercase();
+                    let start = channel.spans[p.span].start;
+                    (!text.is_empty() && !HALLUCINATIONS.iter().any(|h| lower.contains(h)))
+                        .then(|| Text { start: (start * 100.0).round() / 100.0, text })
+                })
+                .collect();
+            let progress = done as f32 / total as f32;
+            writeln!(out, "{}", serde_json::json!({ "progress": progress, "channel": i, "texts": texts }))?;
             out.flush()?;
         }
-        let texts: Vec<Text> = channel
-            .spans
-            .iter()
-            .zip(words)
-            .filter_map(|(span, words)| {
-                let text = words.join(" ");
-                let lower = text.to_lowercase();
-                (!text.is_empty() && !HALLUCINATIONS.iter().any(|h| lower.contains(h)))
-                    .then(|| Text { start: (span.start * 100.0).round() / 100.0, text })
-            })
-            .collect();
-        writeln!(out, "{}", serde_json::json!({ "channel": i, "texts": texts }))?;
-        out.flush()?;
     }
     Ok(())
 }

@@ -80,6 +80,9 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Google Calendar's OAuth client, baked in by build.rs (without it, no Google sign-in).
+          MURMUR_GOOGLE_CLIENT_ID: ${{ secrets.MURMUR_GOOGLE_CLIENT_ID }}
+          MURMUR_GOOGLE_CLIENT_SECRET: ${{ secrets.MURMUR_GOOGLE_CLIENT_SECRET }}
           FEATURES: ${{ matrix.vulkan && '--features vulkan' || '' }}
         shell: bash
         run: npm run tauri build -- $FEATURES
@@ -136,6 +139,8 @@ jobs:
         working-directory: app
         env:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          MURMUR_GOOGLE_CLIENT_ID: ${{ secrets.MURMUR_GOOGLE_CLIENT_ID }}
+          MURMUR_GOOGLE_CLIENT_SECRET: ${{ secrets.MURMUR_GOOGLE_CLIENT_SECRET }}
         run: ./scripts/release.sh
       - name: Recull els fitxers
         run: |

@@ -5,22 +5,40 @@ import { modelInstalled } from "./models";
 import type { Settings } from "./settings";
 import type { CloudEngine, CloudModel, CloudProvider } from "./types";
 
-// The cover can be written by Claude or OpenAI instead of the local model, with the user's own
+// The cover can be written by Claude, OpenAI, Gemini or a model through OpenRouter instead of the local model, with the user's own
 // API key (cloud.rs). The key goes straight to the keychain: the interface only knows whether
 // there is one and its last characters.
 
-export const PROVIDERS: CloudProvider[] = ["anthropic", "openai"];
+export const PROVIDERS: CloudProvider[] = ["anthropic", "openai", "gemini", "openrouter"];
 
 /** Where each provider's API keys are made. */
 export const KEYS_URL: Record<CloudProvider, string> = {
   anthropic: "https://console.anthropic.com/settings/keys",
   openai: "https://platform.openai.com/api-keys",
+  gemini: "https://aistudio.google.com/apikey",
+  openrouter: "https://openrouter.ai/settings/keys",
 };
+
+/** What a key looks like, for the empty field. */
+export const KEY_PLACEHOLDER: Record<CloudProvider, string> = { anthropic: "sk-ant-…", openai: "sk-…", gemini: "AIza…", openrouter: "sk-or-…" };
 
 /** The model used until the user picks another, if the account has it (else its newest). */
 const DEFAULT_MODEL: Record<CloudProvider, string> = {
   anthropic: "claude-opus-5-5",
   openai: "gpt-6.1-sol",
+  gemini: "gemini-3.5-flash",
+  openrouter: "anthropic/claude-sonnet-5.5",
+};
+
+/**
+ * The models shown first in the picker, when the account has them. Not measured yet against
+ * Gemma with the bench (docs/ROADMAP.md): until then, one well-known model per company.
+ */
+export const RECOMMENDED: Record<CloudProvider, string[]> = {
+  anthropic: [],
+  openai: [],
+  gemini: [],
+  openrouter: ["anthropic/claude-sonnet-5.5", "google/gemini-3.5-flash", "openai/gpt-6.1-terra", "qwen/qwen4-max"],
 };
 
 export type CloudState = {
@@ -31,7 +49,7 @@ export type CloudState = {
   errors: Partial<Record<CloudProvider, string>>;
 };
 
-let state: CloudState = { status: { anthropic: null, openai: null }, models: {}, errors: {} };
+let state: CloudState = { status: { anthropic: null, openai: null, gemini: null, openrouter: null }, models: {}, errors: {} };
 const listeners = new Set<() => void>();
 const set = (next: Partial<CloudState>) => {
   state = { ...state, ...next };
@@ -58,13 +76,30 @@ export function useCloud(): CloudState {
   );
 }
 
+/** In a browser during development: a few models to try the picker with. */
+const SAMPLE_MODELS: CloudModel[] = [
+  ["anthropic/claude-fable-5.2", "Claude Fable 5.2", "Anthropic"],
+  ["anthropic/claude-opus-5.5", "Claude Opus 5.5", "Anthropic"],
+  ["anthropic/claude-sonnet-5.5", "Claude Sonnet 5.5", "Anthropic"],
+  ["anthropic/claude-haiku-5.5", "Claude Haiku 5.5", "Anthropic"],
+  ["baidu/ernie-5.5-flash-preview:free", "ERNIE-5.5-Flash-Preview (free)", "Baidu"],
+  ["google/gemini-4-hydrogen", "Gemini 4 Hydrogen", "Google"],
+  ["google/gemini-3.5-flash", "Gemini 3.5 Flash", "Google"],
+  ["mistralai/mistral-large-3", "Mistral Large 3", "Mistral"],
+  ["openai/gpt-6.1-sol", "GPT-6.1 Sol", "OpenAI"],
+  ["openai/gpt-6.1-terra", "GPT-6.1 Terra", "OpenAI"],
+  ["qwen/qwen4-max", "Qwen4 Max", "Qwen"],
+  ["z-ai/glm-5.3", "GLM 5.3", "Z.ai"],
+  ["z-ai/glm-5.3-flash", "GLM 5.3 Flash", "Z.ai"],
+].map(([id, name, group]) => ({ id, name, group }));
+
 /** Checks the key with the provider and saves it; throws the provider's error otherwise. */
 export async function connectCloud(provider: CloudProvider, key: string) {
   // In a browser during development ("?window=onboarding"): any key that looks like one.
   if (import.meta.env.DEV && !backend.isTauri()) {
     await new Promise((r) => setTimeout(r, 600));
     if (key.trim().length < 12) throw new Error("401: invalid x-api-key");
-    return set({ status: { ...state.status, [provider]: key.trim().slice(-4) } });
+    return set({ status: { ...state.status, [provider]: key.trim().slice(-4) }, models: { ...state.models, [provider]: SAMPLE_MODELS } });
   }
   const models = await backend.cloudConnect(provider, key);
   set({ models: { ...state.models, [provider]: models }, errors: { ...state.errors, [provider]: undefined } });
@@ -89,7 +124,7 @@ export async function loadCloudModels(provider: CloudProvider) {
 }
 
 /** The model a provider would use: the chosen one, else the default, else the account's newest. */
-export function cloudModel(provider: CloudProvider, settings: Settings): string {
+export function cloudModel(provider: CloudProvider, settings: Pick<Settings, "cloudModels">): string {
   const chosen = settings.cloudModels[provider];
   if (chosen) return chosen;
   const list = state.models[provider];

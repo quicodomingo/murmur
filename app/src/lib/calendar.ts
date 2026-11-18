@@ -1,6 +1,10 @@
 import { useSyncExternalStore } from "react";
 import * as backend from "./backend";
+import { capabilities } from "./platform";
 import type { Settings } from "./settings";
+
+/** The system's calendar is connected (macOS); the iCal links are read either way. */
+export const systemCalendarOn = (settings: Settings) => capabilities.systemCalendar && settings.calendarEnabled;
 
 /** A meeting rather than a reminder or a block of time: other people or a video call. */
 export const isMeeting = (e: backend.CalendarEvent) => !!e.platform || e.attendees.some((a) => !a.me);
@@ -15,9 +19,11 @@ export const guestNames = (e: backend.CalendarEvent) => [
  * With several, the one that starts closest to now.
  */
 export async function currentEvent(settings: Settings): Promise<backend.CalendarEvent | null> {
-  if (!backend.isTauri() || !settings.calendarEnabled || (await backend.calendarAccess()) !== "granted") return null;
+  if (!backend.isTauri()) return null;
+  // Without access, the system's calendar gives nothing: only the iCal links count.
+  const system = systemCalendarOn(settings) && (await backend.calendarAccess().catch(() => "denied")) === "granted";
   const now = Date.now();
-  const events = await backend.calendarEvents(now, now + 5 * 60_000, settings.calendarIds);
+  const events = await backend.calendarEvents(now, now + 5 * 60_000, settings.calendarIds, system);
   const candidates = events.filter((e) => e.end > now && (settings.calendarNoGuests || isMeeting(e)));
   candidates.sort((a, b) => Math.abs(a.start - now) - Math.abs(b.start - now));
   return candidates[0] ?? null;

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { ScreenThumbs } from "@/components/Screens";
-import { Flag, isYou, SpeakerFlag } from "@/components/SpeakerFlag";
+import { Flag, isYou, SpeakerFlag, toneOrder } from "@/components/SpeakerFlag";
 import { clock, speakerIds, speakerName } from "@/lib/format";
 import { meetingWhen, pauseLabel, pauses } from "@/lib/parts";
 import { notesDoc, notesFromDoc } from "@/lib/notes";
@@ -76,6 +76,9 @@ export function Transcript(props: Props) {
   const showTranslation = view === "translation" && !!translation;
   const live = (Object.entries(partial) as [Channel, string][]).filter(([, text]) => text);
   const speakers = speakerIds(meeting).map((id) => ({ id, name: speakerName(meeting, id), you: isYou(meeting, id) }));
+  const order = toneOrder(meeting, speakerIds(meeting));
+  // In a call, "Tu" can always be picked, even with no lines of their own (yet).
+  const choices = isYou(meeting, 0) && !speakers.some((s) => s.id === 0) ? [{ id: 0, name: speakerName(meeting, 0), you: true }, ...speakers] : speakers;
   const anchors = noteAnchors(meeting);
   const screens = screenAnchors(meeting);
   // Between two parts of a meeting that went on after stopping: before the first line of each part.
@@ -223,7 +226,8 @@ export function Transcript(props: Props) {
                   flag={
                     <SpeakerFlag
                       speaker={u.speaker}
-                      speakers={speakers}
+                      speakers={choices}
+                      order={order}
                       guests={meeting.guests}
                       version={meeting.speakersVersion ?? 0}
                       onReassign={(s, version) => props.onReassign(u.id, s, version)}
@@ -246,7 +250,7 @@ export function Transcript(props: Props) {
               const speaker = channel === "mic" ? 0 : SYSTEM_SPEAKER_BASE;
               return (
                 <div key={channel} className="mt-3 px-3">
-                  <Flag speaker={speaker} you={channel === "mic" && isYou(meeting, 0)} order={speakers.filter((s) => !s.you).map((s) => s.id)} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
+                  <Flag speaker={speaker} you={channel === "mic" && isYou(meeting, 0)} order={order} name={channel === "mic" ? speakerName(meeting, 0) : "…"} className="opacity-60" />
                   <p className="mt-1 text-[16px] leading-[1.65] text-muted-foreground" aria-live="off">
                     {text}
                     <span className="mm-caret ml-0.5 inline-block h-[18px] w-[2px] translate-y-[3px] bg-mm-caret" />

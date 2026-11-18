@@ -72,6 +72,12 @@
     "required": "Necesario",
     "transcriptionText": "Convierte la voz en texto, en catalán y otras lenguas, dentro de este Mac.",
     "alwaysIncluded": "Siempre incluido",
+    "languageQuestion": "¿En qué lengua son mayoritariamente tus reuniones?",
+    "whisperName": "Repaso al terminar",
+    "whisperTextCa": "Cuando termina la reunión, el Whisper catalán del BSC la vuelve a escuchar y reescribe el texto, más limpio. Todo en este ordenador.",
+    "whisperText": "Cuando termina la reunión, Whisper la vuelve a escuchar y reescribe el texto, con puntuación y mayúsculas. Todo en este ordenador.",
+    "whisperMixed": "Con reuniones en dos lenguas, todavía no: Whisper pasaría el castellano al catalán. Estamos trabajando en ello.",
+    "whisperToggle": "Incluir el repaso al terminar",
     "optional": "Opcional",
     "offline": "Una vez descargados, funcionan sin conexión. El audio y el texto de las reuniones nunca salen de este ordenador.",
     "close": "Cerrar",
@@ -83,21 +89,37 @@
     "waiting": "En espera",
     "percent": "{{value}} %",
     "summaryName": "Resúmenes",
-    "summaryText": "Título, resumen, decisiones y tareas de cada reunión. Elige quién los escribe:",
+    "summaryText": "Título, resumen, decisiones y tareas de cada reunión. Elige dónde se escriben:",
     "writers": {
       "local": "Gemma, en este Mac",
+      "cloud": "En la nube",
+      "none": "Ahora no",
       "anthropic": "Claude",
       "openai": "ChatGPT",
-      "none": "Ahora no"
+      "gemini": "Gemini",
+      "openrouter": "OpenRouter"
     },
+    "writerNotes": {
+      "anthropic": "de Anthropic",
+      "openai": "de OpenAI",
+      "gemini": "de Google",
+      "openrouter": "Muchos modelos, una clave"
+    },
+    "whichCompany": "Quién lo escribe",
     "localText": "Gemma 4, de Google, funciona dentro de este Mac. Pesa {{size}} y necesita un Mac con 16 GB de memoria.",
     "noneText": "Puedes elegirlo más adelante en Ajustes › Inteligencia.",
-    "cloudText": "Solo se envía el texto de la reunión a {{name}}, nunca el audio. Hace falta una clave de API, que se factura aparte según el uso: la suscripción no sirve.",
+    "cloudTexts": {
+      "anthropic": "Solo se envía el texto de la reunión a {{name}}, nunca el audio. Hace falta una clave de API, que se factura aparte según el uso: la suscripción no sirve.",
+      "openai": "Solo se envía el texto de la reunión a {{name}}, nunca el audio. Hace falta una clave de API, que se factura aparte según el uso: la suscripción no sirve.",
+      "gemini": "Solo se envía el texto de la reunión a {{name}}, nunca el audio. Hace falta una clave de API, que tiene un nivel gratuito con límites: la suscripción no sirve.",
+      "openrouter": "Solo se envía el texto de la reunión a {{name}}, que lo pasa a la empresa del modelo que elijas, nunca el audio. Hace falta una clave de API con crédito de prepago."
+    },
     "cloudCreateKey": "Crea una en {{site}}",
     "cloudKey": "Clave de API de {{name}}",
     "cloudConnect": "Conectar",
     "cloudChecking": "Comprobando…",
     "cloudConnected": "{{name}} conectado. Clave guardada en el llavero, acaba en …{{hint}}",
+    "model": "Modelo:",
     "offlineCloud": "El audio nunca sale de este ordenador. Para hacer los resúmenes, solo se envía el texto de la reunión, con tu clave.",
     "analytics": "Enviar estadísticas de uso anónimas: qué funciones se usan, sin nada de lo que se dice en las reuniones. Puedes cambiarlo en Configuración › General."
   },

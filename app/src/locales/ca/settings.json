@@ -47,11 +47,13 @@
     "compactHint": "Murmur es fa estreta, al costat de la trucada i sempre al davant, només amb les notes.",
     "showWhatsNew": "Mostra les novetats després d'actualitzar",
     "showWhatsNewHint": "Un resum del que porta cada versió nova, el primer cop que obres Murmur.",
-    "showWhatsNewNow": "Mostra-les"
+    "showWhatsNewNow": "Mostra-les",
+    "log": "Registre",
+    "logHint": "Un fitxer amb el que fa Murmur per dins (gravacions, models, errors), per enviar-lo si alguna cosa falla. No hi ha res del que es diu a les reunions, ni títols, ni noms, i no surt de l'ordinador si no l'envies tu.",
+    "showLog": "Mostra el registre"
   },
   "calendar": {
-    "footnote": "Murmur llegeix els calendaris que tens a l'app Calendari de macOS. Per afegir-hi Google Calendar, afegeix el compte a Configuració del Sistema › Comptes d'Internet.",
-    "connection": "Connexió",
+    "connection": "Connexions",
     "macCalendar": "Calendari de macOS",
     "denied": "Denegat. Activa Murmur a Configuració del Sistema › Privadesa i seguretat › Calendaris.",
     "disconnected": "Desconnectat: Murmur no el llegeix. macOS encara li dona permís; el pots retirar a Configuració del Sistema.",
@@ -69,8 +71,58 @@
     "all": "Tots",
     "syncing": "Sincronitzant els calendaris…",
     "empty": "No hi ha cap calendari",
-    "emptyHint": "Afegeix-ne un a l'app Calendari de macOS.",
-    "watch": "Vigila {{name}}"
+    "emptyHint": "Afegeix-ne un a l'app Calendari de macOS o amb un enllaç iCal.",
+    "watch": "Vigila {{name}}",
+    "privacy": "Murmur només llegeix els calendaris (títol, hora, convidats i l'enllaç de la videotrucada) per avisar-te i posar-li nom a la reunió. No hi escriu mai res, i els enllaços i l'accés a Google es desen al clauer del sistema.",
+    "privacyMac": "Murmur només llegeix els calendaris (títol, hora, convidats i l'enllaç de la videotrucada) per avisar-te i posar-li nom a la reunió. No hi escriu mai res. El de macOS inclou els comptes afegits a Configuració del Sistema › Comptes d'Internet, i els enllaços i l'accés a Google es desen al clauer.",
+    "google": "Google Calendar",
+    "googleHint": "Inicia la sessió amb el teu compte de Google. Només hi llegeix els calendaris.",
+    "googleSignIn": "Inicia la sessió…",
+    "googleWaiting": "Continua al navegador: inicia la sessió i dona permís per llegir els calendaris.",
+    "googleConnected": "Connectat",
+    "googleConnectedToast": "Google Calendar connectat ({{email}})",
+    "googleDisconnectTitle": "Vols desconnectar Google Calendar?",
+    "googleDisconnectMessage": "Murmur deixarà de llegir els teus calendaris de Google i n'esborrarà l'accés del clauer. Els calendaris no canvien.",
+    "fromGoogle": "Google · {{email}}",
+    "ical": "Enllaç iCal",
+    "icalHint": "Google, Outlook, iCloud o qualsevol calendari que doni un enllaç .ics.",
+    "icalAdd": "Afegeix un enllaç…",
+    "icalLabel": "Enllaç del calendari en format iCal",
+    "icalChecking": "Comprovant…",
+    "icalAddButton": "Afegeix",
+    "icalWhere": "On trobo l'enllaç?",
+    "icalHelp": {
+      "google": {
+        "name": "Google",
+        "steps": [
+          "Obre Google Calendar al navegador i ves a Configuració (la roda dentada).",
+          "A l'esquerra, a «Configuració dels meus calendaris», tria el calendari.",
+          "A «Integra el calendari», copia l'«Adreça secreta en format iCal»."
+        ]
+      },
+      "outlook": {
+        "name": "Outlook",
+        "steps": [
+          "Obre Outlook al navegador i ves a Configuració › Calendari › Calendaris compartits.",
+          "A «Publica un calendari», tria el calendari i «Pot veure tots els detalls», i prem Publica.",
+          "Copia l'enllaç ICS."
+        ]
+      },
+      "icloud": {
+        "name": "iCloud",
+        "steps": [
+          "A l'app Calendari de l'iPhone, toca Calendaris i la «i» del calendari.",
+          "Activa «Calendari públic» i toca «Comparteix l'enllaç» per copiar-lo.",
+          "Enganxa'l aquí: comença per webcal://."
+        ]
+      }
+    },
+    "icalRead": "{{host}} · llegit {{when}}",
+    "icalRemove": "Treu",
+    "icalRemoveTitle": "Vols treure aquest calendari?",
+    "icalRemoveMessage": "Murmur deixarà de llegir «{{name}}» i n'esborrarà l'enllaç del clauer. El calendari no canvia.",
+    "icalAdded": "«{{name}}» afegit",
+    "fromLink": "Enllaç iCal · {{host}}"
   },
   "appearance": {
     "theme": "Tema",
@@ -161,7 +213,7 @@
     "thresholdHint": "Més alt separa més les veus; més baix les agrupa.",
     "thresholdDefault": "Torna al valor per defecte ({{value}})",
     "reset": "Restableix",
-    "afterRecording": "En acabar la gravació",
+    "afterRecording": "En acabar una reunió",
     "verifySpeakers": "Verificació de parlants",
     "verifySpeakersHint": "Torna a analitzar tota la reunió per separar millor les veus. Pot trigar uns minuts (uns 7 per hora de reunió), però pots continuar treballant mentrestant.",
     "finalPass": "Torna a escoltar amb Whisper",
@@ -190,7 +242,15 @@
       "summary": "Resum i notes",
       "transcript": "Transcripció"
     },
-    "markdownContentHint": "«Tot» desa dos fitxers: el resum amb les notes i la transcripció. Si una reunió no té resum, s'hi desa tot en un de sol."
+    "markdownContentHint": "«Tot» desa dos fitxers: el resum amb les notes i la transcripció. Si una reunió no té resum, s'hi desa tot en un de sol.",
+    "askAfter": "Pregunta-m'ho en acabar",
+    "askAfterHint": "Una targeta a dalt de la reunió diu què farà, i ho pots canviar. Si no hi toques res, comença sola en 10 segons.",
+    "afterWhat": "Què fa",
+    "afterRecordings": "Gravacions",
+    "afterFiles": "Fitxers",
+    "afterFor": "{{step}}, per a {{kind}}",
+    "summarize": "Fes el resum",
+    "summarizeHint": "Títol, resum, decisions i tasques, amb el model triat a Intel·ligència."
   },
   "intelligence": {
     "cover": "Resum",
@@ -204,17 +264,23 @@
     "coverLanguageMeeting": "El de la reunió",
     "engine": "LLM",
     "engineLocal": "Aquest Mac",
+    "engineCloud": "Al núvol, amb la teva clau",
     "engineLocalHint": "Gemma, a l'ordinador. La transcripció no en surt, però triga uns 2–3 minuts per a una reunió de 20 minuts.",
     "engineCloudHint": "Més ràpid i amb més qualitat, però la transcripció s'envia a {{provider}}. Cal una clau d'API pròpia, que es paga a part segons l'ús.",
     "providers": {
       "anthropic": "Claude",
-      "openai": "OpenAI"
+      "openai": "OpenAI",
+      "gemini": "Gemini",
+      "openrouter": "OpenRouter"
     },
     "companies": {
       "anthropic": "Anthropic",
-      "openai": "OpenAI"
+      "openai": "OpenAI",
+      "gemini": "Google",
+      "openrouter": "OpenRouter"
     },
-    "privacyCloud": "Cada vegada que es genera un resum, el text de la transcripció i les notes s'envien a {{provider}}. L'àudio no surt mai d'aquest ordinador, i la clau es desa al clauer de macOS."
+    "privacyCloud": "Cada vegada que es genera un resum, el text de la transcripció i les notes s'envien a {{provider}}. L'àudio no surt mai d'aquest ordinador, i la clau es desa al clauer de macOS.",
+    "privacyRouter": "Cada vegada que es genera un resum, el text de la transcripció i les notes s'envien a OpenRouter, que els passa a l'empresa del model que hagis triat. L'àudio no surt mai d'aquest ordinador, i la clau es desa al clauer."
   },
   "model": {
     "deleteMessage": "S'esborrarà {{name}} ({{size}}). El pots tornar a descarregar quan vulguis.",
@@ -251,16 +317,21 @@
     "needKey": "Primer connecta el compte."
   },
   "cloud": {
-    "keyLabel": "Clau d'API d'{{company}}",
-    "keyHint": "No serveix la subscripció a Claude o ChatGPT: cal una clau d'API, que es factura a part segons l'ús.",
+    "keyLabel": "Clau d'API per a {{company}}",
+    "keyHints": {
+      "anthropic": "No serveix la subscripció a Claude o ChatGPT: cal una clau d'API, que es factura a part segons l'ús.",
+      "openai": "No serveix la subscripció a Claude o ChatGPT: cal una clau d'API, que es factura a part segons l'ús.",
+      "gemini": "No serveix la subscripció a Gemini: cal una clau d'API. Té un nivell gratuït amb límits, i a partir d'aquí es paga segons l'ús.",
+      "openrouter": "OpenRouter funciona amb crèdit de prepagament: hi afegeixes diners i cada resum en gasta una mica. Amb una sola clau tens models de moltes empreses."
+    },
     "createKey": "Crea'n una a {{site}}",
     "connect": "Connecta",
     "checking": "Comprovant…",
-    "connected": "Compte d'{{company}} connectat",
+    "connected": "Compte connectat a {{company}}",
     "keySaved": "Clau desada al clauer, acaba en …{{hint}}",
     "disconnect": "Desconnecta",
     "disconnectTitle": "Vols desconnectar el compte?",
-    "disconnectMessage": "S'esborrarà la clau d'{{company}} del clauer. Els resums que ja tens no canvien.",
+    "disconnectMessage": "S'esborrarà del clauer la clau per a {{company}}. Els resums que ja tens no canvien.",
     "model": "Model",
     "modelHint": "Els més grans escriuen millor i costen més per resum."
   },
@@ -376,5 +447,17 @@
     "notionUsePrivate": "Fes servir pàgines privades",
     "notionAuto": "Desa-hi cada reunió en acabar",
     "notionPrivacy": "A Notion només s'hi envia el text de la reunió (resum, notes i transcripció), directament al teu espai, quan l'exportes o en acabar si ho tens activat. L'àudio i les captures, mai."
+  },
+  "modelPicker": {
+    "search": "Cerca entre {{count}} models",
+    "recommended": "Recomanats",
+    "free": "Gratis",
+    "count_one": "{{count}} model",
+    "count_other": "{{count}} models",
+    "matches_one": "{{shown}} de {{count}} model",
+    "matches_other": "{{shown}} de {{count}} models",
+    "none": "Cap model coincideix amb «{{query}}»",
+    "noneHint": "Prova amb el nom de l'empresa, com «google» o «mistral».",
+    "escape": "Esc per tancar"
   }
 }

@@ -2,11 +2,14 @@
 // `crate::` paths here.
 pub use murmur_core::{aec, db, diarize, engine, glossary, i18n, models, pipeline, playback, punctuate, recorder, storage, voice};
 pub mod audio;
+pub mod awake;
 pub mod calendar;
 pub mod capture;
 pub mod gate;
+pub mod ics;
 pub mod import;
 pub mod keychain;
+pub mod logfile;
 pub mod cloud;
 pub mod share;
 pub mod llm;
@@ -14,7 +17,9 @@ pub mod mcp;
 pub mod micwatch;
 pub mod mobile;
 pub mod obsidian;
+pub mod google;
 pub mod notion;
+pub mod oauth;
 pub mod permissions;
 pub mod retranscribe;
 pub mod shell;
@@ -25,7 +30,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{RecvTimeoutError, Sender, unbounded};
 use serde::{Deserialize, Serialize};
@@ -49,6 +54,9 @@ struct AppState {
     punctuator: Mutex<Option<punctuate::Punctuator>>,
     /// Downloads in progress, by model id, with their cancel flag.
     downloads: Mutex<HashMap<String, Arc<AtomicBool>>>,
+    /// Recordings that stopped, by meeting: their audio for the final pass and what it could do,
+    /// until the interface says which steps to run ("Què en faig ara?", `run_final_pass`).
+    waiting: Mutex<HashMap<String, (Vec<pipeline::Tapped>, FinalPlan)>>,
 }
 
 struct Recording {
@@ -119,6 +127,8 @@ async fn start_recording(
     let (audio_tx, audio_rx) = unbounded::<audio::Frame>();
     let (stop_tx, stop_rx) = unbounded::<()>();
     let (ready_tx, ready_rx) = unbounded::<Result<(), String>>();
+    // The worker asks the audio thread to open the microphone again when it goes quiet.
+    let (reopen_tx, reopen_rx) = unbounded::<()>();
 
     // cpal streams aren't Send on macOS: own the stream in its own thread until told to stop.
     let simulate = std::env::var("TRANSCRIPTOR_SIMULATE").ok();
@@ -132,6 +142,16 @@ async fn start_recording(
         (mic, system)
     };
     let importing = file.is_some();
+    // Never the device's name ("AirPods de la Marta"): only whether one was chosen.
+    log::info!(
+        "{} started: mic={mic} system={system} language={language} room={room_speakers} device={} final_text={}",
+        if file.is_some() { "import" } else { "recording" },
+        if mic_device.is_some() { "chosen" } else { "default" },
+        final_text
+    );
+    // A real microphone sends frames all the time, silence included: none for a while means it
+    // stopped (a file or the simulator have no microphone to watch).
+    let watch_mic = mic && !importing && simulate.is_none();
     let tmp = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("import");
     let progress_app = app.clone();
     let audio = std::thread::spawn(move || match (file, simulate) {
@@ -150,16 +170,32 @@ async fn start_recording(
                 log::error!("{e:#}");
             }
         }
-        (None, None) => match audio::start_capture(mic, mic_device.as_deref(), system, audio_tx) {
-            Ok(stream) => {
-                let _ = ready_tx.send(Ok(()));
-                let _ = stop_rx.recv();
-                drop(stream);
+        (None, None) => {
+            let mic_tx = audio_tx.clone();
+            match audio::start_capture(mic, mic_device.as_deref(), system, audio_tx) {
+                Ok(mut capture) => {
+                    let _ = ready_tx.send(Ok(()));
+                    loop {
+                        crossbeam_channel::select! {
+                            recv(stop_rx) -> _ => break,
+                            recv(reopen_rx) -> asked => {
+                                if asked.is_err() {
+                                    break;
+                                }
+                                match capture.reopen_mic(mic_device.as_deref(), mic_tx.clone()) {
+                                    Ok(()) => log::warn!("microphone reopened"),
+                                    Err(e) => log::warn!("microphone: {e:#}"),
+                                }
+                            }
+                        }
+                    }
+                    drop(capture);
+                }
+                Err(e) => {
+                    let _ = ready_tx.send(Err(format!("{e:#}")));
+                }
             }
-            Err(e) => {
-                let _ = ready_tx.send(Err(format!("{e:#}")));
-            }
-        },
+        }
     });
     ready_rx.recv().map_err(|e| e.to_string())??;
     // A file isn't a call: no floating pill, and the work after it needn't wait.
@@ -262,6 +298,9 @@ async fn start_recording(
     let final_pass_meeting = meeting_id.clone();
 
     let worker = std::thread::spawn(move || {
+        // Until the last sentence is written: nobody touches the computer during a meeting.
+        let _awake = (!importing).then(awake::keep).flatten();
+        let began = Instant::now();
         let mut pipeline = match Pipeline::new(
             &models,
             mic,
@@ -296,7 +335,22 @@ async fn start_recording(
             }
         };
         let mut level_samples = 0usize;
+        let mut mic_seen = Instant::now();
+        let mut mic_lost = false;
+        let mut reopened = Instant::now();
         loop {
+            if watch_mic && mic_seen.elapsed() > MIC_QUIET {
+                if !mic_lost {
+                    mic_lost = true;
+                    log::warn!("no audio from the microphone for {:?}", mic_seen.elapsed());
+                    let _ = app.emit("mic-lost", true);
+                    shell::mic_lost(&app, true);
+                }
+                if reopened.elapsed() > MIC_REOPEN_EVERY {
+                    reopened = Instant::now();
+                    let _ = reopen_tx.send(());
+                }
+            }
             // Normally ends when the audio thread drops the streams and the sender disconnects;
             // the flag covers capture backends that keep their handler alive a bit longer.
             let (source, samples) = match audio_rx.recv_timeout(Duration::from_millis(150)) {
@@ -311,6 +365,14 @@ async fn start_recording(
                 }
                 Err(RecvTimeoutError::Disconnected) => break,
             };
+            if source == audio::Source::Mic {
+                mic_seen = Instant::now();
+                if mic_lost {
+                    mic_lost = false;
+                    let _ = app.emit("mic-lost", false);
+                    shell::mic_lost(&app, false);
+                }
+            }
             // "Som més a la sala" changed: the microphone's voices from now on.
             let room = room_worker.load(Ordering::Relaxed);
             if room != room_now && mic && system {
@@ -348,24 +410,16 @@ async fn start_recording(
                 vec![]
             }
         };
+        log::info!("{} stopped after {:.0} s", if importing { "import" } else { "recording" }, began.elapsed().as_secs_f32());
         let _ = app.emit("transcript-done", ());
         if !importing {
             shell::set_recording(&app, false);
         }
-        // Runs on its own thread so stopping returns at once; the UI shows its progress.
-        // Without it, "final-pass-done" still follows so the UI can go on (punctuation, cover).
-        match tapped.is_empty() {
-            false => {
-                std::thread::spawn(move || final_pass(app, final_pass_meeting, tapped, plan, gate::heavy()));
-            }
-            true => {
-                save_glossary_hits(&app);
-                let _ = app.emit(
-                    "final-pass-done",
-                    FinalPassDone { meeting_id: final_pass_meeting, error: None },
-                );
-            }
-        }
+        // The interface asks which steps to run ("Què en faig ara?") and answers with
+        // `run_final_pass`; meanwhile the audio waits here.
+        let ready = FinalPassReady::new(final_pass_meeting.clone(), &tapped, &plan);
+        app.state::<AppState>().waiting.lock().unwrap().insert(final_pass_meeting, (tapped, plan));
+        let _ = app.emit("final-pass-ready", ready);
     });
 
     *state.recording.lock().unwrap() = Some(Recording {
@@ -495,8 +549,12 @@ struct Platform {
     system_audio: bool,
     /// Screenshots of the meeting window (capture.rs).
     screenshots: bool,
-    /// Reading the system calendar (calendar.rs).
+    /// Calendars at all: the system's, or iCal links (ics.rs) everywhere.
     calendar: bool,
+    /// Reading the system's own calendar (calendar.rs, EventKit).
+    system_calendar: bool,
+    /// Signing in with Google Calendar (google.rs): builds with the OAuth client.
+    google_calendar: bool,
     /// Noticing other apps using the microphone (micwatch.rs).
     meeting_detection: bool,
     /// The extension of the audio file to listen to or export (playback.rs).
@@ -510,7 +568,9 @@ fn platform() -> Platform {
         os: std::env::consts::OS,
         system_audio: audio::SYSTEM_AUDIO,
         screenshots: mac,
-        calendar: mac,
+        calendar: true,
+        system_calendar: mac,
+        google_calendar: google::available(),
         meeting_detection: mac,
         audio_extension: playback::EXTENSION,
     }
@@ -632,6 +692,11 @@ fn safe_id(id: &str) -> String {
 /// 0.116 measured on an M4 base (window 0.2, see diarize_probe), with margin for slower Macs.
 /// Only drives the estimate shown in the UI.
 const DIARIZE_RTF_ESTIMATE: f32 = 0.15;
+/// No frames from the microphone for this long: it stopped (it sends silence too, every ~10 ms).
+const MIC_QUIET: Duration = Duration::from_secs(4);
+/// While it's quiet, how often the audio thread tries to open it again.
+const MIC_REOPEN_EVERY: Duration = Duration::from_secs(5);
+
 /// Captured frames waiting beyond which the recording is "behind" (mic callbacks come every
 /// ~10 ms, system audio every ~60 ms: about a second or more of audio).
 const BACKLOG_FRAMES: usize = 60;
@@ -673,6 +738,65 @@ fn print_page(window: tauri::WebviewWindow) -> Result<(), String> {
     window.print().map_err(|e| e.to_string())
 }
 
+/// A recording stopped: what its final pass can do, for the interface to choose.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FinalPassReady {
+    meeting_id: String,
+    speakers: bool,
+    text: bool,
+    /// How long each would take, roughly (s), as the final pass will estimate it.
+    speakers_seconds: f32,
+    text_seconds: f32,
+}
+
+impl FinalPassReady {
+    fn new(meeting_id: String, tapped: &[pipeline::Tapped], plan: &FinalPlan) -> Self {
+        // The tapped audio's length, from its file (16-bit mono at SAMPLE_RATE).
+        let length = |t: &pipeline::Tapped| std::fs::metadata(&t.path).map(|m| m.len() as f32 / 2.0 / SAMPLE_RATE as f32).unwrap_or(0.0);
+        let speakers_seconds = plan
+            .speakers
+            .and_then(|(channel, _)| tapped.iter().find(|t| t.channel == channel))
+            .map_or(0.0, |t| length(t) * DIARIZE_RTF_ESTIMATE);
+        let speech: f32 = tapped.iter().flat_map(|t| &t.spans).filter(|s| s.start >= plan.text_from).map(|s| s.end - s.start).sum();
+        let text_seconds = plan.language.as_deref().map_or(0.0, |l| 5.0 + speech * retranscribe::rtf_estimate(&models_dir(), l));
+        Self {
+            meeting_id,
+            speakers: plan.speakers.is_some() && tapped.iter().any(|t| !t.spans.is_empty()),
+            text: plan.language.is_some() && tapped.iter().any(|t| !t.spans.is_empty()),
+            speakers_seconds,
+            text_seconds,
+        }
+    }
+}
+
+/// The steps chosen after a recording: the speaker check and Whisper, if each can and was chosen.
+/// Neither: its audio is dropped and "final-pass-done" follows at once, so the interface goes on
+/// (punctuation, cover). Unknown meeting (already run): nothing.
+#[tauri::command]
+fn run_final_pass(app: AppHandle, state: State<'_, AppState>, meeting_id: String, speakers: bool, text: bool) {
+    let Some((tapped, mut plan)) = state.waiting.lock().unwrap().remove(&meeting_id) else {
+        return;
+    };
+    if !speakers {
+        plan.speakers = None;
+    }
+    if !text {
+        plan.language = None;
+    }
+    log::info!("final pass chosen: speakers={speakers} text={text}");
+    if tapped.is_empty() || (plan.speakers.is_none() && plan.language.is_none()) {
+        for t in &tapped {
+            let _ = std::fs::remove_file(&t.path);
+        }
+        save_glossary_hits(&app);
+        let _ = app.emit("final-pass-done", FinalPassDone { meeting_id, error: None });
+        return;
+    }
+    // Its own thread: the meeting's turn (gate.rs) may have to wait for another one.
+    std::thread::spawn(move || final_pass(app, meeting_id, tapped, plan, gate::heavy()));
+}
+
 /// What the final pass does after a recording.
 struct FinalPlan {
     /// Re-check who spoke when on this channel, with the user's maximum number of speakers.
@@ -688,6 +812,8 @@ struct FinalPlan {
 /// After a recording: re-check who spoke when, then improve the text with Whisper. `_heavy` is the
 /// meeting's turn (gate.rs), taken by the caller: a retranscription takes it before decoding.
 fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>, plan: FinalPlan, _heavy: gate::Heavy) {
+    let began = Instant::now();
+    log::info!("final pass: speakers={} whisper={:?}", plan.speakers.is_some(), plan.language);
     let started = |stage: &'static str, seconds: f32| {
         let _ = app.emit(
             "final-pass",
@@ -762,6 +888,10 @@ fn final_pass(app: AppHandle, meeting_id: String, tapped: Vec<pipeline::Tapped>,
         let _ = std::fs::remove_file(&t.path);
     }
     save_glossary_hits(&app);
+    for e in &errors {
+        log::error!("final pass: {e}");
+    }
+    log::info!("final pass done in {:.0} s", began.elapsed().as_secs_f32());
     let _ = app.emit(
         "final-pass-done",
         FinalPassDone {
@@ -828,7 +958,9 @@ async fn retranscribe_meeting(
         match tapped {
             // A meeting from a phone also gets its speakers checked, as after a recording here.
             Ok(tapped) => {
-                let speakers = max_speakers.map(|n| (engine::Channel::Mic, n));
+                // As after recording: the other side of a call if there is one, else everyone on the mic.
+                let checked = if tapped.iter().any(|t| t.channel == engine::Channel::System) { engine::Channel::System } else { engine::Channel::Mic };
+                let speakers = max_speakers.map(|n| (checked, n));
                 final_pass(app, meeting_id, tapped, FinalPlan { speakers, language, glossary, text_from: 0.0 }, heavy)
             }
             Err(e) => {
@@ -857,6 +989,14 @@ struct DownloadDone {
     cancelled: bool,
 }
 
+/// Settings › General › "Mostra el registre": the log's folder (logfile.rs), to attach the file.
+#[tauri::command]
+fn show_log(app: AppHandle) -> Result<(), String> {
+    let dir = logfile::dir(&app).ok_or("no log folder")?;
+    let _ = std::fs::create_dir_all(&dir);
+    tauri_plugin_opener::open_path(&dir, None::<&str>).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn model_status() -> Vec<models::Status> {
     let root = models_dir();
@@ -882,6 +1022,11 @@ async fn download_model(app: AppHandle, state: State<'_, AppState>, id: String) 
         app.state::<AppState>().downloads.lock().unwrap().remove(&id);
         let cancelled = cancel.load(Ordering::Relaxed);
         let error = result.err().filter(|_| !cancelled).map(|e| format!("{e:#}"));
+        match &error {
+            Some(e) => log::error!("download {id}: {e}"),
+            None if !cancelled => log::info!("download {id}: done"),
+            None => {}
+        }
         let _ = app.emit("model-download-done", DownloadDone { id, error, cancelled });
     });
     Ok(())
@@ -924,6 +1069,11 @@ async fn update_model(app: AppHandle, state: State<'_, AppState>, id: String) ->
         app.state::<AppState>().downloads.lock().unwrap().remove(&id);
         let cancelled = cancel.load(Ordering::Relaxed);
         let error = result.err().filter(|_| !cancelled).map(|e| format!("{e:#}"));
+        match &error {
+            Some(e) => log::error!("download {id}: {e}"),
+            None if !cancelled => log::info!("download {id}: done"),
+            None => {}
+        }
         let _ = app.emit("model-download-done", DownloadDone { id, error, cancelled });
     });
     Ok(())
@@ -1084,7 +1234,7 @@ async fn run_llm(
     .map_err(|e| e.to_string())?
 }
 
-/// The same with Claude or OpenAI: nothing to load and light on the Mac, so it doesn't wait for
+/// The same with Claude, OpenAI, Gemini or OpenRouter: nothing to load and light on the Mac, so it doesn't wait for
 /// recordings (gate.rs). Only text leaves the computer.
 fn run_cloud(
     app: &AppHandle,
@@ -1119,6 +1269,8 @@ struct CloudStatus {
     /// The saved key's last characters, per provider; None = not connected.
     anthropic: Option<String>,
     openai: Option<String>,
+    openrouter: Option<String>,
+    gemini: Option<String>,
 }
 
 #[tauri::command]
@@ -1126,6 +1278,8 @@ async fn cloud_status() -> Result<CloudStatus, String> {
     tauri::async_runtime::spawn_blocking(|| CloudStatus {
         anthropic: cloud::key_hint(cloud::Provider::Anthropic),
         openai: cloud::key_hint(cloud::Provider::OpenAI),
+        openrouter: cloud::key_hint(cloud::Provider::OpenRouter),
+        gemini: cloud::key_hint(cloud::Provider::Gemini),
     })
     .await
     .map_err(|e| e.to_string())
@@ -1727,6 +1881,9 @@ pub fn run() {
             None,
         ))
         .setup(|app| {
+            if let Some(dir) = logfile::dir(app.handle()) {
+                logfile::init(&dir);
+            }
             // The standard macOS menus (Edit gives copy/paste), with our own About window and
             // Settings… in the app menu.
             let menu = tauri::menu::Menu::default(app.handle())?;
@@ -1882,6 +2039,9 @@ pub fn run() {
             shell::dismiss_toast,
             shell::toast_start,
             shell::toast_continue,
+            shell::toast_open,
+            run_final_pass,
+            show_log,
             shell::show_stopped_toast,
             shell::set_meeting_detection,
             shell::set_calendar_watch,
@@ -1901,6 +2061,13 @@ pub fn run() {
             calendar::request_calendar_access,
             calendar::list_calendars,
             calendar::calendar_events,
+            calendar::ical_feeds,
+            calendar::ical_add,
+            calendar::ical_remove,
+            calendar::google_status,
+            calendar::google_connect,
+            calendar::google_cancel,
+            calendar::google_disconnect,
             permissions::permission_status,
             permissions::request_microphone,
             permissions::request_system_audio,

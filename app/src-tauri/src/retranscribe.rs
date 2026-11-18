@@ -63,50 +63,132 @@ fn sidecar() -> Result<PathBuf> {
 /// New text for the utterances of each channel (`pcm`: 16 kHz mono s16le, as the pipeline taps
 /// it). Utterances left out keep their live text. `glossary`: words to spell as given
 /// (glossary.rs). `progress` gets the share done, 0–1.
-pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], glossary: &[String], progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
+pub fn transcribe(models: &Path, language: &str, channels: &[(&Path, &[Span])], glossary: &[String], mut progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
     let model = model_for(models, language).file(models, 0);
     if !model.is_file() {
         return Err(anyhow!(tr!("model_missing", path = model.display())));
     }
-    let job = serde_json::json!({
-        "channels": channels.iter().map(|(pcm, spans)| serde_json::json!({
-            "pcm": pcm,
-            "spans": spans.iter().map(|s| serde_json::json!({ "start": s.start, "end": s.end })).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>(),
-    });
-    let mut child = Command::new(sidecar()?)
-        .arg(&model)
-        .arg(language)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .context(tr!("whisper_start_failed"))?;
-    crate::gate::whisper(Some(child.id()));
-    let result = read_replies(&mut child, &job.to_string(), channels.len(), progress);
-    crate::gate::whisper(None);
-    let mut result = result?;
+    let channels_job: Vec<_> = channels
+        .iter()
+        .map(|(pcm, spans)| {
+            serde_json::json!({
+                "pcm": pcm,
+                "spans": spans.iter().map(|s| serde_json::json!({ "start": s.start, "end": s.end })).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    // What's done survives a crash: the retry on the CPU goes on from the next chunk.
+    let mut done = Done { texts: vec![vec![]; channels.len()], chunks: 0 };
+    with_cpu_fallback(models, |cpu| {
+        if done.chunks > 0 {
+            log::info!("murmur-whisper goes on after the {} chunks already done", done.chunks);
+        }
+        let job = serde_json::json!({ "channels": channels_job, "skip": done.chunks });
+        let mut child = spawn(&model, language, cpu, Stdio::piped())?;
+        crate::gate::whisper(Some(child.id()));
+        let result = read_replies(&mut child, &job.to_string(), &mut done, &mut progress);
+        crate::gate::whisper(None);
+        result
+    })?;
+    let mut result = done.texts;
     for text in result.iter_mut().flatten() {
         text.text = crate::glossary::correct(&text.text, glossary);
     }
     Ok(result)
 }
 
-/// Sends the job to the Whisper process and collects its texts, one list per channel.
-fn read_replies(child: &mut Child, job: &str, channels: usize, mut progress: impl FnMut(f32)) -> Result<Vec<Vec<Text>>> {
-    child.stdin.take().unwrap().write_all(job.as_bytes())?;
-    // whisper.cpp logs a lot: keep the end, to explain a failure.
+/// The sidecar with `model` and its second argument (a language, or "detect"). `cpu`: skip the GPU.
+fn spawn(model: &Path, arg: &str, cpu: bool, stderr: Stdio) -> Result<Child> {
+    let mut command = Command::new(sidecar()?);
+    command.arg(model).arg(arg).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(stderr);
+    if cpu {
+        command.env("MURMUR_NO_GPU", "1");
+    }
+    let name = model.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    log::info!("murmur-whisper {name} {arg}, {}", if cpu { "on the CPU" } else { "on the GPU if there is one" });
+    command.spawn().context(tr!("whisper_start_failed"))
+}
+
+/// Reads the sidecar's stderr as it runs. whisper.cpp logs a lot: the lines about the GPU (which
+/// devices Vulkan or Metal found, which one it took, its memory) go to Murmur's log as they come,
+/// to tell later which card a crash was on; the last few lines are returned, to explain a failure.
+fn watch_stderr(child: &mut Child) -> std::thread::JoinHandle<Vec<String>> {
     let stderr = child.stderr.take().unwrap();
-    let log = std::thread::spawn(move || {
+    std::thread::spawn(move || {
         let mut tail: Vec<String> = vec![];
+        let mut logged = 0;
         for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+            if logged < 30 && about_the_gpu(&line) {
+                log::info!("murmur-whisper: {}", line.trim());
+                logged += 1;
+            }
             tail.push(line);
             if tail.len() > 8 {
                 tail.remove(0);
             }
         }
         tail
-    });
+    })
+}
+
+fn about_the_gpu(line: &str) -> bool {
+    let line = line.to_ascii_lowercase();
+    ["vulkan", "metal", "gpu", "backend", "device", "vram", "processador"].iter().any(|word| line.contains(word))
+}
+
+/// The sidecar died instead of ending with an error of its own (exit code 1): a crash, which on
+/// the GPU is usually the driver (a SIGSEGV with Vulkan on some Linux laptops, issue #9).
+#[derive(Debug)]
+struct Crashed(String);
+
+impl std::fmt::Display for Crashed {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for Crashed {}
+
+fn crashed(status: std::process::ExitStatus) -> bool {
+    !status.success() && status.code() != Some(1)
+}
+
+/// Present when Whisper crashed on this computer's GPU: until Murmur updates, it goes straight to
+/// the CPU. It holds the version, so a new one (another whisper.cpp) tries the GPU again.
+fn no_gpu_marker(models: &Path) -> PathBuf {
+    models.join("whisper-no-gpu")
+}
+
+fn gpu_disabled(models: &Path) -> bool {
+    std::fs::read_to_string(no_gpu_marker(models)).is_ok_and(|v| v.trim() == env!("CARGO_PKG_VERSION"))
+}
+
+/// Runs `attempt` (its argument: CPU only), on the GPU first unless it crashed there before, and
+/// once more on the CPU if the sidecar crashes on the GPU now.
+fn with_cpu_fallback<T>(models: &Path, mut attempt: impl FnMut(bool) -> Result<T>) -> Result<T> {
+    let cpu = gpu_disabled(models);
+    match attempt(cpu) {
+        Err(e) if !cpu && e.downcast_ref::<Crashed>().is_some() => {
+            log::warn!("murmur-whisper crashed on the GPU ({e}); again on the CPU, and from now on until Murmur updates");
+            if let Err(e) = std::fs::write(no_gpu_marker(models), env!("CARGO_PKG_VERSION")) {
+                log::warn!("can't remember that Whisper's GPU crashed: {e}");
+            }
+            attempt(true)
+        }
+        result => result,
+    }
+}
+
+/// What a transcription has so far: the texts of each channel, and how many chunks they came from.
+struct Done {
+    texts: Vec<Vec<Text>>,
+    chunks: usize,
+}
+
+/// Sends the job to the Whisper process and adds the texts of each chunk to `done` as they come.
+fn read_replies(child: &mut Child, job: &str, done: &mut Done, mut progress: impl FnMut(f32)) -> Result<()> {
+    child.stdin.take().unwrap().write_all(job.as_bytes())?;
+    let log = watch_stderr(child);
 
     #[derive(Deserialize)]
     struct Line {
@@ -114,24 +196,36 @@ fn read_replies(child: &mut Child, job: &str, channels: usize, mut progress: imp
         channel: Option<usize>,
         texts: Option<Vec<Text>>,
     }
-    let mut out: Vec<Vec<Text>> = vec![vec![]; channels];
-    for line in BufReader::new(child.stdout.take().unwrap()).lines() {
-        let line: Line = serde_json::from_str(&line?).context(tr!("whisper_bad_reply"))?;
-        if let Some(p) = line.progress {
-            progress(p);
-        }
-        if let (Some(i), Some(texts)) = (line.channel, line.texts) {
-            if let Some(slot) = out.get_mut(i) {
-                *slot = texts;
+    let mut share = 0.0;
+    let read = (|| -> Result<()> {
+        for line in BufReader::new(child.stdout.take().unwrap()).lines() {
+            let line: Line = serde_json::from_str(&line?).context(tr!("whisper_bad_reply"))?;
+            if let Some(p) = line.progress {
+                share = p;
+                progress(p);
+            }
+            if let (Some(i), Some(texts)) = (line.channel, line.texts) {
+                if let Some(slot) = done.texts.get_mut(i) {
+                    slot.extend(texts);
+                }
+                done.chunks += 1;
             }
         }
-    }
+        Ok(())
+    })();
+    // Waited for even when a reply was cut short: a crash mid-line is still a crash.
     let status = child.wait()?;
     let tail = log.join().unwrap_or_default();
+    if crashed(status) {
+        log::warn!("murmur-whisper ended with {status} at {:.0}% of the job; its last lines: {}", share * 100.0, tail.join(" | "));
+        return Err(Crashed(tr!("whisper_failed", error = tail.last().cloned().unwrap_or_else(|| status.to_string()))).into());
+    }
+    read?;
     if !status.success() {
         return Err(anyhow!(tr!("whisper_failed", error = tail.last().cloned().unwrap_or_default())));
     }
-    Ok(out)
+    log::info!("murmur-whisper finished");
+    Ok(())
 }
 
 /// What Whisper hears in each window of `pcm` (16 kHz mono s16le): its language probabilities.
@@ -145,28 +239,34 @@ pub fn detect(models: &Path, pcm: &Path, windows: &[Vec<Span>]) -> Result<Vec<cr
         "pcm": pcm,
         "windows": windows.iter().map(|w| w.iter().map(|s| serde_json::json!({ "start": s.start, "end": s.end })).collect::<Vec<_>>()).collect::<Vec<_>>(),
     });
-    let mut child = Command::new(sidecar()?)
-        .arg(&model)
-        .arg("detect")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .context(tr!("whisper_start_failed"))?;
-    crate::gate::whisper(Some(child.id()));
-    let result = (|| -> Result<Vec<crate::import::Heard>> {
-        child.stdin.take().unwrap().write_all(job.to_string().as_bytes())?;
-        let mut heard = vec![];
-        for line in BufReader::new(child.stdout.take().unwrap()).lines() {
-            heard.push(serde_json::from_str(&line?).context(tr!("whisper_bad_reply"))?);
-        }
-        if !child.wait()?.success() {
-            return Err(anyhow!(tr!("whisper_failed", error = "")));
-        }
-        Ok(heard)
-    })();
-    crate::gate::whisper(None);
-    result
+    with_cpu_fallback(models, |cpu| {
+        let mut child = spawn(&model, "detect", cpu, Stdio::piped())?;
+        let log = watch_stderr(&mut child);
+        crate::gate::whisper(Some(child.id()));
+        let result = (|| -> Result<Vec<crate::import::Heard>> {
+            child.stdin.take().unwrap().write_all(job.to_string().as_bytes())?;
+            let mut heard = vec![];
+            let read = (|| -> Result<()> {
+                for line in BufReader::new(child.stdout.take().unwrap()).lines() {
+                    heard.push(serde_json::from_str(&line?).context(tr!("whisper_bad_reply"))?);
+                }
+                Ok(())
+            })();
+            let status = child.wait()?;
+            let tail = log.join().unwrap_or_default();
+            if crashed(status) {
+                log::warn!("murmur-whisper (detect) ended with {status}; its last lines: {}", tail.join(" | "));
+                return Err(Crashed(tr!("whisper_failed", error = status.to_string())).into());
+            }
+            read?;
+            if !status.success() {
+                return Err(anyhow!(tr!("whisper_failed", error = "")));
+            }
+            Ok(heard)
+        })();
+        crate::gate::whisper(None);
+        result
+    })
 }
 
 #[cfg(test)]
@@ -182,6 +282,35 @@ mod tests {
         std::fs::write(&file, b"").unwrap();
         assert_eq!(model_for(&dir, "ca").id, "whisper-ca");
         assert_eq!(model_for(&dir, "es").id, "whisper");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_crash_on_the_gpu_retries_on_the_cpu_and_stays_there() {
+        let dir = std::env::temp_dir().join(format!("murmur-no-gpu-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut tries = vec![];
+        let result = with_cpu_fallback(&dir, |cpu| {
+            tries.push(cpu);
+            if cpu { Ok(()) } else { Err(Crashed("SIGSEGV".into()).into()) }
+        });
+        assert!(result.is_ok());
+        assert_eq!(tries, [false, true]);
+        tries.clear();
+        let _ = with_cpu_fallback(&dir, |cpu| {
+            tries.push(cpu);
+            Ok(())
+        });
+        assert_eq!(tries, [true]);
+        // An ordinary error isn't retried, and a new version tries the GPU again.
+        std::fs::write(no_gpu_marker(&dir), "0.0.1").unwrap();
+        tries.clear();
+        let result: Result<()> = with_cpu_fallback(&dir, |cpu| {
+            tries.push(cpu);
+            Err(anyhow!("bad model"))
+        });
+        assert!(result.is_err());
+        assert_eq!(tries, [false]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -107,6 +107,8 @@
   "moreActions": "Más acciones",
   "whisperCaOffer": "Hay un Whisper nuevo para el catalán",
   "whisperCaOfferText": "El del Barcelona Supercomputing Center: en nuestras pruebas, mejor que el actual con el central, el valenciano y el balear. Ocupa {{size}}.",
+  "whisperOffer": "Haz que Whisper repase las reuniones",
+  "whisperOfferText": "Al terminar, Whisper vuelve a escuchar la reunión y reescribe el texto, con puntuación y mayúsculas. Todo en este ordenador. Ocupa {{size}}.",
   "introNamed": "«{{speaker}}» es {{name}}",
   "introHint": "Si sois más de uno en la sala, cada uno puede decir «Murmur, soy…» y Murmur pondrá el nombre.",
   "undo": "Deshacer",
@@ -125,5 +127,58 @@
   "notionSaved": "Guardada en Notion",
   "openInNotion": "Abrir en Notion",
   "notionSaving": "Guardando en Notion…",
-  "notionConnectFirst": "Conecta Notion en Ajustes › Exportar."
+  "notionConnectFirst": "Conecta Notion en Ajustes › Exportar.",
+  "micLost": "El micrófono no envía sonido",
+  "micLostDetail": "Murmur lo está volviendo a abrir. Si no vuelve, comprueba que está conectado o elige otro en Ajustes › Audio.",
+  "micBack": "El micrófono vuelve a funcionar",
+  "after": {
+    "title": "¿Qué hago ahora?",
+    "laterTitle": "Terminar de procesar",
+    "menu": "Terminar de procesar…",
+    "pendingLabel": "Tiene pasos por hacer",
+    "name": {
+      "speakers": "Revisa quién habla",
+      "text": "Vuelve a escuchar con Whisper",
+      "punctuation": "Puntuación y mayúsculas",
+      "cover": "Haz el resumen"
+    },
+    "what": {
+      "speakers": "Vuelve a escuchar las voces y corrige quién ha dicho cada frase.",
+      "text": "Reescribe el texto, más preciso, con Whisper.",
+      "punctuation": "Pone los puntos, las comas y las mayúsculas.",
+      "cover": "Título, resumen, decisiones y tareas, con {{engine}}."
+    },
+    "why": {
+      "speakers": {
+        "model": "No hay suficiente audio para revisarlo.",
+        "audio": "Hace falta el audio de la reunión, y no se guardó."
+      },
+      "text": {
+        "mixed": "Con catalán y castellano mezclados, todavía no: pasaría una lengua a la otra.",
+        "model": "Hay que descargar Whisper en Ajustes › Transcripción.",
+        "audio": "Hace falta el audio de la reunión, y no se guardó."
+      },
+      "punctuation": {
+        "model": "Solo en catalán, y hay que descargar su modelo en Ajustes › Transcripción."
+      },
+      "cover": {
+        "engine": "Hace falta el modelo local o una clave, en Ajustes › Inteligencia."
+      }
+    },
+    "engineLocal": "Gemma, en este ordenador",
+    "seconds_one": "≈ {{count}} s",
+    "seconds_other": "≈ {{count}} s",
+    "minutes_one": "≈ {{count}} min",
+    "minutes_other": "≈ {{count}} min",
+    "done": "Hecho",
+    "noAudio": "El audio no se guarda: lo que no hagas ahora de Whisper y de los hablantes ya no se podrá hacer después.",
+    "countdown_one": "Empezará en {{count}} s.",
+    "countdown_other": "Empezará en {{count}} s.",
+    "rememberRecording": "Lo recordará para la próxima grabación.",
+    "rememberFile": "Lo recordará para el próximo archivo.",
+    "skip": "Déjalo así",
+    "startNow": "Empieza ahora",
+    "doIt": "Hazlo",
+    "makeSummary": "Haz el resumen"
+  }
 }

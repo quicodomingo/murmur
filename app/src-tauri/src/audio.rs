@@ -1,6 +1,7 @@
 //! Audio capture: microphone (cpal) + system audio (a Core Audio process tap on macOS, systap.rs;
-//! WASAPI loopback of the default output on Windows), each sent as 16 kHz mono f32 frames tagged
-//! with their source. Linux has no system audio yet.
+//! WASAPI loopback of the default output on Windows; the monitor of the default output through
+//! PulseAudio on Linux, which PipeWire also serves), each sent as 16 kHz mono f32 frames tagged
+//! with their source.
 
 use crate::i18n::tr;
 use anyhow::{Context, Result, anyhow};
@@ -57,15 +58,27 @@ impl Resampler {
 /// Live capture streams. Not `Send` on macOS: keep it on the thread that created it; dropping it
 /// stops capture.
 pub struct Capture {
-    _mic: Option<cpal::Stream>,
+    mic: Option<cpal::Stream>,
     #[cfg(target_os = "macos")]
     _system: Option<crate::systap::SystemTap>,
     #[cfg(windows)]
     _system: Option<cpal::Stream>,
+    #[cfg(target_os = "linux")]
+    _system: Option<Monitor>,
+}
+
+impl Capture {
+    /// The microphone again, from scratch: it stopped sending (unplugged, the system's default
+    /// changed, another app took it…). The chosen one if it's there, else the system default.
+    pub fn reopen_mic(&mut self, mic_device: Option<&str>, tx: Sender<Frame>) -> Result<()> {
+        self.mic = None;
+        self.mic = Some(start_mic(mic_device, tx)?);
+        Ok(())
+    }
 }
 
 /// Whether this system can record the other side of a call.
-pub const SYSTEM_AUDIO: bool = cfg!(any(target_os = "macos", windows));
+pub const SYSTEM_AUDIO: bool = cfg!(any(target_os = "macos", windows, target_os = "linux"));
 
 /// `mic_device`: input device name from `list_microphones`; `None` (or not found) = system default.
 pub fn start_capture(
@@ -86,7 +99,9 @@ pub fn start_capture(
     };
     #[cfg(windows)]
     let system_stream = if system { Some(start_loopback(tx.clone())?) } else { None };
-    #[cfg(not(any(target_os = "macos", windows)))]
+    #[cfg(target_os = "linux")]
+    let system_stream = if system { Some(start_monitor(tx.clone())?) } else { None };
+    #[cfg(not(any(target_os = "macos", windows, target_os = "linux")))]
     if system {
         return Err(anyhow!(tr!("system_audio_unsupported")));
     }
@@ -96,8 +111,8 @@ pub fn start_capture(
         None
     };
     Ok(Capture {
-        _mic: mic_stream,
-        #[cfg(any(target_os = "macos", windows))]
+        mic: mic_stream,
+        #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
         _system: system_stream,
     })
 }
@@ -143,6 +158,106 @@ fn start_loopback(tx: Sender<Frame>) -> Result<cpal::Stream> {
         .default_output_config()
         .context(tr!("system_audio_unavailable"))?;
     open_input(&device, supported, Source::System, tx).context(tr!("system_audio_unavailable"))
+}
+
+/// What the speakers play on Linux: a PulseAudio recording of the default output's monitor
+/// (`@DEFAULT_MONITOR@`), the same as `parecord --device=<default sink>.monitor`. PipeWire serves
+/// it too, through pipewire-pulse. The server mixes to mono and resamples to 16 kHz for us. Unlike
+/// WASAPI it sends silence while nothing plays. Dropping it stops the reading thread.
+#[cfg(target_os = "linux")]
+pub struct Monitor {
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for Monitor {
+    fn drop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        // Each read returns within MONITOR_BLOCK, so this waits at most ~100 ms.
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+/// 100 ms per read: how long stopping can take, and how often frames go to the pipeline.
+#[cfg(target_os = "linux")]
+const MONITOR_BLOCK: usize = SAMPLE_RATE / 10;
+
+#[cfg(target_os = "linux")]
+fn start_monitor(tx: Sender<Frame>) -> Result<Monitor> {
+    use libpulse_binding::def::BufferAttr;
+    use libpulse_binding::sample::{Format, Spec};
+    use libpulse_binding::stream::Direction;
+    use libpulse_simple_binding::Simple;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let spec = Spec { format: Format::F32le, channels: 1, rate: SAMPLE_RATE as u32 };
+    let block_bytes = MONITOR_BLOCK * std::mem::size_of::<f32>();
+    // Only fragsize matters when recording: the server hands over blocks of this size, so a read
+    // doesn't wait for its default (up to ~2 s).
+    let attr = BufferAttr {
+        maxlength: u32::MAX,
+        tlength: u32::MAX,
+        prebuf: u32::MAX,
+        minreq: u32::MAX,
+        fragsize: block_bytes as u32,
+    };
+    let stop = Arc::new(AtomicBool::new(false));
+    let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel::<Result<()>>(1);
+    let thread_stop = stop.clone();
+    let thread = std::thread::Builder::new()
+        .name("system-audio".into())
+        .spawn(move || {
+            // Opened on this thread so the connection never has to cross threads.
+            let simple = match Simple::new(
+                None,
+                "Murmur",
+                Direction::Record,
+                Some("@DEFAULT_MONITOR@"),
+                &tr!("system_audio_stream"),
+                &spec,
+                None,
+                Some(&attr),
+            ) {
+                Ok(simple) => simple,
+                Err(e) => {
+                    log::error!("system audio: can't open the default output's monitor: {e}");
+                    let _ = ready_tx.send(Err(anyhow!(tr!("system_audio_unavailable"))));
+                    return;
+                }
+            };
+            log::info!("system audio: recording the default output's monitor");
+            let _ = ready_tx.send(Ok(()));
+            let mut bytes = vec![0u8; block_bytes];
+            while !thread_stop.load(Ordering::Relaxed) {
+                if let Err(e) = simple.read(&mut bytes) {
+                    log::error!("system audio: read failed: {e}");
+                    break;
+                }
+                let samples: Vec<f32> = bytes
+                    .chunks_exact(4)
+                    .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                    .collect();
+                if tx.send((Source::System, samples)).is_err() {
+                    break;
+                }
+            }
+        })
+        .context(tr!("system_audio_unavailable"))?;
+    match ready_rx.recv() {
+        Ok(Ok(())) => Ok(Monitor { stop, thread: Some(thread) }),
+        Ok(Err(e)) => {
+            let _ = thread.join();
+            Err(e)
+        }
+        Err(_) => {
+            let _ = thread.join();
+            Err(anyhow!(tr!("system_audio_unavailable")))
+        }
+    }
 }
 
 /// Starts `device` as an input, mixed to mono and resampled to 16 kHz, sending as `source`.

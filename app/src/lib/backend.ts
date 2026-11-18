@@ -20,6 +20,7 @@ import type {
   LlmTask,
   Meeting,
   MeetingPart,
+  PostStage,
   MeetingSummary,
   ModelId,
   ModelStatus,
@@ -84,11 +85,20 @@ export const stopRecording = () => invoke<void>("stop_recording");
 export const showStoppedToast = (meetingId: string, subtitle: string, seconds: number) =>
   invoke<void>("show_stopped_toast", { meetingId, subtitle, seconds });
 /** "Continua la gravació" on that alert. */
+/** The microphone stopped sending sound while recording (true), or came back (false). */
+export const onMicLost = (fn: (lost: boolean) => void) => listen<boolean>("mic-lost", (e) => fn(e.payload));
+/** Opens the folder with Murmur's log (logfile.rs), to send it when something goes wrong. */
+export const showLog = () => invoke<void>("show_log");
+/** A recording stopped: what its final pass can do (`speakers`, `text`), until `runFinalPass` says. */
+export type FinalPassReady = { meetingId: string; speakers: boolean; text: boolean; speakersSeconds: number; textSeconds: number };
+export const onFinalPassReady = (fn: (e: FinalPassReady) => void) => listen<FinalPassReady>("final-pass-ready", (e) => fn(e.payload));
+/** The steps chosen when it ended: the speaker check and Whisper (each only if it could). */
+export const runFinalPass = (meetingId: string, speakers: boolean, text: boolean) => invoke<void>("run_final_pass", { meetingId, speakers, text });
 export const onContinueRequest = (fn: (meetingId: string) => void) => listen<string>("continue-recording", (e) => fn(e.payload));
 
 /** One batch of edits to a meeting (db.rs `Changes`). */
 export type Changes = {
-  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language" | "tags">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[]; shares?: ShareLink[]; parts?: MeetingPart[]; translation?: Translation | null };
+  meta?: Partial<Pick<Meeting, "title" | "duration" | "status" | "speakerNames" | "sources" | "language" | "tags">> & { audioPath?: string | null; cover?: Cover | null; guests?: string[]; screens?: Screen[]; shares?: ShareLink[]; parts?: MeetingPart[]; translation?: Translation | null; pending?: PostStage[] };
   utterances?: Utterance[];
   notes?: { doc: JSONContent; blocks: { t: number; text: string }[] };
 };
@@ -149,7 +159,7 @@ export const requestSystemAudio = () => invoke<Access>("request_system_audio");
 export const requestScreen = () => invoke<boolean>("request_screen");
 export const openPrivacySettings = (pane: "microphone" | "systemAudio" | "screen" | "calendars") => invoke<void>("open_privacy_settings", { pane });
 
-/** The macOS calendar (calendar.rs): every account added to the system. */
+/** Calendars (calendar.rs): the system's (macOS) and the iCal links' (ics.rs, id "ics:…"). */
 export type CalendarInfo = { id: string; title: string; account: string; color: string };
 export type CalendarEvent = {
   id: string;
@@ -164,12 +174,26 @@ export type CalendarEvent = {
 export const calendarAccess = () => invoke<Access>("calendar_access");
 /** Shows the system's calendar dialog (only the first time) and resolves with the answer. */
 export const requestCalendarAccess = () => invoke<Access>("request_calendar_access");
-export const listCalendars = () => invoke<CalendarInfo[]>("list_calendars");
-export const calendarEvents = (from: number, to: number, calendarIds: string[] | null) =>
-  invoke<CalendarEvent[]>("calendar_events", { from, to, calendarIds });
+/** `system`: also the system's calendars (macOS, when connected). */
+export const listCalendars = (system = true) => invoke<CalendarInfo[]>("list_calendars", { system });
+export const calendarEvents = (from: number, to: number, calendarIds: string[] | null, system = true) =>
+  invoke<CalendarEvent[]>("calendar_events", { from, to, calendarIds, system });
 /** "Comença d'aquí a 2 minuts": which calendars the alert watches. */
-export const setCalendarWatch = (watch: { enabled: boolean; calendarIds: string[] | null; includeNoGuests: boolean }) =>
+export const setCalendarWatch = (watch: { enabled: boolean; system: boolean; calendarIds: string[] | null; includeNoGuests: boolean }) =>
   invoke<void>("set_calendar_watch", { watch });
+/** A calendar from an iCal link: never its URL (it's the secret), only where it's from. */
+export type IcalFeed = { id: string; name: string; host: string; readAt: number | null; error: string | null };
+export const icalFeeds = () => invoke<IcalFeed[]>("ical_feeds");
+/** Reads the link to check it's a calendar, then saves it to the keychain. */
+export const icalAdd = (url: string) => invoke<IcalFeed>("ical_add", { url });
+export const icalRemove = (id: string) => invoke<void>("ical_remove", { id });
+/** Google Calendar (google.rs). `available`: this build has the OAuth client. */
+export type GoogleStatus = { available: boolean; connected: boolean; email: string | null; error: string | null };
+export const googleStatus = () => invoke<GoogleStatus>("google_status");
+/** Opens the browser to sign in; resolves with the account's address once it's back. */
+export const googleConnect = () => invoke<string>("google_connect");
+export const googleCancel = () => invoke<void>("google_cancel");
+export const googleDisconnect = () => invoke<void>("google_disconnect");
 
 /** The pill on the right edge of the screen while recording. */
 export const setIndicator = (enabled: boolean, compact: boolean) => invoke<void>("set_indicator", { enabled, compact });

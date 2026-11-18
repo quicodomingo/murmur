@@ -41,6 +41,10 @@ export type Settings = {
   punctuate: boolean;
   /** After a recording: the cover, written by the local language model (models.rs LLM). */
   summarize: boolean;
+  /** The four above are what's done after a recording (and a phone's meeting); this, after a file. */
+  fileSteps: AfterSteps;
+  /** When it ends, "Què en faig ara?" says what it'll do and lets the user change it (AfterCard). */
+  askAfter: boolean;
   /** Each new meeting is saved as Markdown in `markdownDir` when it's done (switchable while recording). */
   saveMarkdown: boolean;
   /** Folder for those Markdown files; null = not chosen yet. */
@@ -104,6 +108,16 @@ export function stepTextZoom(current: number, direction: -1 | 0 | 1): number {
   return TEXT_ZOOMS[Math.min(TEXT_ZOOMS.length - 1, Math.max(0, at + direction))];
 }
 
+/** What runs when a meeting ends, as the settings name it: the speaker check, Whisper, punctuation, the cover. */
+export type AfterSteps = { verifySpeakers: boolean; finalPass: boolean; punctuate: boolean; summarize: boolean };
+
+/** The steps remembered for a recording or for a file. */
+export const afterSteps = (s: Settings, file: boolean): AfterSteps =>
+  file ? s.fileSteps : { verifySpeakers: s.verifySpeakers, finalPass: s.finalPass, punctuate: s.punctuate, summarize: s.summarize };
+
+/** Remembers `steps` as the choice for recordings or for files. */
+export const rememberSteps = (steps: AfterSteps, file: boolean): Partial<Settings> => (file ? { fileSteps: steps } : { ...steps });
+
 export const DEFAULT_SETTINGS: Settings = {
   uiLanguage: "system",
   language: "ca-es",
@@ -126,6 +140,9 @@ export const DEFAULT_SETTINGS: Settings = {
   // Both need a download, so they're off until the user turns them on.
   punctuate: false,
   summarize: false,
+  // A file is often a voice note: clean text, without a cover, until the user says otherwise.
+  fileSteps: { verifySpeakers: true, finalPass: true, punctuate: false, summarize: false },
+  askAfter: true,
   saveMarkdown: false,
   textZoom: 1,
   markdownDir: null,
@@ -156,7 +173,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY = "transcriptor.settings.v1";
 
-const VERSION = 3;
+const VERSION = 4;
 
 /** Settings saved by older versions: move untouched old defaults to the new ones. */
 function migrate(s: Settings & { version?: number }): Settings {
@@ -169,6 +186,10 @@ function migrate(s: Settings & { version?: number }): Settings {
   if ((s.version ?? 1) < 3) {
     // v3: notes are the main panel by default.
     s.primaryPanel = "notes";
+  }
+  if ((s.version ?? 1) < 4) {
+    // v4: files remember their own steps; until now they did what recordings did, but the cover.
+    s.fileSteps = { verifySpeakers: s.verifySpeakers, finalPass: s.finalPass, punctuate: s.punctuate, summarize: false };
   }
   return { ...s, version: VERSION } as Settings;
 }

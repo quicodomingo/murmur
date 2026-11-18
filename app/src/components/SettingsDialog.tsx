@@ -13,12 +13,13 @@ import { THEMES, type Theme } from "@/lib/appearance";
 import * as backend from "@/lib/backend";
 import type { CfAccount, ShareSetupStep } from "@/lib/backend";
 import { locale, systemLanguage, UI_LANGUAGE_NAMES, UI_LANGUAGES, type UiLanguagePref } from "@/lib/i18n";
-import { cloudModel, connectCloud, coverEngine, disconnectCloud, KEYS_URL, loadCloudModels, PROVIDERS, useCloud } from "@/lib/cloud";
+import { ModelPicker } from "@/components/ModelPicker";
+import { cloudModel, connectCloud, KEY_PLACEHOLDER, coverEngine, disconnectCloud, KEYS_URL, loadCloudModels, PROVIDERS, useCloud } from "@/lib/cloud";
 import { coverDocument, llmTasks, PROMPTS, promptText, type PromptId } from "@/lib/cover";
 import { syncCalendars, useCalendarSync } from "@/lib/calendar";
 import { spellingNote } from "@/lib/glossary";
 import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
-import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
+import { DEFAULT_SETTINGS, type AfterSteps, type Settings } from "@/lib/settings";
 import { connectShare, disconnectShare, setupShare, useShareStatus } from "@/lib/share";
 import type { CloudProvider, Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
 import { preferredFinalModel } from "@/lib/finalpass";
@@ -27,7 +28,9 @@ import { copyText } from "@/lib/clipboard";
 import { MarkerBackground, useMarker } from "@/lib/motion";
 import { MEETING_LANGUAGES } from "./StartOptions";
 import { capabilities, isMac, OS } from "@/lib/platform";
+import { ago } from "@/lib/format";
 import { VoicePrivacy, VoiceRecorder } from "@/components/VoiceRecorder";
+import { PHONE_APP } from "@/lib/features";
 
 type Props = {
   open: boolean;
@@ -124,7 +127,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange, recordi
           <nav ref={navRef} className="relative w-[184px] shrink-0 overflow-y-auto border-r border-border bg-mm-sidebar p-2" role="tablist" aria-orientation="vertical">
             {/* The selection's background slides to the section chosen (not on opening; motion-reduce: jumps). */}
             <MarkerBackground marker={marker} className="rounded-md bg-mm-sidebar-selection" />
-            {TABS.filter(({ id }) => (id !== "calendar" || capabilities.calendar)).map(({ id, icon: Icon }) => (
+            {TABS.filter(({ id }) => (id !== "calendar" || capabilities.calendar) && (id !== "mobile" || PHONE_APP)).map(({ id, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
@@ -182,11 +185,15 @@ function GeneralTab({
   const [autostart, setAutostart] = useState<boolean | null>(null);
   const [version, setVersion] = useState<string | null>(null);
   const [calendar, setCalendar] = useState<backend.Access | null>(null);
+  const [links, setLinks] = useState(0);
+  const [google, setGoogle] = useState(false);
   useEffect(() => {
     if (!backend.isTauri()) return;
     autostartEnabled().then(setAutostart).catch(() => setAutostart(null));
     getVersion().then(setVersion).catch(() => {});
-    backend.calendarAccess().then(setCalendar).catch(() => {});
+    if (capabilities.systemCalendar) backend.calendarAccess().then(setCalendar).catch(() => {});
+    backend.icalFeeds().then((f) => setLinks(f.length)).catch(() => {});
+    if (capabilities.googleCalendar) backend.googleStatus().then((g) => setGoogle(g.connected)).catch(() => {});
   }, []);
   const toggleAutostart = async (on: boolean) => {
     try {
@@ -196,7 +203,8 @@ function GeneralTab({
       toast.error(String(e));
     }
   };
-  const connected = calendar === "granted" && settings.calendarEnabled;
+  // Some calendar to read: the system's (macOS), Google or an iCal link.
+  const connected = (capabilities.systemCalendar && calendar === "granted" && settings.calendarEnabled) || google || links > 0;
   return (
     <>
       <Group title={t("general.languageGroup")}>
@@ -281,40 +289,60 @@ function GeneralTab({
         <Row label={t("general.analytics")} hint={t("general.analyticsHint")}>
           <Switch checked={settings.analytics} onCheckedChange={(analytics) => onChange({ analytics })} />
         </Row>
+        <Row label={t("general.log")} hint={t("general.logHint")}>
+          <button
+            type="button"
+            disabled={!backend.isTauri()}
+            onClick={() => backend.showLog().catch((e) => toast.error(String(e)))}
+            className="h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50"
+          >
+            {t("general.showLog")}
+          </button>
+        </Row>
       </Group>
     </>
   );
 }
 
 /**
- * Calendari tab: the macOS calendar, with every account added to the system (iCloud, Google,
- * Exchange…), and which calendars and events Murmur watches. The alert itself is in General.
+ * Calendari tab (docs/mockups/calendari.html): the connections (the macOS calendar, with every
+ * account added to the system; Google, signing in in the browser; and iCal links on every system:
+ * Outlook, iCloud…), then which calendars and events Murmur watches. The alert itself is in General.
  */
 function CalendarSettings({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
   const { t } = useTranslation("settings");
+  const mac = capabilities.systemCalendar;
   const [access, setAccess] = useState<backend.Access | null>(null);
   const [calendars, setCalendars] = useState<backend.CalendarInfo[]>([]);
+  const [feeds, setFeeds] = useState<backend.IcalFeed[]>([]);
+  const [google, setGoogle] = useState<backend.GoogleStatus | null>(null);
   /** Just connected: macOS is still loading the accounts, so the list may come empty at first. */
   const sync = useCalendarSync();
   const alive = useRef(true);
-  const refresh = () => {
+  const enabled = useRef(settings.calendarEnabled);
+  enabled.current = settings.calendarEnabled;
+  const systemOn = mac && access === "granted" && settings.calendarEnabled;
+
+  const refresh = async () => {
     if (!backend.isTauri()) return;
-    backend
-      .calendarAccess()
-      .then(async (a) => {
-        if (!alive.current) return;
-        setAccess(a);
-        if (a === "granted") {
-          const list = await backend.listCalendars();
-          if (alive.current) setCalendars(list);
-        }
-      })
-      .catch(() => {});
+    const a = mac ? await backend.calendarAccess().catch(() => null) : null;
+    const f = await backend.icalFeeds().catch(() => []);
+    const list = await backend.listCalendars(mac && a === "granted" && enabled.current).catch(() => []);
+    // After the list: reading it is what finds out the session ended.
+    const g = capabilities.googleCalendar ? await backend.googleStatus().catch(() => null) : null;
+    if (!alive.current) return;
+    if (a) setAccess(a);
+    setGoogle(g);
+    setFeeds(f);
+    setCalendars(list);
   };
   // The background sync found them (maybe while this window was closed).
   useEffect(() => {
-    if (sync.calendars?.length) setCalendars(sync.calendars);
+    if (sync.calendars?.length) void refresh();
   }, [sync.calendars]);
+  useEffect(() => {
+    void refresh();
+  }, [settings.calendarEnabled]);
   const connect = async () => {
     onChange({ calendarEnabled: true });
     const a = await backend.requestCalendarAccess().catch(() => "denied" as const);
@@ -323,41 +351,63 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
   };
   useEffect(() => {
     alive.current = true;
-    refresh();
     // Coming back from System Settings.
-    window.addEventListener("focus", refresh);
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
     return () => {
       alive.current = false;
-      window.removeEventListener("focus", refresh);
+      window.removeEventListener("focus", onFocus);
     };
   }, []);
 
-  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted";
-  const footnote = (
-    <p className="-mt-3 mb-5 px-1 text-[11px] leading-snug text-muted-foreground">
-      {t("calendar.footnote")}
-    </p>
-  );
-  if (access !== "granted" || !settings.calendarEnabled) {
-    return (
-      <>
-        <Group title={t("calendar.connection")}>
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
+  const ids = calendars.map((c) => c.id);
+  const watched = (id: string) => settings.calendarIds === null || settings.calendarIds.includes(id);
+  const toggle = (id: string, on: boolean) => {
+    const next = (settings.calendarIds ?? ids).filter((c) => c !== id && ids.includes(c));
+    if (on) next.push(id);
+    onChange({ calendarIds: next.length === ids.length ? null : next });
+  };
+  const remove = async (feed: backend.IcalFeed) => {
+    const message = t("calendar.icalRemoveMessage", { name: feed.name });
+    const confirmed = backend.isTauri()
+      ? await ask(message, { title: t("calendar.icalRemoveTitle"), kind: "warning", okLabel: t("calendar.icalRemove"), cancelLabel: t("common:cancel") })
+      : window.confirm(message);
+    if (!confirmed) return;
+    await backend.icalRemove(feed.id).catch((e) => toast.error(String(e)));
+    void refresh();
+  };
+
+  return (
+    <>
+      <Group title={t("calendar.connection")}>
+        {mac && (
           <Row
             label={t("calendar.macCalendar")}
             hint={
               access === "denied"
                 ? t("calendar.denied")
-                : access === "granted"
-                  ? t("calendar.disconnected")
-                  : t("calendar.notConnected")
+                : systemOn
+                  ? t("calendar.connected")
+                  : access === "granted"
+                    ? t("calendar.disconnected")
+                    : t("calendar.notConnected")
             }
           >
-            <span className="flex items-center gap-2">
-              <CalendarDays className="size-4 text-muted-foreground" aria-hidden />
+            <span className="flex shrink-0 items-center gap-2">
               {access === "denied" ? (
                 <button type="button" className={button} onClick={() => backend.openPrivacySettings("calendars")}>
                   {t("calendar.openSettings")}
                 </button>
+              ) : systemOn ? (
+                <>
+                  <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                    <Check className="size-3.5" aria-hidden /> {t("calendar.allowed")}
+                  </span>
+                  <button type="button" className={button} onClick={() => onChange({ calendarEnabled: false })}>
+                    {t("calendar.disconnect")}
+                  </button>
+                </>
               ) : (
                 <>
                   {/* Disconnected: Murmur can't remove its own permission; System Settings can. */}
@@ -373,72 +423,249 @@ function CalendarSettings({ settings, onChange }: { settings: Settings; onChange
               )}
             </span>
           </Row>
-        </Group>
-        {footnote}
-      </>
-    );
-  }
+        )}
+        {capabilities.googleCalendar && <GoogleRow status={google} onChange={() => void refresh()} />}
+        <IcalRows feeds={feeds} onAdded={() => void refresh()} onRemove={(f) => void remove(f)} />
+      </Group>
+      <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
+        <Lock className="mt-px size-3 shrink-0" aria-hidden />
+        <span>{mac ? t("calendar.privacyMac") : t("calendar.privacy")}</span>
+      </p>
+      {(systemOn || google?.connected || feeds.length > 0) && (
+        <>
+          <Group title={t("calendar.events")}>
+            <Row label={t("calendar.noGuests")} hint={t("calendar.noGuestsHint")}>
+              <Switch checked={settings.calendarNoGuests} onCheckedChange={(calendarNoGuests) => onChange({ calendarNoGuests })} />
+            </Row>
+          </Group>
+          <section className="mb-5">
+            <div className="mb-1.5 flex items-baseline justify-between px-1">
+              <h3 className="text-[12px] font-semibold text-muted-foreground">{t("calendar.watched")}</h3>
+              {settings.calendarIds !== null && (
+                <button type="button" className="text-[12px] text-mm-link hover:underline" onClick={() => onChange({ calendarIds: null })}>
+                  {t("calendar.all")}
+                </button>
+              )}
+            </div>
+            <div className="divide-y divide-border rounded-[10px] border border-border bg-background">
+              {calendars.length === 0 &&
+                (sync.syncing ? (
+                  <div className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-[13px] text-muted-foreground" role="status">
+                    <span className="size-3.5 animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
+                    {t("calendar.syncing")}
+                  </div>
+                ) : (
+                  <Row label={t("calendar.empty")} hint={t("calendar.emptyHint")}>{null}</Row>
+                ))}
+              {calendars.map((c) => (
+                <div key={c.id} className="flex min-h-11 items-center gap-3 px-3 py-2">
+                  {/* The calendar's own colour, as macOS shows it; the links get one of ours. */}
+                  <span className="size-3 shrink-0 rounded-[3px]" style={{ backgroundColor: c.color }} aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px]">{c.title}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {c.id.startsWith("ics:")
+                        ? t("calendar.fromLink", { host: c.account })
+                        : c.id.startsWith("google:")
+                          ? t("calendar.fromGoogle", { email: c.account })
+                          : c.account !== c.title
+                            ? c.account
+                            : ""}
+                    </div>
+                  </div>
+                  <Switch checked={watched(c.id)} onCheckedChange={(on) => toggle(c.id, on)} aria-label={t("calendar.watch", { name: c.title })} />
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+    </>
+  );
+}
 
-  const ids = calendars.map((c) => c.id);
-  const watched = (id: string) => settings.calendarIds === null || settings.calendarIds.includes(id);
-  const toggle = (id: string, on: boolean) => {
-    const next = (settings.calendarIds ?? ids).filter((c) => c !== id && ids.includes(c));
-    if (on) next.push(id);
-    onChange({ calendarIds: next.length === ids.length ? null : next });
+/**
+ * Google Calendar: "Inicia la sessió…" opens the browser and waits for it (with Cancel'la while
+ * it does); connected, the account's address and Desconnecta. A session that ended says so.
+ */
+function GoogleRow({ status, onChange }: { status: backend.GoogleStatus | null; onChange: () => void }) {
+  const { t } = useTranslation("settings");
+  const [waiting, setWaiting] = useState(false);
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
+
+  const connect = async () => {
+    setWaiting(true);
+    try {
+      const email = await backend.googleConnect();
+      toast(t("calendar.googleConnectedToast", { email }));
+      onChange();
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      setWaiting(false);
+    }
   };
+  const disconnect = async () => {
+    const message = t("calendar.googleDisconnectMessage");
+    const confirmed = backend.isTauri()
+      ? await ask(message, { title: t("calendar.googleDisconnectTitle"), kind: "warning", okLabel: t("calendar.disconnect"), cancelLabel: t("common:cancel") })
+      : window.confirm(message);
+    if (!confirmed) return;
+    await backend.googleDisconnect().catch((e) => toast.error(String(e)));
+    onChange();
+  };
+
+  const connected = !!status?.connected;
+  const hint = waiting ? t("calendar.googleWaiting") : connected ? (status?.email ?? "") : t("calendar.googleHint");
   return (
-    <>
-      <Group title={t("calendar.connection")}>
-        <Row label={t("calendar.macCalendar")} hint={t("calendar.connected")}>
-          <span className="flex shrink-0 items-center gap-2">
-            <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
-              <Check className="size-3.5" aria-hidden /> {t("calendar.allowed")}
-            </span>
-            <button type="button" className={button} onClick={() => onChange({ calendarEnabled: false })}>
+    <Row label={t("calendar.google")} hint={hint}>
+      <span className="flex shrink-0 items-center gap-2">
+        {status?.error && <span className="max-w-56 truncate text-[12px] text-destructive" title={status.error}>{status.error}</span>}
+        {waiting ? (
+          <button type="button" className={button} onClick={() => void backend.googleCancel()}>
+            {t("common:cancel")}
+          </button>
+        ) : connected ? (
+          <>
+            {!status?.error && (
+              <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                <Check className="size-3.5" aria-hidden /> {t("calendar.googleConnected")}
+              </span>
+            )}
+            <button type="button" className={cn(button, "text-destructive")} onClick={() => void disconnect()}>
               {t("calendar.disconnect")}
             </button>
-          </span>
-        </Row>
+          </>
+        ) : (
+          <button type="button" className={button} disabled={!backend.isTauri() || status === null} onClick={() => void connect()}>
+            {t("calendar.googleSignIn")}
+          </button>
+        )}
+      </span>
+    </Row>
+  );
+}
 
-      </Group>
-      <Group title={t("calendar.events")}>
-        <Row label={t("calendar.noGuests")} hint={t("calendar.noGuestsHint")}>
-          <Switch checked={settings.calendarNoGuests} onCheckedChange={(calendarNoGuests) => onChange({ calendarNoGuests })} />
-        </Row>
-      </Group>
-      <section className="mb-5">
-        <div className="mb-1.5 flex items-baseline justify-between px-1">
-          <h3 className="text-[12px] font-semibold text-muted-foreground">{t("calendar.watched")}</h3>
-          {settings.calendarIds !== null && (
-            <button type="button" className="text-[12px] text-mm-link hover:underline" onClick={() => onChange({ calendarIds: null })}>
-              {t("calendar.all")}
+const ICAL_HELP = ["google", "outlook", "icloud"] as const;
+
+/**
+ * The iCal links: "Afegeix un enllaç…" opens a field in place, with how to find the link in
+ * Google, Outlook and iCloud; each saved one says where it's from and when it was last read.
+ */
+function IcalRows({ feeds, onAdded, onRemove }: { feeds: backend.IcalFeed[]; onAdded: () => void; onRemove: (f: backend.IcalFeed) => void }) {
+  const { t } = useTranslation("settings");
+  const [adding, setAdding] = useState(false);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [help, setHelp] = useState<(typeof ICAL_HELP)[number]>("google");
+  const button = "h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted disabled:opacity-50";
+
+  const add = async () => {
+    if (!url.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const feed = await backend.icalAdd(url.trim());
+      toast(t("calendar.icalAdded", { name: feed.name }));
+      setUrl("");
+      setAdding(false);
+      onAdded();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Row label={t("calendar.ical")} hint={t("calendar.icalHint")}>
+        {!adding && (
+          <button type="button" className={button} onClick={() => setAdding(true)}>
+            {t("calendar.icalAdd")}
+          </button>
+        )}
+      </Row>
+      {adding && (
+        <div className="bg-black/[0.015] py-2.5 pl-6 pr-3 dark:bg-white/[0.02]">
+          <form
+            className="flex items-center gap-1.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void add();
+            }}
+          >
+            <input
+              autoFocus
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"
+              aria-label={t("calendar.icalLabel")}
+              aria-invalid={!!error}
+              aria-describedby={error ? "ical-error" : undefined}
+              autoComplete="off"
+              spellCheck={false}
+              className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 font-mono text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive"
+            />
+            <button type="submit" className={button} disabled={busy || !url.trim()}>
+              {busy ? t("calendar.icalChecking") : t("calendar.icalAddButton")}
             </button>
+            <button
+              type="button"
+              className={button}
+              onClick={() => {
+                setAdding(false);
+                setError(null);
+                setUrl("");
+              }}
+            >
+              {t("common:cancel")}
+            </button>
+          </form>
+          {error && (
+            <p id="ical-error" role="alert" className="mt-1 text-[11px] text-destructive">
+              {error}
+            </p>
           )}
-        </div>
-        <div className="divide-y divide-border rounded-[10px] border border-border bg-background">
-          {calendars.length === 0 &&
-            (sync.syncing ? (
-              <div className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-[13px] text-muted-foreground" role="status">
-                <span className="size-3.5 animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none" aria-hidden />
-                {t("calendar.syncing")}
-              </div>
-            ) : (
-              <Row label={t("calendar.empty")} hint={t("calendar.emptyHint")}>{null}</Row>
-            ))}
-          {calendars.map((c) => (
-            <div key={c.id} className="flex min-h-11 items-center gap-3 px-3 py-2">
-              {/* The calendar's own colour, as macOS shows it. */}
-              <span className="size-3 shrink-0 rounded-[3px]" style={{ backgroundColor: c.color }} aria-hidden />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px]">{c.title}</div>
-                {c.account && c.account !== c.title && <div className="truncate text-[11px] text-muted-foreground">{c.account}</div>}
-              </div>
-              <Switch checked={watched(c.id)} onCheckedChange={(on) => toggle(c.id, on)} aria-label={t("calendar.watch", { name: c.title })} />
+          <div className="mt-2.5 text-[12px] text-muted-foreground">
+            <div className="font-medium text-foreground">{t("calendar.icalWhere")}</div>
+            <div role="tablist" className="mt-1 flex gap-3.5">
+              {ICAL_HELP.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  role="tab"
+                  aria-selected={help === h}
+                  onClick={() => setHelp(h)}
+                  className={cn("pb-0.5 text-[12px]", help === h ? "font-semibold text-foreground shadow-[inset_0_-2px_0_currentColor]" : "hover:text-foreground")}
+                >
+                  {t(`calendar.icalHelp.${h}.name`)}
+                </button>
+              ))}
             </div>
-          ))}
+            <ol role="tabpanel" className="mt-1.5 list-decimal space-y-0.5 pl-4 leading-snug">
+              {(t(`calendar.icalHelp.${help}.steps`, { returnObjects: true }) as string[]).map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
         </div>
-      </section>
-      {footnote}
+      )}
+      {feeds.map((f) => (
+        <div key={f.id} className="flex min-h-11 items-center gap-4 py-2 pl-6 pr-3">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px]">{f.name}</div>
+            <div className={cn("truncate text-[11px]", f.error ? "text-destructive" : "text-muted-foreground")}>
+              {f.error ? f.error : f.readAt ? t("calendar.icalRead", { host: f.host, when: ago(f.readAt) }) : f.host}
+            </div>
+          </div>
+          <button type="button" className={cn(button, "text-destructive")} onClick={() => onRemove(f)}>
+            {t("calendar.icalRemove")}
+          </button>
+        </div>
+      ))}
     </>
   );
 }
@@ -849,31 +1076,84 @@ function TranscriptionTab({ settings, onChange, recording }: { settings: Setting
         </Row>
       </Group>
       <Group title={t("transcription.afterRecording")}>
-        <Row
-          label={t("transcription.verifySpeakers")}
-          hint={t("transcription.verifySpeakersHint")}
-        >
-          <Switch checked={settings.verifySpeakers} onCheckedChange={(verifySpeakers) => onChange({ verifySpeakers })} />
+        <Row label={t("transcription.askAfter")} hint={t("transcription.askAfterHint")}>
+          <Switch checked={settings.askAfter} onCheckedChange={(askAfter) => onChange({ askAfter })} />
         </Row>
-        {/* Both Whispers always in view, each saying what it's for: not tied to today's language. */}
-        <Row label={t("transcription.finalPass")} hint={t("transcription.finalPassHint")}>
-          <Switch
-            checked={settings.finalPass}
-            onCheckedChange={(on) => {
-              onChange({ finalPass: on });
-              const final = on ? preferredFinalModel(settings.language) : null;
-              if (final) enableWithModel(models, final, true, () => {});
-            }}
-          />
-        </Row>
+        <AfterTable settings={settings} onChange={onChange} />
         <ModelRow id="whisper-ca" name={t("transcription.whisperCaModel")} purpose={t("transcription.whisperCaPurpose")} enabled={settings.finalPass} onDisable={() => {}} />
         <ModelRow id="whisper" name={t("transcription.whisperModel")} purpose={t("transcription.whisperPurpose")} enabled={settings.finalPass} onDisable={() => {}} />
         <Row label={t("transcription.punctuate")} hint={t("transcription.punctuateHint")}>
           <Switch checked={settings.punctuate} onCheckedChange={(on) => enableWithModel(models, "punctuation", on, () => onChange({ punctuate: on }))} />
         </Row>
-        <ModelRow id="punctuation" name={t("transcription.punctuationModel")} enabled={settings.punctuate} onDisable={() => onChange({ punctuate: false })} />
+        <ModelRow id="punctuation" name={t("transcription.punctuationModel")} enabled={settings.punctuate || settings.fileSteps.punctuate} onDisable={() => onChange({ punctuate: false, fileSteps: { ...settings.fileSteps, punctuate: false } })} />
       </Group>
     </>
+  );
+}
+
+/**
+ * What's done when a meeting ends, for recordings (and phones) and for files: what the card
+ * "Què en faig ara?" starts ticked, and what's done without asking if it's off. The card changes
+ * it each time. Turning on a step that needs a model downloads it.
+ */
+function AfterTable({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
+  const { t } = useTranslation("settings");
+  const models = useModels();
+  const rows: { key: keyof AfterSteps; name: string; hint: string; model: () => ModelId | null }[] = [
+    { key: "verifySpeakers", name: t("transcription.verifySpeakers"), hint: t("transcription.verifySpeakersHint"), model: () => null },
+    { key: "finalPass", name: t("transcription.finalPass"), hint: t("transcription.finalPassHint"), model: () => preferredFinalModel(settings.language) },
+    { key: "punctuate", name: t("transcription.punctuate"), hint: t("transcription.punctuateHint"), model: () => "punctuation" },
+    { key: "summarize", name: t("transcription.summarize"), hint: t("transcription.summarizeHint"), model: () => (settings.coverEngine === "local" ? "llm" : null) },
+  ];
+  const set = (key: keyof AfterSteps, file: boolean, on: boolean) => {
+    const apply = () => onChange(file ? { fileSteps: { ...settings.fileSteps, [key]: on } } : { [key]: on });
+    const model = on ? rows.find((r) => r.key === key)!.model() : null;
+    if (model) enableWithModel(models, model, true, apply);
+    else apply();
+  };
+  const box = (key: keyof AfterSteps, file: boolean, label: string) => {
+    const on = file ? settings.fileSteps[key] : settings[key];
+    return (
+      <label className="grid size-6 cursor-default place-items-center">
+        <input type="checkbox" className="peer sr-only" checked={on} aria-label={label} onChange={(e) => set(key, file, e.target.checked)} />
+        <span
+          aria-hidden
+          className={cn(
+            "grid size-4 place-items-center rounded-[4px] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
+            on ? "bg-foreground text-background" : "shadow-[inset_0_0_0_1.5px_var(--mm-separator)]",
+          )}
+        >
+          {on && <Check className="size-[11px]" strokeWidth={3.2} />}
+        </span>
+      </label>
+    );
+  };
+  return (
+    <table className="w-full border-collapse">
+      <thead>
+        <tr className="text-[11px] font-semibold text-muted-foreground">
+          <th className="py-1.5 pl-3 text-left font-semibold">{t("transcription.afterWhat")}</th>
+          <th className="w-24 py-1.5 font-semibold">{t("transcription.afterRecordings")}</th>
+          <th className="w-20 py-1.5 pr-2 font-semibold">{t("transcription.afterFiles")}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.key} className="border-t border-border">
+            <td className="py-2 pl-3 pr-2">
+              <div className="text-[13px]">{r.name}</div>
+              <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{r.hint}</div>
+            </td>
+            <td className="text-center align-middle">
+              <div className="inline-grid">{box(r.key, false, t("transcription.afterFor", { step: r.name, kind: t("transcription.afterRecordings") }))}</div>
+            </td>
+            <td className="pr-2 text-center align-middle">
+              <div className="inline-grid">{box(r.key, true, t("transcription.afterFor", { step: r.name, kind: t("transcription.afterFiles") }))}</div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -992,19 +1272,27 @@ function IntelligenceTab({
           label={<span id="cover-engine-label">{t("intelligence.engine")}</span>}
           hint={provider ? t("intelligence.engineCloudHint", { provider: t(`intelligence.companies.${provider}`) }) : t("intelligence.engineLocalHint")}
         >
-          <Segmented
+          {/* A native menu, not a segmented control: the providers don't fit side by side. */}
+          <select
             value={settings.coverEngine}
-            options={[
-              { value: "local", label: t("intelligence.engineLocal") },
-              ...PROVIDERS.map((p) => ({ value: p, label: t(`intelligence.providers.${p}`) })),
-            ]}
-            onChange={(coverEngine) => {
+            onChange={(e) => {
+              const coverEngine = e.target.value as Settings["coverEngine"];
               onChange({ coverEngine });
               // Back to the local model: fetch it if the cover is on and it isn't there.
               if (coverEngine === "local" && settings.summarize) enableWithModel(models, "llm", true, () => {});
             }}
-            labelledBy="cover-engine-label"
-          />
+            aria-labelledby="cover-engine-label"
+            className="h-6 max-w-56 shrink-0 truncate rounded-md border border-input bg-background px-1.5 text-[13px]"
+          >
+            <option value="local">{t("intelligence.engineLocal")}</option>
+            <optgroup label={t("intelligence.engineCloud")}>
+              {PROVIDERS.map((p) => (
+                <option key={p} value={p}>
+                  {t(`intelligence.providers.${p}`)}
+                </option>
+              ))}
+            </optgroup>
+          </select>
         </Row>
         {provider ? (
           <CloudRow key={provider} provider={provider} settings={settings} onChange={onChange} />
@@ -1025,7 +1313,13 @@ function IntelligenceTab({
       </Group>
       <p className="-mt-3 mb-5 flex gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
         {provider ? <CloudUpload className="mt-px size-3 shrink-0" aria-hidden /> : <Lock className="mt-px size-3 shrink-0" aria-hidden />}
-        <span>{provider ? t("intelligence.privacyCloud", { provider: t(`intelligence.companies.${provider}`) }) : t("intelligence.privacy")}</span>
+        <span>
+          {provider === "openrouter"
+            ? t("intelligence.privacyRouter")
+            : provider
+              ? t("intelligence.privacyCloud", { provider: t(`intelligence.companies.${provider}`) })
+              : t("intelligence.privacy")}
+        </span>
       </p>
       <PromptsEditor
         settings={settings}
@@ -1040,7 +1334,7 @@ function IntelligenceTab({
 }
 
 /**
- * Claude or OpenAI under "Qui l'escriu": the API key (checked, then saved to the keychain; it
+ * Claude, OpenAI, Gemini or OpenRouter under "Qui l'escriu": the API key (checked, then saved to the keychain; it
  * never comes back here) and, once connected, the model.
  */
 function CloudRow({ provider, settings, onChange }: { provider: CloudProvider; settings: Settings; onChange: Props["onChange"] }) {
@@ -1088,7 +1382,7 @@ function CloudRow({ provider, settings, onChange }: { provider: CloudProvider; s
           {t("cloud.keyLabel", { company })}
         </label>
         <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-          {t("cloud.keyHint")}{" "}
+          {t(`cloud.keyHints.${provider}`)}{" "}
           <button type="button" onClick={() => openLink(KEYS_URL[provider])} className="text-mm-link hover:underline">
             {t("cloud.createKey", { site: new URL(KEYS_URL[provider]).host })}
           </button>
@@ -1105,7 +1399,7 @@ function CloudRow({ provider, settings, onChange }: { provider: CloudProvider; s
             type="password"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder={provider === "anthropic" ? "sk-ant-…" : "sk-…"}
+            placeholder={KEY_PLACEHOLDER[provider]}
             autoComplete="off"
             spellCheck={false}
             aria-invalid={!!error}
@@ -1138,22 +1432,14 @@ function CloudRow({ provider, settings, onChange }: { provider: CloudProvider; s
           {t("cloud.disconnect")}
         </button>
       </div>
-      <Row label={t("cloud.model")} hint={cloud.errors[provider] ?? t("cloud.modelHint")}>
-        <select
+      <Row label={<span id="cloud-model-label">{t("cloud.model")}</span>} hint={cloud.errors[provider] ?? t("cloud.modelHint")}>
+        <ModelPicker
+          provider={provider}
           value={model}
-          onChange={(e) => onChange({ cloudModels: { ...settings.cloudModels, [provider]: e.target.value } })}
-          aria-label={t("cloud.model")}
-          disabled={!list}
-          className="h-6 max-w-56 truncate rounded-md border border-input bg-background px-1.5 text-[13px] disabled:opacity-60"
-        >
-          {!list && <option value={model}>{model}</option>}
-          {list && !list.some((m) => m.id === model) && <option value={model}>{model}</option>}
-          {list?.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
+          models={list}
+          onChange={(id) => onChange({ cloudModels: { ...settings.cloudModels, [provider]: id } })}
+          labelledBy="cloud-model-label"
+        />
       </Row>
     </>
   );

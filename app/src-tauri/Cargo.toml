@@ -1,6 +1,6 @@
 [package]
 name = "transcriptor"
-version = "0.15.0"
+version = "0.17.1"
 description = "Transcriptor de reunions en català, local"
 authors = ["Quico Domingo"]
 edition = "2024"
@@ -26,6 +26,7 @@ vulkan = ["llama-cpp-2/vulkan"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+serde_json = "1"
 
 [dependencies]
 murmur-core = { path = "../../core" }
@@ -37,7 +38,7 @@ sherpa-onnx = { version = "1.13.8", default-features = false }
 cpal = "0.16"
 crossbeam-channel = "0.5"
 anyhow = "1"
-log = "0.4"
+log = { version = "0.4", features = ["std"] }
 opus = "0.4"
 # Opening audio and video files: everywhere off macOS, and on macOS what afconvert can't read
 # (Matroska and WebM).
@@ -66,6 +67,8 @@ mdns-sd = "0.13"
 base64 = "0.22"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 tauri-plugin-aptabase = { version = "1.3.0", default-features = false, features = ["rustls-tls"] }
+rrule = "0.14"
+chrono-tz = "0.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 llama-cpp-2 = { version = "0.1.160", features = ["metal"] }
@@ -97,8 +100,14 @@ keyring = { version = "3", features = ["windows-native", "sync-secret-service", 
 sherpa-onnx = { version = "1.13.8", default-features = false, features = ["shared"] }
 sherpa-onnx-sys = { version = "1.13.8", default-features = false, features = ["shared"] }
 
+# System audio on Linux: the default output's monitor through PulseAudio (or PipeWire's
+# pipewire-pulse). Links libpulse.so.0 and libpulse-simple.so.0 (libpulse0 / pulseaudio-libs).
+[target.'cfg(target_os = "linux")'.dependencies]
+libpulse-binding = "2.30"
+libpulse-simple-binding = "2.29"
+
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
+windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_Storage_FileSystem", "Win32_System_SystemInformation", "Win32_System_Power"] }
 
 
 [dev-dependencies]

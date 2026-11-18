@@ -5,5 +5,6 @@
   "started": "Started",
   "close": "Close Alert",
   "startRecording": "Start Recording",
-  "continueRecording": "Continue Recording"
+  "continueRecording": "Continue Recording",
+  "openMurmur": "Open Murmur"
 }
