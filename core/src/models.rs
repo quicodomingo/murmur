@@ -314,15 +314,39 @@ fn fetch_all(items: &[Fetch], cancel: &AtomicBool, mut progress: impl FnMut(u64,
         }
         let partial = part(&file.target);
         let mut have = fs::metadata(&partial).map(|m| m.len()).unwrap_or(0);
+        // A partial file that's already whole (the app closed between the last byte and the
+        // rename) or too long (the file changed): asking for the rest would get a 416.
+        if have >= file.bytes {
+            if have == file.bytes && sha256_of(&partial)? == file.sha256 {
+                fs::rename(&partial, &file.target)?;
+                done_before += file.bytes;
+                progress(done_before, total);
+                continue;
+            }
+            let _ = fs::remove_file(&partial);
+            have = 0;
+        }
         let agent = ureq::AgentBuilder::new()
             .timeout_connect(Duration::from_secs(20))
             .timeout_read(Duration::from_secs(60))
             .build();
-        let mut request = agent.get(&file.url);
-        if have > 0 {
-            request = request.set("Range", &format!("bytes={have}-"));
+        let get = |from: u64| {
+            let mut request = agent.get(&file.url);
+            if from > 0 {
+                request = request.set("Range", &format!("bytes={from}-"));
+            }
+            request.call()
+        };
+        let response = match get(have) {
+            // The server can't resume from there: start the file over.
+            Err(ureq::Error::Status(416, _)) if have > 0 => {
+                let _ = fs::remove_file(&partial);
+                have = 0;
+                get(0)
+            }
+            r => r,
         }
-        let response = request.call().map_err(|e| match e {
+        .map_err(|e| match e {
             ureq::Error::Status(code, _) => anyhow!(tr!("server_status", code = code)),
             e => anyhow!(tr!("connect_failed", error = e)),
         })?;
@@ -512,6 +536,49 @@ fn part(path: &Path) -> PathBuf {
     let mut name = path.file_name().unwrap_or_default().to_os_string();
     name.push(".part");
     path.with_file_name(name)
+}
+
+#[cfg(test)]
+mod fetch_tests {
+    use super::*;
+
+    fn item(dir: &Path, data: &[u8]) -> Fetch {
+        use sha2::{Digest, Sha256};
+        Fetch {
+            target: dir.join("model.bin"),
+            // Nothing listens there: any request fails, so a test passes only if none is made.
+            url: "http://127.0.0.1:9/model.bin".into(),
+            bytes: data.len() as u64,
+            sha256: Sha256::digest(data).iter().map(|b| format!("{b:02x}")).collect(),
+        }
+    }
+
+    #[test]
+    fn a_whole_partial_file_is_kept_without_asking_for_more() {
+        let dir = std::env::temp_dir().join(format!("murmur-fetch-whole-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let file = item(&dir, b"tot el model");
+        fs::write(part(&file.target), b"tot el model").unwrap();
+        fetch_all(&[file], &AtomicBool::new(false), |_, _| {}).unwrap();
+        assert_eq!(fs::read(dir.join("model.bin")).unwrap(), b"tot el model");
+        assert!(!part(&dir.join("model.bin")).exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_partial_file_too_long_is_started_over() {
+        let dir = std::env::temp_dir().join(format!("murmur-fetch-long-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let file = item(&dir, b"curt");
+        let partial = part(&file.target);
+        fs::write(&partial, b"massa llarg per ser-ho").unwrap();
+        assert!(fetch_all(&[file], &AtomicBool::new(false), |_, _| {}).is_err());
+        // Thrown away, so the next try doesn't ask for bytes past the end.
+        assert!(fs::metadata(&partial).map(|m| m.len()).unwrap_or(0) == 0);
+        let _ = fs::remove_dir_all(&dir);
+    }
 }
 
 #[cfg(test)]
