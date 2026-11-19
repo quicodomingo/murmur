@@ -38,6 +38,10 @@ const CONFORMER_URL_DECODER: &str = "https://huggingface.co/quicodomingo/murmur-
 const CONFORMER_URL_JOINER: &str = "https://huggingface.co/quicodomingo/murmur-models/resolve/main/conformer-ca-es-sherpa/joiner.onnx";
 const CONFORMER_URL_TOKENS: &str = "https://huggingface.co/quicodomingo/murmur-models/resolve/main/conformer-ca-es-sherpa/tokens.txt";
 
+// Files from other people's repositories are pinned to a commit, and the ones from GitHub releases
+// (which can be replaced in place) are copied to ours: a file that changes upstream would fail the
+// size and SHA-256 check and leave new installs stuck.
+
 /// Live and final transcription: the AINA Conformer, voice activity and speakers.
 pub const TRANSCRIPTION: OptionalModel = OptionalModel {
     id: "transcription",
@@ -50,27 +54,25 @@ pub const TRANSCRIPTION: OptionalModel = OptionalModel {
         ModelFile { name: "conformer-ca-es-sherpa/tokens.txt", url: Some(CONFORMER_URL_TOKENS), bytes: 1_955, sha256: "0451223f8209d957022aa856857a470731b2dbbcf2ea39e83dee2f298d45682c" },
         ModelFile {
             name: "silero_vad.onnx",
-            url: Some("https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx"),
+            url: Some("https://huggingface.co/quicodomingo/murmur-models/resolve/main/silero_vad.onnx"),
             bytes: 643_854,
             sha256: "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
         },
         ModelFile {
             name: "nemo_en_titanet_small.onnx",
-            url: Some("https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/nemo_en_titanet_small.onnx"),
+            url: Some("https://huggingface.co/quicodomingo/murmur-models/resolve/main/nemo_en_titanet_small.onnx"),
             bytes: 40_257_283,
             sha256: "ad4a1802485d8b34c722d2a9d04249662f2ece5d28a7a039063ca22f515a789e",
         },
         ModelFile {
             name: "3dspeaker_eres2net_base.onnx",
-            url: Some(
-                "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx",
-            ),
+            url: Some("https://huggingface.co/quicodomingo/murmur-models/resolve/main/3dspeaker_eres2net_base.onnx"),
             bytes: 39_593_761,
             sha256: "1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b",
         },
         ModelFile {
             name: "sherpa-onnx-pyannote-segmentation-3-0/model.onnx",
-            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-pyannote-segmentation-3-0/resolve/main/model.onnx"),
+            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-pyannote-segmentation-3-0/resolve/9403a6902bb58e3d5ae8c7e77c3422de279db2e0/model.onnx"),
             bytes: 5_992_913,
             sha256: "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079",
         },
@@ -96,7 +98,7 @@ pub const LLM: OptionalModel = OptionalModel {
     files: &[ModelFile {
         name: "gemma-4-E4B_q4_0-it.gguf",
         url: Some(
-            "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf/resolve/main/gemma-4-E4B_q4_0-it.gguf",
+            "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf/resolve/4b4a2c1d584be7264f87aac328a1bc739ce81b6c/gemma-4-E4B_q4_0-it.gguf",
         ),
         bytes: 5_154_941_280,
         sha256: "676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee",
@@ -112,13 +114,13 @@ pub const ENGLISH: OptionalModel = OptionalModel {
     files: &[
         ModelFile {
             name: "model.onnx",
-            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet_tdt_ctc_110m-en-36000/resolve/main/model.onnx"),
+            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet_tdt_ctc_110m-en-36000/resolve/3af92f152d32c836acabf38f4c993bc96b80eb2d/model.onnx"),
             bytes: 458_161_021,
             sha256: "936806cf3dd0db5aba53f8c7410bb5632d7a8ad6b2c51009f5e4fc0890ec76bf",
         },
         ModelFile {
             name: "tokens.txt",
-            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet_tdt_ctc_110m-en-36000/resolve/main/tokens.txt"),
+            url: Some("https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet_tdt_ctc_110m-en-36000/resolve/3af92f152d32c836acabf38f4c993bc96b80eb2d/tokens.txt"),
             bytes: 9_953,
             sha256: "450e56bd2f036fe5b6aa821865838cc5aa9d8b0106134ce9a9ba0664abe6cd10",
         },
@@ -133,7 +135,7 @@ pub const WHISPER: OptionalModel = OptionalModel {
     required: false,
     files: &[ModelFile {
         name: "ggml-large-v3-turbo-q5_0.bin",
-        url: Some("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin"),
+        url: Some("https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo-q5_0.bin"),
         bytes: 574_041_195,
         sha256: "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
     }],

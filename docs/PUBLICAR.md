@@ -121,7 +121,7 @@ Cada canvi passa per [`.github/workflows/ci.yml`](../.github/workflows/ci.yml): 
 Una actualització de model substitueix els fitxers d'un model **amb els mateixos noms** (per exemple, un `encoder.onnx` millor). Si el model nou necessita codi nou (fitxers diferents, un altre model de parlants, uns altres llindars), va amb una versió nova de l'app, i al catàleg se li posa `minApp` a aquella versió.
 
 1. **Mesura'l abans** amb el banc de proves (`bench/`) i, si toca parlants, amb `bench/speakers_eval.py`. Un model nou pot ser millor en una cosa i pitjor en una altra.
-2. **Puja els fitxers** a Hugging Face (`quicodomingo/murmur-models`) o fes servir la URL de l'origen. Han de ser públics.
+2. **Puja els fitxers** a Hugging Face (`quicodomingo/murmur-models`) o fes servir la URL de l'origen. Han de ser públics. Una URL d'un altre repositori de Hugging Face va fixada a un commit (`/resolve/<commit>/`, mai `/resolve/main/`), i un fitxer d'una *release* de GitHub es copia al nostre repositori: si l'origen el substitueix, la mida i el SHA-256 ja no quadren i les instal·lacions noves s'encallen (va passar el novembre del 2026 amb el model de parlants ERes2Net de sherpa-onnx).
 3. **Calcula la mida i el SHA-256** de cada fitxer:
    ```bash
    shasum -a 256 encoder.onnx; stat -f%z encoder.onnx

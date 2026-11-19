@@ -6546,7 +6546,7 @@ dependencies = [
 
 [[package]]
 name = "transcriptor"
-version = "0.17.2"
+version = "0.17.3"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
