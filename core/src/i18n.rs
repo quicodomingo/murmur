@@ -419,6 +419,11 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "No se ha podido elegir la dirección workers.dev de la cuenta. Abre Workers en el panel de Cloudflare una vez y vuelve a intentarlo",
             "Couldn't choose the account's workers.dev address. Open Workers in the Cloudflare dashboard once and try again",
         ],
+        "already_processing" => [
+            "Aquesta reunió ja s'està processant. Quan acabi, podràs demanar-hi el que falti.",
+            "Esta reunión ya se está procesando. Cuando termine, podrás pedirle lo que falte.",
+            "This meeting is already being processed. When it's done, you can ask for whatever is left.",
+        ],
         "whisper_one_language" => [
             "Whisper només pot transcriure en una llengua: català, castellà o anglès",
             "Whisper solo puede transcribir en una lengua: catalán, castellano o inglés",

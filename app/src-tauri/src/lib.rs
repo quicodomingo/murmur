@@ -794,7 +794,38 @@ fn run_final_pass(app: AppHandle, state: State<'_, AppState>, meeting_id: String
         return;
     }
     // Its own thread: the meeting's turn (gate.rs) may have to wait for another one.
-    std::thread::spawn(move || final_pass(app, meeting_id, tapped, plan, gate::heavy()));
+    let claim = InPass::claim(&meeting_id);
+    std::thread::spawn(move || {
+        let _claim = claim;
+        final_pass(app, meeting_id, tapped, plan, gate::heavy())
+    });
+}
+
+/// Meetings with a final pass running or waiting for their turn: a second one for the same
+/// meeting (asked from its menu while the first waited) would redo everything after it.
+static IN_PASS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// A meeting's place in `IN_PASS`, given back when dropped.
+struct InPass(Option<String>);
+
+impl InPass {
+    /// `None` inside if the meeting already has one.
+    fn claim(meeting_id: &str) -> Self {
+        let mut list = IN_PASS.lock().unwrap();
+        if list.iter().any(|m| m == meeting_id) {
+            return Self(None);
+        }
+        list.push(meeting_id.to_string());
+        Self(Some(meeting_id.to_string()))
+    }
+}
+
+impl Drop for InPass {
+    fn drop(&mut self) {
+        if let Some(id) = &self.0 {
+            IN_PASS.lock().unwrap().retain(|m| m != id);
+        }
+    }
 }
 
 /// Set when the app quits to restart (an update).
@@ -945,10 +976,15 @@ async fn retranscribe_meeting(
     if language.as_deref().is_some_and(|l| !["ca", "es", "en"].contains(&l)) || (language.is_none() && max_speakers.is_none()) {
         return Err(tr!("whisper_one_language").into());
     }
+    let claim = InPass::claim(&meeting_id);
+    if claim.0.is_none() {
+        return Err(tr!("already_processing").into());
+    }
     let ogg = recording_path(&audio_path)?;
     let tmp = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("retranscribe");
     let glossary = glossary::with_guests(&with_db(&app, |db| db.glossary()).unwrap_or_default(), &guests);
     std::thread::spawn(move || {
+        let _claim = claim;
         // Decoding waits for its turn too: several meetings from a phone arrive together, and each
         // decoded hour is ~230 MB. Nor while Murmur records or there's a call.
         let heavy = gate::heavy();
