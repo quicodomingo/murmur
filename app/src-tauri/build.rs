@@ -1,7 +1,24 @@
 fn main() {
     bundled_libs();
     google_oauth();
+    clang_runtime();
     tauri_build::build()
+}
+
+/// macOS: llama.cpp's Metal code checks the system version with `@available`, which, built for an
+/// older system than the one compiling it (`tauri build` sets the deployment target to
+/// `minimumSystemVersion`), calls `__isPlatformVersionAtLeast` from clang's runtime. rustc links
+/// with `-nodefaultlibs`, so that runtime has to be named here or the link fails.
+fn clang_runtime() {
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
+        return;
+    }
+    let Ok(out) = std::process::Command::new("xcrun").args(["clang", "-print-resource-dir"]).output() else { return };
+    let dir = std::path::PathBuf::from(String::from_utf8_lossy(&out.stdout).trim()).join("lib/darwin");
+    if dir.join("libclang_rt.osx.a").exists() {
+        println!("cargo:rustc-link-search=native={}", dir.display());
+        println!("cargo:rustc-link-lib=static=clang_rt.osx");
+    }
 }
 
 /// Google Calendar's OAuth client (google.rs), baked in when there is one: from

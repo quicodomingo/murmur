@@ -69,6 +69,7 @@ fn update(change: impl FnOnce(&mut Busy)) {
     }
     GATE.changed.notify_all();
     if was.any() != now.any() {
+        log::info!("heavy work {} (recording={} call={})", if now.any() { "paused" } else { "resumed" }, now.recording, now.call);
         if let Some(pid) = *GATE.whisper.lock().unwrap() {
             signal(pid, now.any());
         }

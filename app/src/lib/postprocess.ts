@@ -128,8 +128,13 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
       const rust: PostStage[] = [...(speakers ? (["speakers"] as const) : []), ...(text ? (["text"] as const) : [])];
       plans.current.set(id, [...rust, ...optionalStages(rust, languages.current.get(id) ?? config.current.language, id)]);
       remember(id, steps);
+      // The banner from now on: Rust may wait (a call, gate.rs) before its first stage starts.
+      if (rust.length) dispatch({ type: "postStage", id, stage: rust[0], steps: plans.current.get(id)!, estimateSeconds: steps.find((s) => s.stage === rust[0])?.seconds ?? 60 });
       track("after_chosen", { speakers, text, punctuation: chosen.has("punctuation"), summary: chosen.has("cover"), file: files.current.has(id) });
-      backend.runFinalPass(id, speakers, text).catch((e) => toast.error(String(e)));
+      backend.runFinalPass(id, speakers, text).catch((e) => {
+        dispatch({ type: "postDone", id });
+        toast.error(String(e));
+      });
     },
     [dispatch],
   );
