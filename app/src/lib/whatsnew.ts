@@ -7,6 +7,7 @@ import i18n, { t } from "./i18n";
  * A version with no notes shows nothing.
  */
 export const RELEASES: { version: string; date: string }[] = [
+  { version: "0.18.0", date: "2026-11-23" },
   { version: "0.17.0", date: "2026-11-18" },
   { version: "0.15.0", date: "2026-11-16" },
   { version: "0.14.0", date: "2026-11-15" },

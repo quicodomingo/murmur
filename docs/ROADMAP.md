@@ -136,7 +136,7 @@ Entre reunions (bloc 5):
 - [x] Calendaris amb un enllaç iCal a tots els sistemes (Google, Outlook, iCloud), amb els esdeveniments que es repeteixen i les zones d'Outlook.
 - [x] Google Calendar amb el seu inici de sessió (OAuth) a tots els sistemes: projecte de Google Cloud, client «Desktop», permisos `calendar.calendarlist.readonly` i `calendar.events.readonly`.
 - [ ] La verificació de Google (pàgina de privadesa amb el paràgraf de *Limited Use*, vídeo, justificació dels permisos) per sortir del mode de proves: fins llavors només hi poden entrar els usuaris de prova i la sessió caduca cada 7 dies. Mentrestant, a l'app publicada no surt (`GOOGLE_CALENDAR`, a `app/src/lib/features.ts`): quan Google ho aprovi, es posa a `true` i es torna a explicar als README.
-- [ ] Whisper frase a frase per a les reunions en català i castellà, només amb GPU: mesurar-lo amb `examples/mixed_probe.rs` (WER i RTF) en reunions reals barrejades i, si val la pena, fer-lo servir a la passada final i oferir els dos Whisper a qui tingui «Català + castellà».
+- [ ] Whisper frase a frase per a les reunions en català i castellà, només amb GPU: mesurat amb `examples/mixed_probe.rs` en un programa de ràdio barrejat (WER 6 % davant del 21 % tot en català, RTF 0,25 davant de 0,14; vegeu ARQUITECTURA). Falta fer-lo servir a la passada final i oferir els dos Whisper a qui tingui «Català + castellà», i confirmar-ho amb una reunió real barrejada.
 - [ ] Mesurar els models «Recomanats» d'OpenRouter (`RECOMMENDED`, `lib/cloud.ts`) amb el banc de proves abans de deixar-los com a recomanació: ara són un model conegut per empresa.
 - [ ] Vocabulari personalitzat (marques i noms propis: WordPress, WooCommerce, noms de l'equip…).
 - [x] Triar l'idioma i si sou més gent a la sala just abans de gravar (pantalla inicial, barra lateral i avisos), i canviar «Som més a la sala» durant la gravació.
@@ -219,7 +219,7 @@ Entre reunions (bloc 5):
   - [x] La pàgina de privadesa a la web, les captures en castellà i anglès, i enviar-la a revisió.
   - [x] Publicar la versió de l'ordinador que ensenya Configuració › Mòbil (0.16.0) abans que l'app surti a la botiga.
   - [x] Publicada a l'App Store el 17 de novembre de 2026 (https://apps.apple.com/app/id6835415829).
-  - [ ] Quan l'app de l'iPhone sigui a l'App Store de la UE: `PHONE_APP` a `true` (`app/src/lib/features.ts`; amaga Configuració › Mòbil i la icona de sincronització a l'app publicada), el paràgraf dels README que està comentat, i la novetat de l'iPhone amb la imatge (la de la 0.16.0, que no va sortir).
+  - [x] L'app de l'iPhone ja és a l'App Store de la UE: a la 0.18.0, `PHONE_APP` a `true` (`app/src/lib/features.ts`), el paràgraf dels README i la novetat de l'iPhone amb la imatge (la de la 0.16.0, que no va sortir).
   - [ ] La secció de l'iPhone a la landing: textos i captures a [`docs/LANDING.md`](LANDING.md).
   - [ ] Les edicions després de revisar en tots dos sentits (avui el mòbil només conserva el títol i els noms que hi canvies).
   - [ ] iPad i iPhone Duo.

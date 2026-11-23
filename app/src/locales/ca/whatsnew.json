@@ -6,6 +6,16 @@
   "dontShow": "No ho tornis a mostrar",
   "ok": "Entesos",
   "releases": {
+    "0.18.0": [
+      {
+        "title": "Murmur per a iPhone",
+        "text": "Grava i transcriu al telèfon, sense connexió, quan no tens l'ordinador a mà. Connecta'l aquí amb un codi QR: les reunions hi passen soles per la xarxa local, xifrades, l'ordinador en fa la passada final i el resum, i tornen al telèfon revisades. Busca Murmur a l'App Store.",
+        "link": "mobile",
+        "linkLabel": "Connecta un mòbil",
+        "image": "/whatsnew/mobil-ca.png",
+        "imageDark": "/whatsnew/mobil-ca-fosc.png"
+      }
+    ],
     "0.17.0": [
       {
         "title": "Tu tries què es fa en acabar",

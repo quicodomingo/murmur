@@ -6,6 +6,16 @@
   "dontShow": "Don't show this again",
   "ok": "Got It",
   "releases": {
+    "0.18.0": [
+      {
+        "title": "Murmur for iPhone",
+        "text": "Record and transcribe on your phone, offline, when your computer isn't at hand. Pair it here with a QR code: meetings move over the local network on their own, encrypted, the computer runs the final pass and the summary, and they come back to the phone revised. Look for Murmur on the App Store.",
+        "link": "mobile",
+        "linkLabel": "Pair a Phone",
+        "image": "/whatsnew/mobil-en.png",
+        "imageDark": "/whatsnew/mobil-en-fosc.png"
+      }
+    ],
     "0.17.0": [
       {
         "title": "You choose what happens at the end",

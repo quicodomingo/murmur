@@ -6,6 +6,16 @@
   "dontShow": "No volver a mostrar",
   "ok": "Entendido",
   "releases": {
+    "0.18.0": [
+      {
+        "title": "Murmur para iPhone",
+        "text": "Graba y transcribe en el teléfono, sin conexión, cuando no tienes el ordenador a mano. Conéctalo aquí con un código QR: las reuniones pasan solas por la red local, cifradas, el ordenador hace la pasada final y el resumen, y vuelven al teléfono revisadas. Busca Murmur en la App Store.",
+        "link": "mobile",
+        "linkLabel": "Conectar un móvil",
+        "image": "/whatsnew/mobil-es.png",
+        "imageDark": "/whatsnew/mobil-es-fosc.png"
+      }
+    ],
     "0.17.0": [
       {
         "title": "Tú eliges qué se hace al terminar",
