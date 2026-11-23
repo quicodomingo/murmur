@@ -797,6 +797,25 @@ fn run_final_pass(app: AppHandle, state: State<'_, AppState>, meeting_id: String
     std::thread::spawn(move || final_pass(app, meeting_id, tapped, plan, gate::heavy()));
 }
 
+/// Set when the app quits to restart (an update).
+static RESTARTING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Ends the process without running C++'s static destructors. A normal exit() tears down
+/// onnxruntime (sherpa-onnx) and llama.cpp while their worker threads may still be running
+/// (punctuation, the speaker check, a summary), and the app aborts on the way out. Everything
+/// worth keeping is already on disk: the database commits as it goes, and the log is flushed here.
+fn quit_now(app: &AppHandle) {
+    log::logger().flush();
+    app.cleanup_before_exit();
+    if RESTARTING.load(std::sync::atomic::Ordering::SeqCst) {
+        tauri::process::restart(&app.env());
+    }
+    #[cfg(unix)]
+    unsafe {
+        libc::_exit(0)
+    };
+}
+
 /// What the final pass does after a recording.
 struct FinalPlan {
     /// Re-check who spoke when on this channel, with the user's maximum number of speakers.
@@ -2096,10 +2115,16 @@ pub fn run() {
                     shell::show_main(app);
                     let _ = app.emit("opened-files", ());
                 }
-                // Statistics still queued go before quitting.
-                tauri::RunEvent::Exit if !APTABASE_KEY.is_empty() => {
-                    use tauri_plugin_aptabase::EventTracker;
-                    app.flush_events_blocking();
+                tauri::RunEvent::ExitRequested { code: Some(tauri::RESTART_EXIT_CODE), .. } => {
+                    RESTARTING.store(true, std::sync::atomic::Ordering::SeqCst);
+                }
+                tauri::RunEvent::Exit => {
+                    // Statistics still queued go before quitting.
+                    if !APTABASE_KEY.is_empty() {
+                        use tauri_plugin_aptabase::EventTracker;
+                        app.flush_events_blocking();
+                    }
+                    quit_now(app);
                 }
                 _ => {}
             }
