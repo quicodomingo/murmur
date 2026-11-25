@@ -104,6 +104,11 @@ fn request(provider: Provider, method: &str, url: &str, key: &str) -> ureq::Requ
     }
 }
 
+/// A refused key, with the provider's reason when it gives one.
+fn bad_key_error(detail: &str) -> anyhow::Error {
+    if detail.is_empty() { anyhow!(tr!("cloud_bad_key")) } else { anyhow!(tr!("cloud_bad_key_said", detail = detail)) }
+}
+
 /// A failed call as something the user can act on.
 fn failure(e: ureq::Error) -> anyhow::Error {
     match e {
@@ -111,9 +116,13 @@ fn failure(e: ureq::Error) -> anyhow::Error {
             let body: Value = response.into_json().unwrap_or(Value::Null);
             let detail = body["error"]["message"].as_str().unwrap_or("").to_string();
             let bad_key = detail.contains("API key not valid") || body["error"]["details"].to_string().contains("API_KEY_INVALID");
+            // The provider's own words say why (a revoked key, billing, a model not allowed). They
+            // never carry the meeting: they go to the log as they are, cut short.
+            let short: String = detail.chars().take(200).collect();
+            log::warn!("cloud: HTTP {code}{}", if short.is_empty() { String::new() } else { format!(": {short}") });
             match code {
-                401 | 403 => anyhow!(tr!("cloud_bad_key")),
-                400 if bad_key => anyhow!(tr!("cloud_bad_key")),
+                401 | 403 => bad_key_error(&short),
+                400 if bad_key => bad_key_error(&short),
                 429 => anyhow!(tr!("cloud_rate_limited")),
                 500.. => anyhow!(tr!("cloud_unavailable", code = code)),
                 _ if detail.is_empty() => anyhow!(tr!("server_status", code = code)),

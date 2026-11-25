@@ -359,6 +359,11 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
             "La clave de API no es válida o no tiene permiso",
             "The API key isn't valid or lacks permission",
         ],
+        "cloud_bad_key_said" => [
+            "La clau d'API no és vàlida o no té permís. El servei diu: «{detail}»",
+            "La clave de API no es válida o no tiene permiso. El servicio dice: «{detail}»",
+            "The API key isn't valid or lacks permission. The service says: \"{detail}\"",
+        ],
         "cloud_rate_limited" => [
             "S'ha arribat al límit d'ús del compte. Torna-ho a provar d'aquí a una estona",
             "Se ha llegado al límite de uso de la cuenta. Vuelve a probarlo dentro de un rato",
