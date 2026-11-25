@@ -57,7 +57,7 @@ fn main() -> Result<()> {
                     eprintln!("stored {id} «{}» in {}", meeting["title"].as_str().unwrap_or(""), dest.join(&id).display());
                     received.push(meeting);
                 }
-                Ok(Incoming::Msg(Msg::GetResults { since })) => {
+                Ok(Incoming::Msg(Msg::GetResults { since, .. })) => {
                     for m in &received {
                         revised_at += 1.0;
                         if revised_at <= since {
@@ -76,7 +76,7 @@ fn main() -> Result<()> {
                                       { "text": "Anunci a les xarxes", "owner": "Laia", "when": "divendres", "t": 30.0 }],
                             "parts": [{ "t": 0.0, "title": "El calendari", "points": ["Data de publicació", "Què falta"] }, { "t": 30.0, "title": "Els preus", "points": ["Es tanquen dilluns"] }],
                         });
-                        s.send(&Msg::Results { meeting: back, revised_at })?;
+                        s.send(&Msg::Results { meeting: back, revised_at, computer: false })?;
                     }
                     received.clear();
                     s.send(&Msg::Bye)?;

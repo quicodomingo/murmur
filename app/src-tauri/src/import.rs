@@ -248,6 +248,9 @@ pub fn windows(spans: &[Span]) -> Vec<Vec<Span>> {
 /// Whisper's view of one window: how likely each of our languages is, and its own first choice.
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Heard {
+    /// Which window it is: the sidecar leaves out the ones too short to tell.
+    #[serde(default)]
+    pub window: usize,
     pub top: String,
     pub ca: f32,
     pub es: f32,
@@ -457,7 +460,7 @@ mod tests {
     use super::*;
 
     fn heard(ca: f32, es: f32, en: f32) -> Heard {
-        Heard { top: String::new(), ca, es, en }
+        Heard { window: 0, top: String::new(), ca, es, en }
     }
 
     #[test]

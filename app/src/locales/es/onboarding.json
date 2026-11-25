@@ -76,7 +76,7 @@
     "whisperName": "Repaso al terminar",
     "whisperTextCa": "Cuando termina la reunión, el Whisper catalán del BSC la vuelve a escuchar y reescribe el texto, más limpio. Todo en este ordenador.",
     "whisperText": "Cuando termina la reunión, Whisper la vuelve a escuchar y reescribe el texto, con puntuación y mayúsculas. Todo en este ordenador.",
-    "whisperMixed": "Con reuniones en dos lenguas, todavía no: Whisper pasaría el castellano al catalán. Estamos trabajando en ello.",
+    "whisperMixed": "Cuando termina la reunión, Whisper la vuelve a escuchar frase a frase: las catalanas con el Whisper catalán del BSC y las castellanas con el general, que pone puntuación y mayúsculas. Todo en este ordenador.",
     "whisperToggle": "Incluir el repaso al terminar",
     "optional": "Opcional",
     "offline": "Una vez descargados, funcionan sin conexión. El audio y el texto de las reuniones nunca salen de este ordenador.",

@@ -27,6 +27,7 @@
     <string name="home_earlier">Earlier</string>
     <string name="home_emptyText">Murmur transcribes as you talk and tells who says what. Everything stays on your phone.</string>
     <string name="home_emptyTitle">Record your first meeting</string>
+    <string name="home_fromComputer">recorded on the computer</string>
     <string name="home_revised">revised on the computer</string>
     <string name="home_search">Search</string>
     <string name="home_thisWeek">This week</string>
@@ -41,7 +42,9 @@
     <string name="meeting_cancel">Cancel</string>
     <string name="meeting_delete">Delete meeting</string>
     <string name="meeting_deleteConfirm">The meeting and its audio will be deleted from this phone.</string>
+    <string name="meeting_deleteConfirmComputer">It will be deleted from this phone and won\'t come back. It stays on the computer.</string>
     <string name="meeting_empty">Nothing was heard.</string>
+    <string name="meeting_fromComputer">Recorded on the computer. Here you have the text, the speakers and the summary; the audio stays on the computer.</string>
     <string name="meeting_pending">When the phone finds your computer, it will add the title, the summary and the Whisper pass. For now this is the quick transcript.</string>
     <string name="meeting_pendingUnpaired">This is the phone\'s quick transcript. Connect your computer in Settings and it\'ll go there on its own: it listens to it again with Whisper and writes the summary.</string>
     <string name="meeting_rename">Rename</string>

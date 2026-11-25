@@ -671,6 +671,20 @@ impl Db {
         Ok(out)
     }
 
+    /// The finished meetings made since `after` (milliseconds since the epoch, as `createdAt`)
+    /// that didn't come from the phone `device`, with when they last changed (seconds), oldest
+    /// first: this computer's own meetings, for a phone that wants them too.
+    pub fn others_for_device(&self, device: &str, after: f64) -> Result<Vec<(String, f64)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, updated_at FROM meetings
+             WHERE status = 'done' AND created_at >= ?2
+               AND (device IS NULL OR json_extract(device, '$.id') IS NOT ?1)
+             ORDER BY created_at",
+        )?;
+        let rows = stmt.query_map(params![device, after], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
     pub fn delete(&mut self, id: &str) -> Result<()> {
         let tx = self.conn.transaction()?;
         tx.execute("DELETE FROM meetings WHERE id = ?1", [id])?;
@@ -947,6 +961,11 @@ mod tests {
         assert_eq!(changed[0].0["id"], "m1");
         assert!(db.changed_for_device("abcd", changed[0].1).unwrap().is_empty());
         assert!(db.changed_for_device("other", 0.0).unwrap().is_empty());
+        // The other way: what the computer has besides that phone's, from a date on.
+        let ids = |device: &str, after: f64| db.others_for_device(device, after).unwrap().into_iter().map(|(id, _)| id).collect::<Vec<_>>();
+        assert_eq!(ids("abcd", 0.0), ["m2"]);
+        assert_eq!(ids("other", 0.0).len(), 2);
+        assert!(ids("abcd", 1.0).is_empty());
     }
 
     #[test]

@@ -100,6 +100,8 @@ pub struct MeetingRow {
     pub sent: bool,
     /// The computer has revised it (Whisper, speakers, summary).
     pub revised: bool,
+    /// Recorded on the computer and sent here, text only: no audio on the phone.
+    pub from_computer: bool,
 }
 
 /// A search result: where in which meeting. `snippet` has the matched words between \u{2} and
@@ -146,7 +148,7 @@ fn now_ms() -> f64 {
 }
 
 /// A meeting id as a folder name: never a path out of where it goes.
-fn safe_dir(id: &str) -> String {
+pub(crate) fn safe_dir(id: &str) -> String {
     id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').collect()
 }
 
@@ -181,8 +183,8 @@ impl Murmur {
                 let last_line = full
                     .as_ref()
                     .and_then(|m| m["utterances"].as_array().and_then(|u| u.last()).and_then(|u| u["text"].as_str()).map(str::to_owned));
-                let (sent, revised) = (state.sent.contains(&s.id), state.revised.contains(&s.id));
-                MeetingRow { id: s.id, title: s.title, created_at: s.created_at, duration: s.duration, status: s.status, tags: s.tags, last_line, sent, revised }
+                let (sent, revised, from_computer) = (state.sent.contains(&s.id), state.revised.contains(&s.id), state.from_computer.contains(&s.id));
+                MeetingRow { id: s.id, title: s.title, created_at: s.created_at, duration: s.duration, status: s.status, tags: s.tags, last_line, sent, revised, from_computer }
             })
             .collect())
     }
@@ -217,7 +219,14 @@ impl Murmur {
             // Its photos.
             let _ = std::fs::remove_dir_all(self.data_dir.join("screens").join(safe_dir(&id)));
         }
-        lock(&self.db).delete(&id).map_err(Into::into)
+        lock(&self.db).delete(&id)?;
+        // One of the computer's: it doesn't come again.
+        let mut state = self.load_sync();
+        if state.from_computer.remove(&id) {
+            state.dismissed.insert(id);
+            self.save_sync(&state)?;
+        }
+        Ok(())
     }
 
     /// A new title for a meeting (empty: left as it was).
@@ -537,14 +546,20 @@ mod tests {
                         s.send(&Msg::Stored { meeting_id: id }).unwrap();
                         got.push(meeting);
                     }
-                    Ok(Incoming::Msg(Msg::GetResults { .. })) => {
+                    Ok(Incoming::Msg(Msg::GetResults { known, .. })) => {
                         for m in &got {
                             let mut revised = m.clone();
                             revised["title"] = json!("Revisió del pressupost");
                             revised["speakerNames"] = json!({ "0": "Marta" });
                             revised["utterances"] = json!([{ "id": "w-0", "start": 0.0, "end": 2.0, "speaker": 0, "text": "Text de Whisper." }]);
                             revised["cover"] = json!({ "summary": "Resum" });
-                            s.send(&Msg::Results { meeting: revised, revised_at: 100.0 }).unwrap();
+                            s.send(&Msg::Results { meeting: revised, revised_at: 100.0, computer: false }).unwrap();
+                        }
+                        // One of the computer's own, unless the phone says it has it (or deleted it).
+                        if !known.unwrap_or_default().iter().any(|k| k == "pc-1") {
+                            let theirs = json!({ "id": "pc-1", "title": "Comitè de direcció", "createdAt": 0.0, "duration": 60.0, "status": "done",
+                                "utterances": [{ "id": "pc-1-0", "start": 0.0, "end": 2.0, "speaker": 0, "text": "Al Mac." }] });
+                            s.send(&Msg::Results { meeting: theirs, revised_at: 50.0, computer: true }).unwrap();
                         }
                         s.send(&Msg::Bye).unwrap();
                     }
@@ -589,7 +604,7 @@ mod tests {
         let (port, handle) = computer(pc.clone(), None, vec![phone_public], dir.join("pc"));
         let report = m.sync(vec![format!("127.0.0.1:{port}")], phone.clone(), pc.public.to_vec(), "iPhone de Quico".into(), true).unwrap();
         let got = handle.join().unwrap();
-        assert_eq!((report.sent, report.revised, report.failed), (1, 1, 0));
+        assert_eq!((report.sent, report.revised, report.received, report.failed), (1, 1, 1, 0));
         assert!(got[0].get("audioPath").is_none(), "the phone's paths stay on the phone");
         assert_eq!(std::fs::read(dir.join("pc/phone-1/audio.ogg")).unwrap(), vec![7u8; 300_000]);
         // The photo goes as the computer's screenshot, by a plain name.
@@ -602,8 +617,13 @@ mod tests {
         assert_eq!(back["audioPath"], json!(audio.to_string_lossy()));
         // ...and the phone keeps its own (the computer doesn't send its paths back).
         assert_eq!(back["screens"][0]["path"], "screens/phone-1/12000.jpg");
-        let row = m.meetings().unwrap().into_iter().next().unwrap();
-        assert!(row.sent && row.revised);
+        let rows = m.meetings().unwrap();
+        let row = rows.iter().find(|r| r.id == "phone-1").unwrap();
+        assert!(row.sent && row.revised && !row.from_computer);
+        // The computer's own meeting arrived, text only, and isn't sent back as the phone's.
+        let theirs = rows.iter().find(|r| r.id == "pc-1").unwrap();
+        assert!(theirs.from_computer);
+        assert_eq!(theirs.last_line.as_deref(), Some("Al Mac."));
         assert_eq!(m.unsent_count().unwrap(), 0);
 
         // Renamed on the phone after sending: the phone's name wins when it comes back again.
@@ -615,13 +635,26 @@ mod tests {
         state.since = 0.0;
         m.save_sync(&state).unwrap();
         let (port, handle) = computer(pc.clone(), None, vec![phone_public], dir.join("pc2"));
-        m.sync(vec![format!("127.0.0.1:{port}")], phone.clone(), pc.public.to_vec(), "iPhone de Quico".into(), false).unwrap();
-        handle.join().unwrap();
+        let report = m.sync(vec![format!("127.0.0.1:{port}")], phone.clone(), pc.public.to_vec(), "iPhone de Quico".into(), false).unwrap();
+        let got = handle.join().unwrap();
+        // The phone said it has pc-1: it doesn't come again, nor go to the computer.
+        assert_eq!(report.received, 0);
+        assert!(got.iter().all(|m| m["id"] != "pc-1"));
         assert_eq!(saved(&m)["title"], "El meu títol");
         assert_eq!(saved(&m)["utterances"][0]["text"], "Text de Whisper.");
         // Without "Desa l'àudio al telèfon", the audio goes once the computer has it.
         assert!(!audio.exists());
         assert_eq!(std::fs::read(dir.join("pc2/phone-1/audio.ogg")).unwrap(), vec![7u8; 300_000]);
+
+        // Deleted on the phone: it stays deleted, also after unpairing and pairing again.
+        m.delete_meeting("pc-1".into()).unwrap();
+        m.forget_computer().unwrap();
+        assert!(m.load_sync().dismissed.contains("pc-1"));
+        let (port, handle) = computer(pc.clone(), None, vec![phone_public], dir.join("pc3"));
+        let report = m.sync(vec![format!("127.0.0.1:{port}")], phone.clone(), pc.public.to_vec(), "iPhone de Quico".into(), true).unwrap();
+        handle.join().unwrap();
+        assert_eq!(report.received, 0);
+        assert!(m.meeting_json("pc-1".into()).unwrap().is_none());
 
         // A computer that doesn't know this phone: refused, and said so.
         let (port, handle) = computer(pc.clone(), None, vec![], dir.join("pc"));

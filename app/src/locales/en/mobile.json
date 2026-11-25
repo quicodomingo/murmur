@@ -8,6 +8,7 @@
     "thisWeek": "This week",
     "earlier": "Earlier",
     "revised": "revised on the computer",
+    "fromComputer": "recorded on the computer",
     "search": "Search",
     "delete": "Delete"
   },
@@ -58,6 +59,7 @@
     "pending": "When the phone finds your computer, it will add the title, the summary and the Whisper pass. For now this is the quick transcript.",
     "delete": "Delete meeting",
     "deleteConfirm": "The meeting and its audio will be deleted from this phone.",
+    "deleteConfirmComputer": "It will be deleted from this phone and won't come back. It stays on the computer.",
     "empty": "Nothing was heard.",
     "rename": "Rename",
     "renameTitle": "Meeting name",
@@ -67,6 +69,7 @@
     "sent": "It's on the computer now, which will listen to it again with Whisper. When it's done, the revised version will arrive here.",
     "summary": "Summary",
     "revised": "Revised on the computer: Whisper, speakers and summary.",
+    "fromComputer": "Recorded on the computer. Here you have the text, the speakers and the summary; the audio stays on the computer.",
     "share": "Share"
   },
   "settings": {

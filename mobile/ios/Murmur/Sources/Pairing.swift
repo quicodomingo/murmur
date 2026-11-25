@@ -191,8 +191,12 @@ extension Store {
             self.computer = computer
             syncProblem = nil
             lastSync = Date()
-            if report.sent + report.revised > 0 {
-                Analytics.track("mobile_synced", ["sent": Analytics.countBucket(Int(report.sent)), "revised": Analytics.countBucket(Int(report.revised))])
+            if report.sent + report.revised + report.received > 0 {
+                Analytics.track("mobile_synced", [
+                    "sent": Analytics.countBucket(Int(report.sent)),
+                    "revised": Analytics.countBucket(Int(report.revised)),
+                    "received": Analytics.countBucket(Int(report.received)),
+                ])
             }
             UserDefaults.standard.set(lastSync, forKey: "lastSync")
         } catch let error as MurmurError {

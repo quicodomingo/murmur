@@ -4,8 +4,6 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ca</string>
-	<key>CFBundleLocalizations</key>
-	<array><string>ca</string><string>es</string><string>en</string></array>
 	<key>CFBundleDisplayName</key>
 	<string>Murmur</string>
 	<key>CFBundleExecutable</key>
@@ -14,26 +12,50 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ca</string>
+		<string>es</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.1</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Murmur escolta el micròfon per transcriure la reunió. Tot es queda al telèfon.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Murmur busca el teu ordinador a la xarxa local per passar-hi les reunions, xifrades.</string>
+	<string>2</string>
 	<key>NSBonjourServices</key>
-	<array><string>_murmur._tcp</string></array>
+	<array>
+		<string>_murmur._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Murmur fa servir la càmera només per llegir el codi QR de l'ordinador.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Murmur busca el teu ordinador a la xarxa local per passar-hi les reunions, xifrades.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Murmur escolta el micròfon per transcriure la reunió. Tot es queda al telèfon.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
 	<key>UIBackgroundModes</key>
-	<array><string>audio</string></array>
+	<array>
+		<string>audio</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchMark</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<false/>
+	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -45,19 +67,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string>LaunchBackground</string>
-		<key>UIImageName</key>
-		<string>LaunchMark</string>
-		<key>UIImageRespectsSafeAreaInsets</key>
-		<false/>
-	</dict>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-	</dict>
 </dict>
 </plist>

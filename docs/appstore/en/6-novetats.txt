@@ -1,1 +1,1 @@
-The first version of Murmur for iPhone.
+Your computer's meetings, on your phone too. If you use Murmur on your computer, you can now have its meetings on your phone: the text, speakers, notes and summary, without the audio. Choose which ones in the desktop app (Settings › Phone: the last week, the last month, the last 3 months or all of them) and they arrive the next time your phone syncs, with the computer icon. You'll find them in the list and in search, and if you delete one from your phone, it doesn't come back. Requires Murmur 0.19 or later on your computer.

@@ -6,6 +6,20 @@
   "dontShow": "No volver a mostrar",
   "ok": "Entendido",
   "releases": {
+    "0.19.0": [
+      {
+        "title": "Whisper, también en catalán y castellano mezclados",
+        "text": "Si eliges «Catalán + castellano», al terminar la reunión Whisper la vuelve a escuchar frase a frase: las catalanas con el Whisper catalán y las castellanas con el general. En nuestras pruebas, los errores bajan del 21 % al 6 %.",
+        "link": "transcription",
+        "linkLabel": "Configuración › Transcripción"
+      },
+      {
+        "title": "Las reuniones del ordenador, también en el teléfono",
+        "text": "Elige en Configuración › Móvil qué reuniones de este ordenador quieres en el teléfono: de la última semana, del último mes, de los últimos 3 meses o todas. Llega solo el texto, para leerlas y buscarlas. Hace falta Murmur para iPhone 1.1.",
+        "link": "mobile",
+        "linkLabel": "Configuración › Móvil"
+      }
+    ],
     "0.18.0": [
       {
         "title": "Murmur para iPhone",

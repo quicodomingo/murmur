@@ -26,7 +26,7 @@ import type { Action, State } from "./store";
 import type { Language, Meeting, PostStage } from "./types";
 import { track } from "./analytics";
 import { reveal } from "./reveal";
-import { finalPassModel } from "./finalpass";
+import { finalPassModel, whisperPunctuates } from "./finalpass";
 
 /** The punctuation model only knows Catalan, and has to be downloaded. */
 const punctuates = (language: Language) => (language === "ca" || language === "ca-es") && modelInstalled("punctuation");
@@ -58,7 +58,7 @@ export function usePostProcess(state: State, dispatch: Dispatch<Action>, setting
     // Chosen for this meeting when it ended; otherwise (a retranscription) as the settings say.
     const want = (id ? wants.current.get(id) : undefined) ?? { punctuation: s.punctuate, cover: s.summarize };
     const stages: PostStage[] = [];
-    const punctuated = rustStages.includes("text") && finalPassModel(language) === "whisper";
+    const punctuated = rustStages.includes("text") && whisperPunctuates(language);
     if (want.punctuation && punctuates(language) && !punctuated) stages.push("punctuation");
     if (want.cover && coverReady(s)) stages.push("cover");
     return stages;

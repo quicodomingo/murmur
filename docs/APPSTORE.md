@@ -5,7 +5,7 @@ Tot el que demana l'App Store Connect per publicar l'app de l'iPhone (`mobile/io
 ## Abans d'enviar-la
 
 - **Només iPhone** en aquesta primera versió (`TARGETED_DEVICE_FAMILY: "1"`): l'iPad encara no té disposició pròpia, i Apple la provaria també a l'iPad.
-- **Versió 1.0 (1)** als dos `Info.plist`. Cada pujada nova necessita un número de compilació (`CFBundleVersion`) més alt.
+- **Versió 1.1 (2)** als dos `Info.plist` (la 1.0 va ser la 1). Cada pujada nova necessita un número de compilació (`CFBundleVersion`) més alt.
 - **La pàgina de privadesa de la web** (`murmur.quicodomingo.com/privacitat`): l'App Store en demana una. El text és més avall.
 - **La prova de bateria** de mitja hora encara està pendent (docs/MOBIL.md).
 
@@ -54,7 +54,7 @@ L'App Store Connect accepta el català com a idioma de la fitxa; si no hi sortí
 >
 > Per gravar una reunió cal el consentiment de tothom qui hi participa.
 
-- **Novetats d'aquesta versió:** La primera versió de Murmur per a iPhone.
+- **Novetats d'aquesta versió:** Les reunions de l'ordinador, també al mòbil. Si fas servir Murmur a l'ordinador, ara en pots tenir les reunions al telèfon: el text, els parlants, les notes i el resum, sense l'àudio. Tria quines a l'app de l'ordinador (Configuració › Mòbil: l'última setmana, l'últim mes, els últims 3 mesos o totes) i arriben quan el mòbil se sincronitza, amb la icona de l'ordinador. Les trobaràs a la llista i a la cerca, i si n'esborres una del mòbil, no hi torna. Cal Murmur 0.19 o posterior a l'ordinador.
 
 ### Castellano
 
@@ -85,7 +85,7 @@ L'App Store Connect accepta el català com a idioma de la fitxa; si no hi sortí
 >
 > Para grabar una reunión hace falta el consentimiento de todas las personas que participan.
 
-- **Novedades:** La primera versión de Murmur para iPhone.
+- **Novedades:** Las reuniones del ordenador, también en el móvil. Si usas Murmur en el ordenador, ahora puedes tener sus reuniones en el teléfono: el texto, los hablantes, las notas y el resumen, sin el audio. Elige cuáles en la app del ordenador (Configuración › Móvil: la última semana, el último mes, los últimos 3 meses o todas) y llegan cuando el móvil se sincroniza, con el icono del ordenador. Las encontrarás en la lista y en la búsqueda, y si borras una del móvil, no vuelve. Necesitas Murmur 0.19 o posterior en el ordenador.
 
 ### English
 
@@ -116,7 +116,7 @@ L'App Store Connect accepta el català com a idioma de la fitxa; si no hi sortí
 >
 > Recording a meeting needs the consent of everyone taking part.
 
-- **What's new:** The first version of Murmur for iPhone.
+- **What's new:** Your computer's meetings, on your phone too. If you use Murmur on your computer, you can now have its meetings on your phone: the text, speakers, notes and summary, without the audio. Choose which ones in the desktop app (Settings › Phone: the last week, the last month, the last 3 months or all of them) and they arrive the next time your phone syncs, with the computer icon. You'll find them in the list and in search, and if you delete one from your phone, it doesn't come back. Requires Murmur 0.19 or later on your computer.
 
 ## Privadesa (App Privacy)
 

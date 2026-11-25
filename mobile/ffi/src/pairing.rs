@@ -38,6 +38,26 @@ pub(crate) struct SyncState {
     /// the computer's when the results come back.
     #[serde(default)]
     pub edited: BTreeSet<String>,
+    /// Recorded on the computer and sent here, text only (Configuració › Mòbil on the computer):
+    /// never sent back as the phone's own.
+    #[serde(default)]
+    pub from_computer: BTreeSet<String>,
+    /// The computer's meetings deleted here: they don't come again.
+    #[serde(default)]
+    pub dismissed: BTreeSet<String>,
+}
+
+impl SyncState {
+    /// A finished meeting of this phone's that the computer doesn't have yet.
+    pub(crate) fn to_send(&self, id: &str, status: &str) -> bool {
+        status == "done" && !self.sent.contains(id) && !self.from_computer.contains(id)
+    }
+
+    /// What survives unpairing or pairing again: what came back revised, and which meetings are
+    /// the computer's (or were deleted here).
+    fn kept(&self) -> Self {
+        Self { revised: self.revised.clone(), from_computer: self.from_computer.clone(), dismissed: self.dismissed.clone(), ..Default::default() }
+    }
 }
 
 /// What's in a pairing code, to show before pairing.
@@ -67,6 +87,8 @@ pub struct SyncReport {
     pub sent: u32,
     /// Meetings that came back revised now.
     pub revised: u32,
+    /// The computer's own meetings that arrived now.
+    pub received: u32,
     /// Meetings the computer refused (they'll be tried again next time).
     pub failed: u32,
 }
@@ -143,21 +165,20 @@ impl Murmur {
         let mut session = session;
         let _ = session.send(&Msg::Bye);
         // A new computer (or the same one again): everything goes to it from the start.
-        self.save_sync(&SyncState { revised: self.load_sync().revised, ..Default::default() })?;
+        self.save_sync(&self.load_sync().kept())?;
         Ok(Computer { name: session.remote_name.clone(), key: code.key.to_vec(), address })
     }
 
     /// Unpaired on the phone: what was sent is forgotten (pairing again sends it all; the computer
     /// knows what it already has). What came back revised stays revised.
     pub fn forget_computer(&self) -> Result<()> {
-        let state = self.load_sync();
-        self.save_sync(&SyncState { revised: state.revised, ..Default::default() })
+        self.save_sync(&self.load_sync().kept())
     }
 
     /// Finished meetings the computer doesn't have yet.
     pub fn unsent_count(&self) -> Result<u32> {
         let state = self.load_sync();
-        Ok(lock(&self.db).list()?.iter().filter(|m| m.status == "done" && !state.sent.contains(&m.id)).count() as u32)
+        Ok(lock(&self.db).list()?.iter().filter(|m| state.to_send(&m.id, &m.status)).count() as u32)
     }
 
     /// Sends the computer every finished meeting it doesn't have yet (with its audio, resuming a
@@ -169,10 +190,10 @@ impl Murmur {
         let keys = Keys::from_private(&private_key)?;
         let computer = key32(&computer_key)?;
         let (address, mut session) = reach(&candidates, |stream| sync::connect(stream, &keys, &computer, &phone_name))?;
-        let mut report = SyncReport { address, computer_name: session.remote_name.clone(), sent: 0, revised: 0, failed: 0 };
+        let mut report = SyncReport { address, computer_name: session.remote_name.clone(), sent: 0, revised: 0, received: 0, failed: 0 };
         let mut state = self.load_sync();
 
-        let pending: Vec<String> = lock(&self.db).list()?.into_iter().filter(|m| m.status == "done" && !state.sent.contains(&m.id)).map(|m| m.id).collect();
+        let pending: Vec<String> = lock(&self.db).list()?.into_iter().filter(|m| state.to_send(&m.id, &m.status)).map(|m| m.id).collect();
         for id in pending {
             match self.send_meeting(&mut session, &id)? {
                 true => {
@@ -191,12 +212,17 @@ impl Murmur {
             }
         }
 
-        session.send(&Msg::GetResults { since: state.since }).map_err(io)?;
+        // The computer's own meetings this phone has (or deleted): the computer sends the rest,
+        // if it's been told to (Configuració › Mòbil).
+        let known = state.from_computer.union(&state.dismissed).cloned().collect();
+        session.send(&Msg::GetResults { since: state.since, known: Some(known) }).map_err(io)?;
         loop {
             match session.recv().map_err(io)? {
-                Incoming::Msg(Msg::Results { meeting, revised_at }) => {
-                    if self.take_results(meeting, &state)? {
-                        report.revised += 1;
+                Incoming::Msg(Msg::Results { meeting, revised_at, computer }) => {
+                    match self.take_results(meeting, &state, computer)? {
+                        Took::Revised => report.revised += 1,
+                        Took::Received => report.received += 1,
+                        Took::Nothing => {}
                     }
                     // Re-read first: take_results marked it revised.
                     state = self.load_sync();
@@ -210,6 +236,16 @@ impl Murmur {
         let _ = session.send(&Msg::Bye);
         Ok(report)
     }
+}
+
+/// What a meeting from the computer did here.
+enum Took {
+    /// One of the phone's came back revised (or one of the computer's changed).
+    Revised,
+    /// One of the computer's arrived.
+    Received,
+    /// Nothing: deleted here.
+    Nothing,
 }
 
 /// A connection that drops halfway: the computer went away; next time it carries on.
@@ -291,10 +327,30 @@ impl Murmur {
     /// A meeting after the computer's final pass takes the place of the phone's: its lines,
     /// speakers, summary and translation. The phone keeps its audio, and its names if they were
     /// changed here after sending. A meeting deleted on the phone stays deleted.
-    fn take_results(&self, mut meeting: Value, state: &SyncState) -> Result<bool> {
-        let id = meeting["id"].as_str().unwrap_or_default().to_owned();
+    /// One of the computer's own (`computer`) that isn't here yet is added, text only.
+    fn take_results(&self, mut meeting: Value, state: &SyncState, computer: bool) -> Result<Took> {
+        let id = crate::safe_dir(meeting["id"].as_str().unwrap_or_default());
+        if id.is_empty() {
+            return Ok(Took::Nothing);
+        }
         let mut db = lock(&self.db);
-        let Some(mine) = db.get(&id)? else { return Ok(false) };
+        let Some(mine) = db.get(&id)? else {
+            if !computer || state.dismissed.contains(&id) {
+                return Ok(Took::Nothing);
+            }
+            meeting["id"] = Value::from(id.clone());
+            meeting["audioPath"] = Value::Null;
+            meeting["screens"] = Value::Array(vec![]);
+            meeting["status"] = Value::from("done");
+            db.put(&meeting)?;
+            drop(db);
+            let mut state = self.load_sync();
+            state.from_computer.insert(id.clone());
+            state.sent.insert(id.clone());
+            state.revised.insert(id);
+            self.save_sync(&state)?;
+            return Ok(Took::Received);
+        };
         meeting["audioPath"] = match self.audio_of(&mine) {
             Some(path) => Value::from(path.to_string_lossy().into_owned()),
             None => mine["audioPath"].clone(),
@@ -322,6 +378,6 @@ impl Murmur {
         state.revised.insert(id.clone());
         state.edited.remove(&id);
         self.save_sync(&state)?;
-        Ok(true)
+        Ok(Took::Revised)
     }
 }

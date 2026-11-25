@@ -53,7 +53,7 @@ import { MarkdownSwitch, RoomMenu, StartOptions, type StartChoice } from "@/comp
 import { countBucket, minutesBucket, setAnalyticsAllowed, track } from "@/lib/analytics";
 import { introducedName, matchName } from "@/lib/intro";
 import { reveal } from "@/lib/reveal";
-import { finalPassModel, preferredFinalModel } from "@/lib/finalpass";
+import { finalModels, finalPassModel, finalPassRtf } from "@/lib/finalpass";
 import { CONTINUE_MS } from "@/lib/parts";
 import { hasAudio, playAt, release, stopUnless } from "@/lib/player";
 import { afterSteps, rememberSteps, stepTextZoom, useSettings, type AfterSteps } from "@/lib/settings";
@@ -446,7 +446,7 @@ export default function App() {
     const words = m.utterances.reduce((n, u) => n + u.text.split(/\s+/).length, 0);
     const steps: AfterStep[] = [
       { stage: "speakers", possible: audio && pending.has("speakers"), reason: "audio", seconds: m.duration * 0.15 },
-      { stage: "text", possible: audio && pending.has("text") && !!model && modelInstalled(model), reason: !model ? "mixed" : !audio ? "audio" : "model", seconds: 5 + m.duration * (model === "whisper-ca" ? 0.25 : 0.15) },
+      { stage: "text", possible: audio && pending.has("text") && !!model && modelInstalled(model), reason: !model ? "mixed" : !audio ? "audio" : "model", seconds: 5 + m.duration * finalPassRtf(language) },
       { stage: "punctuation", possible: pending.has("punctuation") && catalan && modelInstalled("punctuation"), reason: "model", seconds: 2 + words / 800 },
       { stage: "cover", possible: pending.has("cover") && coverReady(settings), reason: "engine", seconds: 60 },
     ];
@@ -668,7 +668,7 @@ export default function App() {
     setMarkdown((list) => ({ ...list, [m.id]: settings.saveMarkdown && !!settings.markdownDir }));
     obsidianPending.current.add(m.id);
     notionPending.current.add(m.id);
-    // Whisper only for a single language (told "Catalan", it would turn Spanish into Catalan).
+    // Whisper in the meeting's language, or sentence by sentence in Catalan and Spanish.
     // Its audio is kept for whatever can be done, and the steps are chosen when it ends (AfterCard).
     const finalModel = finalPassModel(language);
     const finalText = !!finalModel && modelInstalled(finalModel);
@@ -1076,7 +1076,7 @@ export default function App() {
    */
   const retranscribe = async (m: Meeting, language: Language) => {
     if (!m.audioPath) return;
-    const model = finalPassModel(language) ?? "whisper";
+    const model = finalPassModel(language);
     if (!modelInstalled(model)) {
       toast(t("retranscribeNeedsWhisper"), { action: { label: t("settings:model.download"), onClick: () => downloadModel(model) } });
       return;
@@ -1273,14 +1273,14 @@ export default function App() {
   }, [state.loaded, onboarding.open, transcriptionReady, settings.checkUpdates]);
 
   // The Whisper for the meetings' language isn't there (0.12: the BSC's for Catalan; later, the
-  // turbo for Spanish and English, which the onboarding didn't download before): offer it once,
-  // never downloading unasked. Meetings in two languages have none to offer yet.
+  // turbo for Spanish and English, which the onboarding didn't download before; both for meetings
+  // in two languages): offer each once, never downloading unasked.
   const offeredWhisper = useRef(false);
   useEffect(() => {
     if (offeredWhisper.current || !state.loaded || !models.loaded || onboarding.open || whatsNew) return;
-    const id = preferredFinalModel(settings.language);
+    const id = finalModels(settings.language).find((m) => models.status[m] && !models.status[m].installed && models.status[m].downloadable);
     const status = id && models.status[id];
-    if (!id || !settings.finalPass || !status || status.installed || !status.downloadable) return;
+    if (!id || !settings.finalPass || !status) return;
     offeredWhisper.current = true;
     const key = id === "whisper-ca" ? "murmur.whisperCaOffered.v1" : "murmur.whisperOffered.v1";
     try {

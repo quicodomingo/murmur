@@ -131,10 +131,22 @@ pub enum Msg {
     Have { meeting_id: String, files: Vec<FileProgress> },
     /// Computer → phone: the meeting and all its files are stored and check out.
     Stored { meeting_id: String },
-    /// Phone → computer: anything revised since `since` (seconds since the epoch)?
-    GetResults { since: f64 },
+    /// Phone → computer: anything revised since `since` (seconds since the epoch)? `known`, from
+    /// phones that also take the computer's own meetings: the ones it has (or deleted), so that
+    /// only the rest come whole. Phones before it don't send it, and get only their own.
+    GetResults {
+        since: f64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        known: Option<Vec<String>>,
+    },
     /// Computer → phone: a meeting after the final pass (revised utterances, names, summary).
-    Results { meeting: Value, revised_at: f64 },
+    /// `computer`: one recorded on the computer (or another phone), not this phone's; text only.
+    Results {
+        meeting: Value,
+        revised_at: f64,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        computer: bool,
+    },
     /// Either way: something went wrong with this meeting; it can be sent again.
     Failed { meeting_id: String, reason: String },
     /// Either way: nothing more for now.
@@ -648,5 +660,19 @@ mod tests {
         let msg = Msg::PutMeeting { meeting: serde_json::json!({ "id": "m2", "notes": text }), files: vec![] };
         s.send(&msg).unwrap();
         assert_eq!(handle.join().unwrap().unwrap(), msg);
+    }
+
+    #[test]
+    fn phones_and_computers_of_either_version_understand_each_other() {
+        // A phone from before asks without `known`; a computer from before ignores it.
+        let old: Msg = serde_json::from_str(r#"{"type":"getResults","since":5.0}"#).unwrap();
+        assert_eq!(old, Msg::GetResults { since: 5.0, known: None });
+        let new = serde_json::to_value(Msg::GetResults { since: 5.0, known: Some(vec!["m1".into()]) }).unwrap();
+        assert_eq!(new["known"], serde_json::json!(["m1"]));
+        // A phone's own meeting goes back as before; the computer's says so.
+        let own = serde_json::to_value(Msg::Results { meeting: serde_json::json!({}), revised_at: 1.0, computer: false }).unwrap();
+        assert!(own.get("computer").is_none());
+        let theirs: Msg = serde_json::from_str(r#"{"type":"results","meeting":{},"revisedAt":1.0,"computer":true}"#).unwrap();
+        assert!(matches!(theirs, Msg::Results { computer: true, .. }));
     }
 }

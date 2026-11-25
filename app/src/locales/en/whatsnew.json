@@ -6,6 +6,20 @@
   "dontShow": "Don't show this again",
   "ok": "Got It",
   "releases": {
+    "0.19.0": [
+      {
+        "title": "Whisper for mixed Catalan and Spanish too",
+        "text": "If you choose “Catalan + Spanish”, when the meeting ends Whisper listens to it again sentence by sentence: the Catalan ones with the Catalan Whisper and the Spanish ones with the general one. In our tests, errors drop from 21% to 6%.",
+        "link": "transcription",
+        "linkLabel": "Settings › Transcription"
+      },
+      {
+        "title": "Your computer's meetings, on your phone too",
+        "text": "Choose in Settings › Phone which of this computer's meetings you want on your phone: from the last week, the last month, the last 3 months or all of them. Only the text goes, to read and search them. Needs Murmur for iPhone 1.1.",
+        "link": "mobile",
+        "linkLabel": "Settings › Phone"
+      }
+    ],
     "0.18.0": [
       {
         "title": "Murmur for iPhone",

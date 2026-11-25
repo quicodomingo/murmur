@@ -1,1 +1,1 @@
-La primera versió de Murmur per a iPhone.
+Les reunions de l'ordinador, també al mòbil. Si fas servir Murmur a l'ordinador, ara en pots tenir les reunions al telèfon: el text, els parlants, les notes i el resum, sense l'àudio. Tria quines a l'app de l'ordinador (Configuració › Mòbil: l'última setmana, l'últim mes, els últims 3 mesos o totes) i arriben quan el mòbil se sincronitza, amb la icona de l'ordinador. Les trobaràs a la llista i a la cerca, i si n'esborres una del mòbil, no hi torna. Cal Murmur 0.19 o posterior a l'ordinador.

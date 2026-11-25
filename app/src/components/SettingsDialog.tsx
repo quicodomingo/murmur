@@ -22,7 +22,7 @@ import { bytes, deleteModel, downloadModel, useModels } from "@/lib/models";
 import { DEFAULT_SETTINGS, type AfterSteps, type Settings } from "@/lib/settings";
 import { connectShare, disconnectShare, setupShare, useShareStatus } from "@/lib/share";
 import type { CloudProvider, Language, LlmProgress, LlmResult, Meeting, ModelId } from "@/lib/types";
-import { preferredFinalModel } from "@/lib/finalpass";
+import { finalModels } from "@/lib/finalpass";
 import { cn } from "@/lib/utils";
 import { copyText } from "@/lib/clipboard";
 import { MarkerBackground, useMarker } from "@/lib/motion";
@@ -1005,8 +1005,8 @@ function TranscriptionTab({ settings, onChange, recording }: { settings: Setting
   const setLanguage = (value: Language) => {
     onChange({ language: value });
     // Catalan: the BSC's Whisper, which writes without punctuation, so the punctuation model too.
-    const final = settings.finalPass ? preferredFinalModel(value) : null;
-    const needed: ModelId[] = [...(value === "en" ? (["english"] as const) : []), ...(final ? [final] : []), ...(value === "ca" ? (["punctuation"] as const) : [])];
+    const final = settings.finalPass ? finalModels(value) : [];
+    const needed: ModelId[] = [...(value === "en" ? (["english"] as const) : []), ...final, ...(value === "ca" ? (["punctuation"] as const) : [])];
     for (const id of needed) enableWithModel(models, id, true, () => {});
   };
   return (
@@ -1099,17 +1099,17 @@ function TranscriptionTab({ settings, onChange, recording }: { settings: Setting
 function AfterTable({ settings, onChange }: { settings: Settings; onChange: Props["onChange"] }) {
   const { t } = useTranslation("settings");
   const models = useModels();
-  const rows: { key: keyof AfterSteps; name: string; hint: string; model: () => ModelId | null }[] = [
-    { key: "verifySpeakers", name: t("transcription.verifySpeakers"), hint: t("transcription.verifySpeakersHint"), model: () => null },
-    { key: "finalPass", name: t("transcription.finalPass"), hint: t("transcription.finalPassHint"), model: () => preferredFinalModel(settings.language) },
-    { key: "punctuate", name: t("transcription.punctuate"), hint: t("transcription.punctuateHint"), model: () => "punctuation" },
-    { key: "summarize", name: t("transcription.summarize"), hint: t("transcription.summarizeHint"), model: () => (settings.coverEngine === "local" ? "llm" : null) },
+  const rows: { key: keyof AfterSteps; name: string; hint: string; models: () => ModelId[] }[] = [
+    { key: "verifySpeakers", name: t("transcription.verifySpeakers"), hint: t("transcription.verifySpeakersHint"), models: () => [] },
+    { key: "finalPass", name: t("transcription.finalPass"), hint: t("transcription.finalPassHint"), models: () => finalModels(settings.language) },
+    { key: "punctuate", name: t("transcription.punctuate"), hint: t("transcription.punctuateHint"), models: () => ["punctuation"] },
+    { key: "summarize", name: t("transcription.summarize"), hint: t("transcription.summarizeHint"), models: () => (settings.coverEngine === "local" ? ["llm"] : []) },
   ];
   const set = (key: keyof AfterSteps, file: boolean, on: boolean) => {
     const apply = () => onChange(file ? { fileSteps: { ...settings.fileSteps, [key]: on } } : { [key]: on });
-    const model = on ? rows.find((r) => r.key === key)!.model() : null;
-    if (model) enableWithModel(models, model, true, apply);
-    else apply();
+    const ids = on ? rows.find((r) => r.key === key)!.models() : [];
+    if (!ids.length) return apply();
+    ids.forEach((id, i) => enableWithModel(models, id, true, i === 0 ? apply : () => {}));
   };
   const box = (key: keyof AfterSteps, file: boolean, label: string) => {
     const on = file ? settings.fileSteps[key] : settings[key];
@@ -1920,6 +1920,26 @@ function MobileTab({ open }: { open: boolean }) {
         ) : (
           <div className="px-3 py-2.5 text-[12px] text-muted-foreground">{t("mobile.none")}</div>
         )}
+        {status?.phones.length ? (
+          <Row label={<span id="mobile-history-label">{t("mobile.history")}</span>} hint={t("mobile.historyHint")}>
+            <select
+              value={status.history}
+              onChange={(e) => {
+                const history = e.target.value as backend.MobileHistory;
+                setStatus({ ...status, history });
+                backend.mobileSetHistory(history).catch((err) => toast.error(String(err)));
+              }}
+              aria-labelledby="mobile-history-label"
+              className="h-6 max-w-56 shrink-0 truncate rounded-md border border-input bg-background px-1.5 text-[13px]"
+            >
+              {(["none", "week", "month", "quarter", "all"] as const).map((h) => (
+                <option key={h} value={h}>
+                  {t(`mobile.historyOptions.${h}`)}
+                </option>
+              ))}
+            </select>
+          </Row>
+        ) : null}
         {code ? (
           <div className="flex items-center gap-5 px-3 py-4">
             <div

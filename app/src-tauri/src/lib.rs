@@ -121,8 +121,9 @@ async fn start_recording(
             None => {}
         }
     }
-    // Whisper only for one language: told "Catalan", it turns Spanish into Catalan.
-    let final_language = (final_text && matches!(language.as_str(), "ca" | "es" | "en")).then(|| language.clone());
+    // "ca-es" goes sentence by sentence (retranscribe.rs): told "Catalan", Whisper would turn
+    // the Spanish into Catalan.
+    let final_language = (final_text && matches!(language.as_str(), "ca" | "es" | "en" | "ca-es")).then(|| language.clone());
     let models = models(&state, LiveModel::for_language(&language))?;
     let (audio_tx, audio_rx) = unbounded::<audio::Frame>();
     let (stop_tx, stop_rx) = unbounded::<()>();
@@ -973,7 +974,7 @@ async fn retranscribe_meeting(
     max_speakers: Option<usize>,
 ) -> Result<(), String> {
     // Without a language, only the speaker check (a phone's meeting in two languages).
-    if language.as_deref().is_some_and(|l| !["ca", "es", "en"].contains(&l)) || (language.is_none() && max_speakers.is_none()) {
+    if language.as_deref().is_some_and(|l| !["ca", "es", "en", "ca-es"].contains(&l)) || (language.is_none() && max_speakers.is_none()) {
         return Err(tr!("whisper_one_language").into());
     }
     let claim = InPass::claim(&meeting_id);
@@ -1570,6 +1571,11 @@ fn mobile_cancel_pairing(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn mobile_set_history(app: AppHandle, history: mobile::History) -> Result<(), String> {
+    mobile::set_history(&app, history).map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
 fn mobile_unpair(app: AppHandle, id: String) -> Result<(), String> {
     mobile::unpair(&app, &id).map_err(|e| format!("{e:#}"))
 }
@@ -2038,6 +2044,7 @@ pub fn run() {
             mobile_start_pairing,
             mobile_cancel_pairing,
             mobile_unpair,
+            mobile_set_history,
             set_ui_language,
             prepare,
             start_recording,

@@ -530,6 +530,29 @@
         }
       }
     },
+    "home.fromComputer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gravada a l'ordinador"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "grabada en el ordenador"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "recorded on the computer"
+          }
+        }
+      }
+    },
     "home.revised": {
       "extractionState": "manual",
       "localizations": {
@@ -852,6 +875,29 @@
         }
       }
     },
+    "meeting.deleteConfirmComputer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S'esborrarà d'aquest telèfon i no hi tornarà a arribar. A l'ordinador es queda."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se borrará de este teléfono y no volverá a llegar. En el ordenador se queda."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It will be deleted from this phone and won't come back. It stays on the computer."
+          }
+        }
+      }
+    },
     "meeting.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -871,6 +917,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nothing was heard."
+          }
+        }
+      }
+    },
+    "meeting.fromComputer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravada a l'ordinador. Aquí tens el text, els parlants i el resum; l'àudio es queda a l'ordinador."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabada en el ordenador. Aquí tienes el texto, los hablantes y el resumen; el audio se queda en el ordenador."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded on the computer. Here you have the text, the speakers and the summary; the audio stays on the computer."
           }
         }
       }

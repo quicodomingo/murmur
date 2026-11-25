@@ -1452,6 +1452,10 @@ public struct MeetingRow: Equatable, Hashable {
      * The computer has revised it (Whisper, speakers, summary).
      */
     public var revised: Bool
+    /**
+     * Recorded on the computer and sent here, text only: no audio on the phone.
+     */
+    public var fromComputer: Bool
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
@@ -1467,7 +1471,10 @@ public struct MeetingRow: Equatable, Hashable {
          */sent: Bool, 
         /**
          * The computer has revised it (Whisper, speakers, summary).
-         */revised: Bool) {
+         */revised: Bool, 
+        /**
+         * Recorded on the computer and sent here, text only: no audio on the phone.
+         */fromComputer: Bool) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
@@ -1477,6 +1484,7 @@ public struct MeetingRow: Equatable, Hashable {
         self.lastLine = lastLine
         self.sent = sent
         self.revised = revised
+        self.fromComputer = fromComputer
     }
 
     
@@ -1503,7 +1511,8 @@ public struct FfiConverterTypeMeetingRow: FfiConverterRustBuffer {
                 tags: FfiConverterSequenceString.read(from: &buf), 
                 lastLine: FfiConverterOptionString.read(from: &buf), 
                 sent: FfiConverterBool.read(from: &buf), 
-                revised: FfiConverterBool.read(from: &buf)
+                revised: FfiConverterBool.read(from: &buf), 
+                fromComputer: FfiConverterBool.read(from: &buf)
         )
     }
 
@@ -1517,6 +1526,7 @@ public struct FfiConverterTypeMeetingRow: FfiConverterRustBuffer {
         FfiConverterOptionString.write(value.lastLine, into: &buf)
         FfiConverterBool.write(value.sent, into: &buf)
         FfiConverterBool.write(value.revised, into: &buf)
+        FfiConverterBool.write(value.fromComputer, into: &buf)
     }
 }
 
@@ -1694,6 +1704,10 @@ public struct SyncReport: Equatable, Hashable {
      */
     public var revised: UInt32
     /**
+     * The computer's own meetings that arrived now.
+     */
+    public var received: UInt32
+    /**
      * Meetings the computer refused (they'll be tried again next time).
      */
     public var failed: UInt32
@@ -1708,12 +1722,16 @@ public struct SyncReport: Equatable, Hashable {
          * Meetings that came back revised now.
          */revised: UInt32, 
         /**
+         * The computer's own meetings that arrived now.
+         */received: UInt32, 
+        /**
          * Meetings the computer refused (they'll be tried again next time).
          */failed: UInt32) {
         self.address = address
         self.computerName = computerName
         self.sent = sent
         self.revised = revised
+        self.received = received
         self.failed = failed
     }
 
@@ -1737,6 +1755,7 @@ public struct FfiConverterTypeSyncReport: FfiConverterRustBuffer {
                 computerName: FfiConverterString.read(from: &buf), 
                 sent: FfiConverterUInt32.read(from: &buf), 
                 revised: FfiConverterUInt32.read(from: &buf), 
+                received: FfiConverterUInt32.read(from: &buf), 
                 failed: FfiConverterUInt32.read(from: &buf)
         )
     }
@@ -1746,6 +1765,7 @@ public struct FfiConverterTypeSyncReport: FfiConverterRustBuffer {
         FfiConverterString.write(value.computerName, into: &buf)
         FfiConverterUInt32.write(value.sent, into: &buf)
         FfiConverterUInt32.write(value.revised, into: &buf)
+        FfiConverterUInt32.write(value.received, into: &buf)
         FfiConverterUInt32.write(value.failed, into: &buf)
     }
 }

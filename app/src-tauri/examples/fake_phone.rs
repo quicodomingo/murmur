@@ -91,12 +91,14 @@ fn main() -> Result<()> {
             let mut saved = load()?;
             let keys = Keys::from_private(&saved.private)?;
             let mut s = sync::connect(TcpStream::connect(&saved.addr)?, &keys, &saved.computer, NAME)?;
-            s.send(&Msg::GetResults { since: saved.since })?;
+            // Says it takes the computer's own meetings too (Configuració › Mòbil), and has none yet.
+            s.send(&Msg::GetResults { since: saved.since, known: Some(vec![]) })?;
             loop {
                 match s.recv()? {
-                    Incoming::Msg(Msg::Results { meeting, revised_at }) => {
+                    Incoming::Msg(Msg::Results { meeting, revised_at, computer }) => {
                         let utterances = meeting["utterances"].as_array().map(Vec::len).unwrap_or(0);
-                        println!("{} · «{}» · {utterances} frases · parlants {}", meeting["id"], meeting["title"].as_str().unwrap_or(""), meeting["speakerNames"]);
+                        let from = if computer { " · de l'ordinador" } else { "" };
+                        println!("{} · «{}» · {utterances} frases · parlants {}{from}", meeting["id"], meeting["title"].as_str().unwrap_or(""), meeting["speakerNames"]);
                         saved.since = saved.since.max(revised_at);
                     }
                     Incoming::Msg(Msg::Bye) => break,

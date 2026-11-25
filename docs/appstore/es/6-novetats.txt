@@ -1,1 +1,1 @@
-La primera versión de Murmur para iPhone.
+Las reuniones del ordenador, también en el móvil. Si usas Murmur en el ordenador, ahora puedes tener sus reuniones en el teléfono: el texto, los hablantes, las notas y el resumen, sin el audio. Elige cuáles en la app del ordenador (Configuración › Móvil: la última semana, el último mes, los últimos 3 meses o todas) y llegan cuando el móvil se sincroniza, con el icono del ordenador. Las encontrarás en la lista y en la búsqueda, y si borras una del móvil, no vuelve. Necesitas Murmur 0.19 o posterior en el ordenador.

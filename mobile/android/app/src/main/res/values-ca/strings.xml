@@ -27,6 +27,7 @@
     <string name="home_earlier">Abans</string>
     <string name="home_emptyText">Murmur transcriu mentre parleu i separa qui diu què. Tot es queda al telèfon.</string>
     <string name="home_emptyTitle">Grava la primera reunió</string>
+    <string name="home_fromComputer">gravada a l\'ordinador</string>
     <string name="home_revised">revisada a l\'ordinador</string>
     <string name="home_search">Cerca</string>
     <string name="home_thisWeek">Aquesta setmana</string>
@@ -41,7 +42,9 @@
     <string name="meeting_cancel">Cancel·la</string>
     <string name="meeting_delete">Elimina la reunió</string>
     <string name="meeting_deleteConfirm">S\'esborrarà la reunió i l\'àudio d\'aquest telèfon.</string>
+    <string name="meeting_deleteConfirmComputer">S\'esborrarà d\'aquest telèfon i no hi tornarà a arribar. A l\'ordinador es queda.</string>
     <string name="meeting_empty">No s\'ha sentit res.</string>
+    <string name="meeting_fromComputer">Gravada a l\'ordinador. Aquí tens el text, els parlants i el resum; l\'àudio es queda a l\'ordinador.</string>
     <string name="meeting_pending">Quan el telèfon trobi l\'ordinador, hi afegirà el títol, el resum i la passada de Whisper. Ara és la transcripció ràpida.</string>
     <string name="meeting_pendingUnpaired">Ara és la transcripció ràpida del telèfon. Connecta l\'ordinador a Configuració i hi passarà sola: la tornarà a escoltar amb Whisper i en farà el resum.</string>
     <string name="meeting_rename">Canvia el nom</string>

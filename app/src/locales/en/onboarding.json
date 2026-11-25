@@ -76,7 +76,7 @@
     "whisperName": "Second Pass",
     "whisperTextCa": "When the meeting ends, the BSC's Catalan Whisper listens to it again and rewrites the text, cleaner. All on this computer.",
     "whisperText": "When the meeting ends, Whisper listens to it again and rewrites the text, with punctuation and capitals. All on this computer.",
-    "whisperMixed": "Not yet for meetings in two languages: Whisper would turn the Spanish into Catalan. We're working on it.",
+    "whisperMixed": "When the meeting ends, Whisper listens to it again sentence by sentence: the Catalan ones with the BSC's Catalan Whisper and the Spanish ones with the general one, which adds punctuation and capitals. All on this computer.",
     "whisperToggle": "Include the second pass",
     "optional": "Optional",
     "offline": "Once downloaded, they work offline. Meeting audio and text never leave this computer.",

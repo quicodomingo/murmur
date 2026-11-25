@@ -1,6 +1,7 @@
-//! Whisper for meetings in Catalan and Spanish, sentence by sentence: each live utterance gets its
-//! language from Whisper (`detect`), the Catalan ones go to the BSC's model and the Spanish ones to
-//! the turbo. Compared with the live text and with Whisper told one language for everything.
+//! Whisper for meetings in Catalan and Spanish, sentence by sentence, as the final pass does it
+//! (retranscribe::languages and transcribe_split): each live utterance gets its language from
+//! Whisper, the Catalan ones go to the BSC's model and the Spanish ones to the turbo. Compared with
+//! the live text and with Whisper told one language for everything.
 //!
 //!     cargo run --release --example mixed_probe -- ../../data/mixta.mp3 [--seconds 600]
 //!         [--draft ../../data/mixta.ref.txt] [--ref ../../data/mixta.ref.txt]
@@ -18,9 +19,6 @@ use transcriptor_lib::engine::{LiveModel, Models, models_dir};
 use transcriptor_lib::{import, retranscribe};
 
 const RATE: f32 = 16_000.0;
-/// Shorter than this, Whisper can't tell the language from the utterance alone: its neighbours
-/// go in the same window.
-const SHORT_S: f32 = 2.0;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -42,19 +40,12 @@ fn main() {
     let bytes: Vec<u8> = samples.iter().flat_map(|s| ((s.clamp(-1.0, 1.0) * 32767.0) as i16).to_le_bytes()).collect();
     std::fs::write(&pcm, bytes).unwrap();
 
-    // The language of each utterance.
+    // The language of each utterance, and each language with its model: as the final pass does.
     let t = Instant::now();
-    let windows: Vec<Vec<Span>> = (0..spans.len()).map(|i| window(&spans, i)).collect();
-    let heard = retranscribe::detect(&dir, &pcm, &windows).expect("detect");
+    let catalan = retranscribe::languages(&dir, &pcm, &spans).expect("detect");
     let detect_s = t.elapsed().as_secs_f32();
-    let catalan: Vec<bool> = heard.iter().map(|h| h.ca >= h.es).collect();
-    assert_eq!(catalan.len(), spans.len(), "a window without a language");
-
-    // Sentence by sentence: each language with its model, in one go each.
-    let pick = |ca: bool| -> Vec<Span> { spans.iter().zip(&catalan).filter(|(_, c)| **c == ca).map(|(s, _)| *s).collect() };
     let t = Instant::now();
-    let ca_texts = whisper(&dir, "ca", &pcm, &pick(true));
-    let es_texts = whisper(&dir, "es", &pcm, &pick(false));
+    let mixed_texts = retranscribe::transcribe_split(&dir, &[(pcm.as_path(), spans.as_slice())], &[catalan.clone()], &[], |_| {}).expect("whisper").remove(0);
     let mixed_s = t.elapsed().as_secs_f32();
 
     // One language for everything, as the final pass does today with one-language meetings.
@@ -78,9 +69,8 @@ fn main() {
     for (i, s) in spans.iter().enumerate() {
         let audio = &samples[(s.start * RATE) as usize..((s.end * RATE) as usize).min(samples.len())];
         let live = live_model.transcribe(audio);
-        let mixed = text_at(if catalan[i] { &ca_texts } else { &es_texts }, s, &live);
-        let h = &heard[i];
-        println!("[{:>6.1}] {} (ca {:.2} · es {:.2})", s.start, if catalan[i] { "CA" } else { "ES" }, h.ca, h.es);
+        let mixed = text_at(&mixed_texts, s, &live);
+        println!("[{:>6.1}] {}", s.start, if catalan[i] { "CA" } else { "ES" });
         println!("   directe : {live}");
         println!("   frase   : {mixed}");
         println!("   tot ca  : {}", text_at(&all_ca, s, "·"));
@@ -149,22 +139,6 @@ fn utterances(dir: &Path, samples: &[f32]) -> Vec<Span> {
     vad.flush();
     take(&vad);
     spans
-}
-
-/// The audio Whisper hears to tell utterance `i`'s language: itself, and its neighbours while it's
-/// too short (alternately after and before), so every window has at least a second of speech.
-fn window(spans: &[Span], i: usize) -> Vec<Span> {
-    let len = |w: &[Span]| w.iter().map(|s| s.end - s.start).sum::<f32>();
-    let (mut from, mut to) = (i, i);
-    while len(&spans[from..=to]) < SHORT_S && (from > 0 || to + 1 < spans.len()) {
-        if to + 1 < spans.len() {
-            to += 1;
-        }
-        if len(&spans[from..=to]) < SHORT_S && from > 0 {
-            from -= 1;
-        }
-    }
-    spans[from..=to].to_vec()
 }
 
 fn whisper(dir: &Path, language: &str, pcm: &Path, spans: &[Span]) -> Vec<retranscribe::Text> {

@@ -76,7 +76,7 @@
     "whisperName": "Repàs en acabar",
     "whisperTextCa": "Quan acaba la reunió, el Whisper català del BSC la torna a escoltar i en reescriu el text, més net. Tot en aquest ordinador.",
     "whisperText": "Quan acaba la reunió, Whisper la torna a escoltar i en reescriu el text, amb puntuació i majúscules. Tot en aquest ordinador.",
-    "whisperMixed": "Amb reunions en dues llengües, encara no: Whisper passaria el castellà al català. Hi estem treballant.",
+    "whisperMixed": "Quan acaba la reunió, Whisper la torna a escoltar frase a frase: les catalanes amb el Whisper català del BSC i les castellanes amb el general, que hi posa puntuació i majúscules. Tot en aquest ordinador.",
     "whisperToggle": "Inclou el repàs en acabar",
     "optional": "Opcional",
     "offline": "Un cop descarregats, funcionen sense connexió. L'àudio i el text de les reunions no surten mai d'aquest ordinador.",

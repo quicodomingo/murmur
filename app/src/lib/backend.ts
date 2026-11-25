@@ -305,9 +305,12 @@ export const notionExport = (title: string, summary: string, transcript: string,
 export type Phone = { id: string; name: string; pairedAt: number; lastSeen: number | null };
 /** A phone syncing now (it only connects for a few seconds), and the meeting it's sending. */
 export type MobileActivity = { phone: string; receiving: string | null };
+/** Which of this computer's own meetings go to the phones too, text only. */
+export type MobileHistory = "none" | "week" | "month" | "quarter" | "all";
 export type MobileStatus = {
   computer: string;
   phones: Phone[];
+  history: MobileHistory;
   pairing: boolean;
   activity: MobileActivity | null;
   /** Why phones can't reach this computer: no local network, or the port couldn't be opened. */
@@ -318,6 +321,7 @@ export const mobileStatus = () => invoke<MobileStatus>("mobile_status");
 export const mobileStartPairing = () => invoke<PairingCode>("mobile_start_pairing");
 export const mobileCancelPairing = () => invoke<void>("mobile_cancel_pairing");
 export const mobileUnpair = (id: string) => invoke<void>("mobile_unpair", { id });
+export const mobileSetHistory = (history: MobileHistory) => invoke<void>("mobile_set_history", { history });
 /** Something in `mobileStatus` changed: a phone connected, a meeting started or finished arriving. */
 export const onMobileStatus = (fn: (status: MobileStatus) => void) => listen<MobileStatus>("mobile-status", (e) => fn(e.payload));
 /** A phone paired with the code on screen. */

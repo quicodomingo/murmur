@@ -8,6 +8,7 @@
     "thisWeek": "Aquesta setmana",
     "earlier": "Abans",
     "revised": "revisada a l'ordinador",
+    "fromComputer": "gravada a l'ordinador",
     "search": "Cerca",
     "delete": "Elimina"
   },
@@ -58,6 +59,7 @@
     "pending": "Quan el telèfon trobi l'ordinador, hi afegirà el títol, el resum i la passada de Whisper. Ara és la transcripció ràpida.",
     "delete": "Elimina la reunió",
     "deleteConfirm": "S'esborrarà la reunió i l'àudio d'aquest telèfon.",
+    "deleteConfirmComputer": "S'esborrarà d'aquest telèfon i no hi tornarà a arribar. A l'ordinador es queda.",
     "empty": "No s'ha sentit res.",
     "rename": "Canvia el nom",
     "renameTitle": "Nom de la reunió",
@@ -67,6 +69,7 @@
     "sent": "Ja és a l'ordinador, que la tornarà a escoltar amb Whisper. Quan acabi, la versió revisada arribarà aquí.",
     "summary": "Resum",
     "revised": "Revisada a l'ordinador: Whisper, parlants i resum.",
+    "fromComputer": "Gravada a l'ordinador. Aquí tens el text, els parlants i el resum; l'àudio es queda a l'ordinador.",
     "share": "Comparteix"
   },
   "settings": {

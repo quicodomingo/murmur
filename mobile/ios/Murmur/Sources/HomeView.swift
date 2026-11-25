@@ -262,7 +262,7 @@ struct HomeView: View {
             }
         }
         .foregroundStyle(palette.textPrimary)
-        .confirmationDialog(L("meeting.deleteConfirm"), isPresented: Binding(get: { toDelete != nil }, set: { if !$0 { toDelete = nil } }), titleVisibility: .visible, presenting: toDelete) { meeting in
+        .confirmationDialog(L(toDelete?.fromComputer == true ? "meeting.deleteConfirmComputer" : "meeting.deleteConfirm"), isPresented: Binding(get: { toDelete != nil }, set: { if !$0 { toDelete = nil } }), titleVisibility: .visible, presenting: toDelete) { meeting in
             Button(L("meeting.delete"), role: .destructive) { store.delete(meeting.id) }
         }
         .renameAlert(isPresented: Binding(get: { toRename != nil }, set: { if !$0 { toRename = nil } }), title: $newTitle) { title in
@@ -458,7 +458,7 @@ struct MeetingCard: View {
     var row: MeetingRow
     var body: some View {
         HStack(alignment: .top, spacing: 13) {
-            Image(systemName: row.revised ? "laptopcomputer" : "iphone").font(.system(size: 16))
+            Image(systemName: row.revised || row.fromComputer ? "laptopcomputer" : "iphone").font(.system(size: 16))
                 .frame(width: 40, height: 40).background(palette.background, in: Circle())
                 .foregroundStyle(palette.textSecondary)
             VStack(alignment: .leading, spacing: 2) {
@@ -469,7 +469,7 @@ struct MeetingCard: View {
                 }
                 HStack(spacing: 6) {
                     Text(Date(timeIntervalSince1970: row.createdAt / 1000).formatted(date: .omitted, time: .shortened))
-                    if row.revised { Text("· " + L("home.revised")) }
+                    if row.fromComputer { Text("· " + L("home.fromComputer")) } else if row.revised { Text("· " + L("home.revised")) }
                     ForEach(row.tags, id: \.self) { tag in
                         Text(tag).font(.system(size: 12, weight: .medium)).padding(.horizontal, 7).padding(.vertical, 2)
                             .background(palette.background, in: RoundedRectangle(cornerRadius: 5))

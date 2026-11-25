@@ -27,6 +27,7 @@
     <string name="home_earlier">Antes</string>
     <string name="home_emptyText">Murmur transcribe mientras habláis y separa quién dice qué. Todo se queda en el teléfono.</string>
     <string name="home_emptyTitle">Graba la primera reunión</string>
+    <string name="home_fromComputer">grabada en el ordenador</string>
     <string name="home_revised">revisada en el ordenador</string>
     <string name="home_search">Buscar</string>
     <string name="home_thisWeek">Esta semana</string>
@@ -41,7 +42,9 @@
     <string name="meeting_cancel">Cancelar</string>
     <string name="meeting_delete">Eliminar la reunión</string>
     <string name="meeting_deleteConfirm">Se borrarán la reunión y el audio de este teléfono.</string>
+    <string name="meeting_deleteConfirmComputer">Se borrará de este teléfono y no volverá a llegar. En el ordenador se queda.</string>
     <string name="meeting_empty">No se ha oído nada.</string>
+    <string name="meeting_fromComputer">Grabada en el ordenador. Aquí tienes el texto, los hablantes y el resumen; el audio se queda en el ordenador.</string>
     <string name="meeting_pending">Cuando el teléfono encuentre el ordenador, añadirá el título, el resumen y la pasada de Whisper. Ahora es la transcripción rápida.</string>
     <string name="meeting_pendingUnpaired">Ahora es la transcripción rápida del teléfono. Conecta el ordenador en Ajustes y pasará sola: la volverá a escuchar con Whisper y hará el resumen.</string>
     <string name="meeting_rename">Cambiar el nombre</string>

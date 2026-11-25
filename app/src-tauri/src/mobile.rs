@@ -38,12 +38,46 @@ pub struct Phone {
     pub last_seen: Option<f64>,
 }
 
+/// Which of this computer's own meetings go to the phones too (Configuració › Mòbil), text only:
+/// none (as before), the ones of the last week, month or three months, or all of them.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum History {
+    #[default]
+    None,
+    Week,
+    Month,
+    Quarter,
+    All,
+}
+
+impl History {
+    /// From when (milliseconds since the epoch, as `createdAt`), or `None` for no meetings.
+    fn after(self, now_s: f64) -> Option<f64> {
+        let days = match self {
+            History::None => return None,
+            History::All => return Some(0.0),
+            History::Week => 7.0,
+            History::Month => 30.0,
+            History::Quarter => 91.0,
+        };
+        Some((now_s - days * 86_400.0) * 1000.0)
+    }
+}
+
+#[derive(Default, Serialize, Deserialize)]
+struct Settings {
+    #[serde(default)]
+    history: History,
+}
+
 /// What the settings and the sidebar show ("mobile-status" event, whenever it changes).
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     pub computer: String,
     pub phones: Vec<Phone>,
+    pub history: History,
     pub pairing: bool,
     /// A phone connected right now (it only stays while syncing, a few seconds).
     pub activity: Option<Activity>,
@@ -115,6 +149,30 @@ fn data_dir(app: &AppHandle) -> Result<PathBuf> {
 
 fn phones_file(app: &AppHandle) -> Result<PathBuf> {
     Ok(data_dir(app)?.join("phones.json"))
+}
+
+fn settings_file(app: &AppHandle) -> Result<PathBuf> {
+    Ok(data_dir(app)?.join("mobile.json"))
+}
+
+fn history(app: &AppHandle) -> History {
+    settings_file(app)
+        .ok()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str::<Settings>(&s).ok())
+        .map(|s| s.history)
+        .unwrap_or_default()
+}
+
+/// Configuració › Mòbil: which of this computer's meetings go to the phones from the next sync.
+pub fn set_history(app: &AppHandle, history: History) -> Result<()> {
+    let path = settings_file(app)?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    std::fs::write(&path, serde_json::to_string_pretty(&Settings { history })?)?;
+    changed(app);
+    Ok(())
 }
 
 /// The computer's keys: made once and kept in the keychain.
@@ -276,7 +334,7 @@ pub fn status(app: &AppHandle) -> Status {
     } else {
         None
     };
-    Status { computer: computer_name(), phones, pairing, activity, problem }
+    Status { computer: computer_name(), phones, history: history(app), pairing, activity, problem }
 }
 
 /// "Connecta un mòbil": a new one-time code, valid for a few minutes.
@@ -461,10 +519,22 @@ fn handle(app: &AppHandle, stream: TcpStream) -> Result<()> {
                     Err(e) => session.send(&Msg::Failed { meeting_id, reason: format!("{e:#}") })?,
                 }
             }
-            Ok(Incoming::Msg(Msg::GetResults { since })) => {
+            Ok(Incoming::Msg(Msg::GetResults { since, known })) => {
                 let changed = crate::with_db(app, |db| db.changed_for_device(&id, since)).map_err(|e| anyhow!(e))?;
                 for (meeting, revised_at) in changed {
-                    session.send(&Msg::Results { meeting: for_phone(meeting), revised_at })?;
+                    session.send(&Msg::Results { meeting: for_phone(meeting), revised_at, computer: false })?;
+                }
+                // This computer's own meetings, to phones that take them (they say what they have).
+                if let (Some(known), Some(after)) = (known, history(app).after(now())) {
+                    let known: std::collections::HashSet<String> = known.into_iter().collect();
+                    let others = crate::with_db(app, |db| db.others_for_device(&id, after)).map_err(|e| anyhow!(e))?;
+                    for (meeting_id, revised_at) in others {
+                        if known.contains(&meeting_id) && revised_at <= since {
+                            continue;
+                        }
+                        let Some(meeting) = crate::with_db(app, |db| db.get(&meeting_id)).map_err(|e| anyhow!(e))? else { continue };
+                        session.send(&Msg::Results { meeting: for_phone(meeting), revised_at, computer: true })?;
+                    }
                 }
                 session.send(&Msg::Bye)?;
             }
@@ -529,6 +599,16 @@ fn for_phone(mut meeting: Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn history_reaches_back_as_far_as_chosen() {
+        let now = 100.0 * 86_400.0;
+        assert_eq!(History::None.after(now), None);
+        assert_eq!(History::All.after(now), Some(0.0));
+        assert_eq!(History::Week.after(now), Some(93.0 * 86_400_000.0));
+        assert_eq!(History::Quarter.after(now), Some(9.0 * 86_400_000.0));
+        assert_eq!(serde_json::from_str::<Settings>("{}").unwrap().history, History::None);
+    }
 
     #[test]
     fn windows_default_names() {

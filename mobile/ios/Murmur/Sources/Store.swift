@@ -506,6 +506,7 @@ final class Store: ObservableObject {
         let row = meetings.first { $0.id == id }
         detail.sent = row?.sent ?? false
         detail.revised = row?.revised ?? false
+        detail.fromComputer = row?.fromComputer ?? false
         return detail
     }
 
@@ -558,6 +559,8 @@ struct MeetingDetail {
     /// The computer has it, and has sent back the revised version.
     var sent = false
     var revised = false
+    /// Recorded on the computer and sent here, text only.
+    var fromComputer = false
     /// What the computer's language model wrote (its cover), once it comes back.
     var cover: Cover?
 

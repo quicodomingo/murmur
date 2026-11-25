@@ -81,10 +81,10 @@ struct MeetingView: View {
                         }
 
                         HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: m.revised ? "checkmark.seal" : "laptopcomputer")
-                            // No computer yet; waiting to find it; on the computer, waiting for its
-                            // final pass; or back, revised.
-                            Text(m.revised ? L("meeting.revised") : store.computer == nil ? L("meeting.pendingUnpaired") : m.sent ? L("meeting.sent") : L("meeting.pending"))
+                            Image(systemName: m.revised && !m.fromComputer ? "checkmark.seal" : "laptopcomputer")
+                            // Recorded on the computer (text only); no computer yet; waiting to find
+                            // it; on the computer, waiting for its final pass; or back, revised.
+                            Text(m.fromComputer ? L("meeting.fromComputer") : m.revised ? L("meeting.revised") : store.computer == nil ? L("meeting.pendingUnpaired") : m.sent ? L("meeting.sent") : L("meeting.pending"))
                         }
                         .font(.system(size: 13)).foregroundStyle(palette.textSecondary)
                         .padding(.horizontal, 14).padding(.vertical, 11)
@@ -139,7 +139,7 @@ struct MeetingView: View {
         .foregroundStyle(palette.textPrimary)
         .toolbar(.hidden, for: .navigationBar)
         .speakerNameAlert($naming) { store.nameSpeaker($0.id, $1, in: id) }
-        .confirmationDialog(L("meeting.deleteConfirm"), isPresented: $confirmDelete, titleVisibility: .visible) {
+        .confirmationDialog(L(store.meetings.first { $0.id == id }?.fromComputer == true ? "meeting.deleteConfirmComputer" : "meeting.deleteConfirm"), isPresented: $confirmDelete, titleVisibility: .visible) {
             Button(L("meeting.delete"), role: .destructive) {
                 store.delete(id)
                 dismiss()

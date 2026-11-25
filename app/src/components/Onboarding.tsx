@@ -13,7 +13,7 @@ import { ModelPicker } from "@/components/ModelPicker";
 import { cloudModel, connectCloud, KEY_PLACEHOLDER, KEYS_URL, loadCloudModels, PROVIDERS, useCloud } from "@/lib/cloud";
 import { bytes, downloadQueue, useModels } from "@/lib/models";
 import type { Settings } from "@/lib/settings";
-import { preferredFinalModel } from "@/lib/finalpass";
+import { finalModels, preferredFinalModel } from "@/lib/finalpass";
 import type { CloudProvider, Language, ModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { VoicePrivacy, VoiceRecorder } from "@/components/VoiceRecorder";
@@ -410,9 +410,9 @@ function Models({
     (id) => status(id)?.downloadable !== false,
   );
   const liveIds: ModelId[] = language === "en" ? ["transcription", "english"] : ["transcription"];
-  // None for meetings in two languages: told one, Whisper turns the other into it.
+  // Both for meetings in two languages: each sentence goes to its language's Whisper.
   const whisperModel = preferredFinalModel(language);
-  const whisperIds: ModelId[] = whisperOn && whisperModel && status(whisperModel)?.downloadable !== false ? [whisperModel] : [];
+  const whisperIds: ModelId[] = whisperOn ? finalModels(language).filter((id) => status(id)?.downloadable !== false) : [];
   // In this order: what's needed to record first, then Whisper, then the summaries.
   const wanted: ModelId[] = [...liveIds, ...whisperIds, ...toolIds];
   const busy = wanted.some((id) => models.downloading[id] || models.queued.includes(id));
@@ -503,7 +503,7 @@ function Models({
             name={t("models.whisperName")}
             badge={t("models.optional")}
             size={whisperIds.length ? size(whisperIds) : ""}
-            text={whisperModel === "whisper-ca" ? t("models.whisperTextCa") : whisperModel ? t("models.whisperText") : t("models.whisperMixed")}
+            text={language === "ca-es" ? t("models.whisperMixed") : whisperModel === "whisper-ca" ? t("models.whisperTextCa") : t("models.whisperText")}
             state={rowState(whisperIds)}
             progress={progress(whisperIds)}
             error={whisperIds.map((id) => models.errors[id]).find(Boolean)}
