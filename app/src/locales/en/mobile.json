@@ -8,6 +8,7 @@
     "thisWeek": "This week",
     "earlier": "Earlier",
     "revised": "revised on the computer",
+    "recovering": "Recovering a meeting that was cut off while recording…",
     "fromComputer": "recorded on the computer",
     "search": "Search",
     "delete": "Delete"
@@ -41,7 +42,9 @@
     "back": "Back to the list",
     "resume": "Resume",
     "stopConfirm": "Tap to stop",
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "closedTitle": "Murmur closed and isn't recording",
+    "closedText": "Open the app: the meeting is recovered from the audio it had."
   },
   "notes": {
     "placeholder": "Write a note…",

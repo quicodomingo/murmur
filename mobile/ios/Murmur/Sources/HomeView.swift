@@ -224,6 +224,19 @@ struct HomeView: View {
             }
             .padding(.horizontal, 20).frame(height: 56)
 
+            // A recording cut off (the app was closed in the middle), being made a meeting again.
+            if store.recovering > 0 {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text(L("home.recovering")).font(.system(size: 14))
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(palette.textSecondary)
+                .padding(.horizontal, 14).padding(.vertical, 11)
+                .background(palette.fillSubtle, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(.horizontal, 16).padding(.bottom, 8)
+            }
+
             if store.meetings.isEmpty && store.live == nil {
                 EmptyHome()
             } else {

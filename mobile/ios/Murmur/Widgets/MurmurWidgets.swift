@@ -16,7 +16,14 @@ struct MurmurWidgets: WidgetBundle {
 struct RecordingLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RecordingAttributes.self) { context in
-            LockScreenRecording(context: context).murmurTheme(.acid).environment(\.colorScheme, .dark)
+            Group {
+                if context.isStale {
+                    LockScreenClosed(title: context.attributes.title)
+                } else {
+                    LockScreenRecording(context: context)
+                }
+            }
+            .murmurTheme(.acid).environment(\.colorScheme, .dark)
                 .activityBackgroundTint(MurmurPalette.acidDark.recordingPill)
                 .activitySystemActionForegroundColor(MurmurPalette.acidDark.onRecordingPill)
         } dynamicIsland: { context in
@@ -28,22 +35,32 @@ struct RecordingLiveActivity: Widget {
                     Text(context.attributes.title).font(.system(size: 15, weight: .semibold)).lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    RecordingTimer(state: context.state).font(.tabular(17, weight: .medium))
-                        .multilineTextAlignment(.trailing).frame(width: 84, alignment: .trailing).padding(.trailing, 6)
+                    if !context.isStale {
+                        RecordingTimer(state: context.state).font(.tabular(17, weight: .medium))
+                            .multilineTextAlignment(.trailing).frame(width: 84, alignment: .trailing).padding(.trailing, 6)
+                    }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        LastLine(state: context.state).lineLimit(1)
-                        RecordingButtons(paused: context.state.pausedAt != nil, confirming: context.state.confirmingStop)
+                    if context.isStale {
+                        ClosedText()
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            LastLine(state: context.state).lineLimit(1)
+                            RecordingButtons(paused: context.state.pausedAt != nil, confirming: context.state.confirmingStop)
+                        }
                     }
                 }
             } compactLeading: {
                 // Murmur in the island: its mark, whose echo moves with the voice.
                 EchoMark(state: context.state, size: 24)
             } compactTrailing: {
-                RecordingTimer(state: context.state).font(.tabular(14, weight: .semibold))
-                    .foregroundStyle(MurmurPalette.acidDark.recordingLevel)
-                    .multilineTextAlignment(.trailing).frame(width: 52, alignment: .trailing)
+                if context.isStale {
+                    Image(systemName: "exclamationmark.circle").foregroundStyle(MurmurPalette.acidDark.recordingLevel)
+                } else {
+                    RecordingTimer(state: context.state).font(.tabular(14, weight: .semibold))
+                        .foregroundStyle(MurmurPalette.acidDark.recordingLevel)
+                        .multilineTextAlignment(.trailing).frame(width: 52, alignment: .trailing)
+                }
             } minimal: {
                 EchoMark(state: context.state, size: 22)
             }
@@ -179,6 +196,33 @@ struct LockScreenRecording: View {
                 .padding(.top, 8)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
+    }
+}
+
+/// Murmur was closed in the middle (iOS, or a crash): nothing is recording any more. Tapping the
+/// card opens the app, which ends this and makes the meeting again from its audio.
+struct LockScreenClosed: View {
+    @Environment(\.murmur) private var palette
+    var title: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle").foregroundStyle(MurmurPalette.acidDark.recordingLevel)
+                Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(palette.textPrimary).lineLimit(1)
+            }
+            ClosedText()
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct ClosedText: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(L("rec.closedTitle")).font(.system(size: 15, weight: .semibold)).foregroundStyle(MurmurPalette.acidDark.textPrimary)
+            Text(L("rec.closedText")).font(.system(size: 13)).foregroundStyle(MurmurPalette.acidDark.textSecondary)
+        }
     }
 }
 

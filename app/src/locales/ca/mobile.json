@@ -8,6 +8,7 @@
     "thisWeek": "Aquesta setmana",
     "earlier": "Abans",
     "revised": "revisada a l'ordinador",
+    "recovering": "Recuperant una reunió que es va tallar a mitja gravació…",
     "fromComputer": "gravada a l'ordinador",
     "search": "Cerca",
     "delete": "Elimina"
@@ -41,7 +42,9 @@
     "back": "Torna a la llista",
     "resume": "Continua",
     "stopConfirm": "Toca per aturar",
-    "saving": "Desant…"
+    "saving": "Desant…",
+    "closedTitle": "Murmur s'ha tancat i ja no grava",
+    "closedText": "Obre l'app: la reunió es recupera amb l'àudio que tenia."
   },
   "notes": {
     "placeholder": "Escriu una nota…",

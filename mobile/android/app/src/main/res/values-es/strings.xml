@@ -28,6 +28,7 @@
     <string name="home_emptyText">Murmur transcribe mientras habláis y separa quién dice qué. Todo se queda en el teléfono.</string>
     <string name="home_emptyTitle">Graba la primera reunión</string>
     <string name="home_fromComputer">grabada en el ordenador</string>
+    <string name="home_recovering">Recuperando una reunión que se cortó a mitad de grabación…</string>
     <string name="home_revised">revisada en el ordenador</string>
     <string name="home_search">Buscar</string>
     <string name="home_thisWeek">Esta semana</string>
@@ -132,6 +133,8 @@
     <string name="pair_title">Conectar el ordenador</string>
     <string name="pair_unreachable">No encuentro el ordenador. Comprueba que los dos están en la misma wifi.</string>
     <string name="rec_back">Vuelve a la lista</string>
+    <string name="rec_closedText">Abre la app: la reunión se recupera con el audio que tenía.</string>
+    <string name="rec_closedTitle">Murmur se ha cerrado y ya no graba</string>
     <string name="rec_defaultTitle">Reunión de las %1$s</string>
     <string name="rec_important">Importante</string>
     <string name="rec_listening">Escuchando… empieza a hablar.</string>

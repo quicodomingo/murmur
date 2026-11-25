@@ -225,8 +225,9 @@ Entre reunions (bloc 5):
   - [x] Les reunions de l'ordinador al mòbil, només el text: Configuració › Mòbil, de l'última setmana a totes. Cal l'app del mòbil 1.1.
   - [x] Publicar la 1.1 de l'app de l'iPhone (les reunions de l'ordinador): acceptada per Apple.
   - [x] Una trucada a mitja gravació la posa en pausa i, quan acaba, continua sola (o amb el botó de continuar, que ara torna a engegar el micròfon). «Tap to stop» ja no queda tallat.
-  - [x] Enviar la 1.1.1 a Apple.
-  - [ ] Provar la trucada a l'iPhone de debò.
+  - [x] Enviar la 1.1.2 a Apple (la 1.1.1 es va retirar de la revisió).
+  - [x] Si iOS tanca l'app a mitja gravació, en tornar-la a obrir la reunió es refà amb el seu àudio (la mateixa transcripció del directe, les fotos hi tornen; les notes es perden), i la Live Activity que s'havia quedat penjada es tanca.
+  - [ ] Provar la trucada i la recuperació a l'iPhone de debò.
   - [ ] Les edicions després de revisar en tots dos sentits (avui el mòbil només conserva el títol i els noms que hi canvies).
   - [ ] iPad i iPhone Duo.
   - [ ] Android (`mobile/android/`, en curs; què hi ha i què falta a [`docs/MOBIL.md`](MOBIL.md#android-on-som)):

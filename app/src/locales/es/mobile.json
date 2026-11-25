@@ -8,6 +8,7 @@
     "thisWeek": "Esta semana",
     "earlier": "Antes",
     "revised": "revisada en el ordenador",
+    "recovering": "Recuperando una reunión que se cortó a mitad de grabación…",
     "fromComputer": "grabada en el ordenador",
     "search": "Buscar",
     "delete": "Eliminar"
@@ -41,7 +42,9 @@
     "back": "Vuelve a la lista",
     "resume": "Continuar",
     "stopConfirm": "Toca para detener",
-    "saving": "Guardando…"
+    "saving": "Guardando…",
+    "closedTitle": "Murmur se ha cerrado y ya no graba",
+    "closedText": "Abre la app: la reunión se recupera con el audio que tenía."
   },
   "notes": {
     "placeholder": "Escribe una nota…",

@@ -28,6 +28,7 @@
     <string name="home_emptyText">Murmur transcriu mentre parleu i separa qui diu què. Tot es queda al telèfon.</string>
     <string name="home_emptyTitle">Grava la primera reunió</string>
     <string name="home_fromComputer">gravada a l\'ordinador</string>
+    <string name="home_recovering">Recuperant una reunió que es va tallar a mitja gravació…</string>
     <string name="home_revised">revisada a l\'ordinador</string>
     <string name="home_search">Cerca</string>
     <string name="home_thisWeek">Aquesta setmana</string>
@@ -132,6 +133,8 @@
     <string name="pair_title">Connecta l\'ordinador</string>
     <string name="pair_unreachable">No trobo l\'ordinador. Comprova que tots dos són a la mateixa wifi.</string>
     <string name="rec_back">Torna a la llista</string>
+    <string name="rec_closedText">Obre l\'app: la reunió es recupera amb l\'àudio que tenia.</string>
+    <string name="rec_closedTitle">Murmur s\'ha tancat i ja no grava</string>
     <string name="rec_defaultTitle">Reunió de les %1$s</string>
     <string name="rec_important">Important</string>
     <string name="rec_listening">Escoltant… comença a parlar.</string>

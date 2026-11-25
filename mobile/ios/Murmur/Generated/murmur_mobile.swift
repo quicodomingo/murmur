@@ -671,6 +671,14 @@ public protocol MurmurProtocol: AnyObject, Sendable {
     func putMeeting(json: String) throws 
     
     /**
+     * Makes an unfinished recording a meeting again: its audio goes through the same live
+     * transcription (faster than it was spoken), the file is written again whole, and the photos
+     * taken during it go with it. The notes were only in the app and are lost. Too short to hold
+     * anything (under a second), it's deleted. Returns whether there's a meeting.
+     */
+    func recoverRecording(id: String, title: String, language: String, moreInRoom: Bool) throws  -> Bool
+    
+    /**
      * A new title for a meeting (empty: left as it was).
      */
     func renameMeeting(id: String, title: String) throws 
@@ -721,6 +729,11 @@ public protocol MurmurProtocol: AnyObject, Sendable {
      * (`notesDoc`), its photos (`screens`) and the moments marked as important (`marks`).
      */
     func stop(extra: String) throws  -> String
+    
+    /**
+     * Recordings whose meeting was never saved (`UnfinishedRecording`). Only while not recording.
+     */
+    func unfinishedRecordings() throws  -> [UnfinishedRecording]
     
     /**
      * How many words of `sentence` have been read so far in `samples` (the karaoke).
@@ -955,6 +968,25 @@ open func putMeeting(json: String)throws   {try rustCallWithError(FfiConverterTy
 }
     
     /**
+     * Makes an unfinished recording a meeting again: its audio goes through the same live
+     * transcription (faster than it was spoken), the file is written again whole, and the photos
+     * taken during it go with it. The notes were only in the app and are lost. Too short to hold
+     * anything (under a second), it's deleted. Returns whether there's a meeting.
+     */
+open func recoverRecording(id: String, title: String, language: String, moreInRoom: Bool)throws  -> Bool  {
+    return try  FfiConverterBool.lift(try rustCallWithError(FfiConverterTypeMurmurError_lift) {
+        uniffiCallStatus in
+    uniffi_murmur_mobile_fn_method_murmur_recover_recording(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(id),
+        FfiConverterString.lower(title),
+        FfiConverterString.lower(language),
+        FfiConverterBool.lower(moreInRoom),uniffiCallStatus
+    )
+})
+}
+    
+    /**
      * A new title for a meeting (empty: left as it was).
      */
 open func renameMeeting(id: String, title: String)throws   {try rustCallWithError(FfiConverterTypeMurmurError_lift) {
@@ -1080,6 +1112,18 @@ open func stop(extra: String)throws  -> String  {
     uniffi_murmur_mobile_fn_method_murmur_stop(
             self.uniffiCloneHandle(),
         FfiConverterString.lower(extra),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Recordings whose meeting was never saved (`UnfinishedRecording`). Only while not recording.
+     */
+open func unfinishedRecordings()throws  -> [UnfinishedRecording]  {
+    return try  FfiConverterSequenceTypeUnfinishedRecording.lift(try rustCallWithError(FfiConverterTypeMurmurError_lift) {
+        uniffiCallStatus in
+    uniffi_murmur_mobile_fn_method_murmur_unfinished_recordings(
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
@@ -1786,6 +1830,70 @@ public func FfiConverterTypeSyncReport_lower(_ value: SyncReport) -> RustBuffer 
 }
 
 
+/**
+ * A recording that never got saved: the app was closed or killed in the middle (by iOS, out of
+ * memory, or a crash). Its audio is there; `recover_recording` makes it a meeting again.
+ */
+public struct UnfinishedRecording: Equatable, Hashable {
+    public var id: String
+    /**
+     * Milliseconds since 1970, from its id.
+     */
+    public var createdAt: Double
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, 
+        /**
+         * Milliseconds since 1970, from its id.
+         */createdAt: Double) {
+        self.id = id
+        self.createdAt = createdAt
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension UnfinishedRecording: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeUnfinishedRecording: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UnfinishedRecording {
+        return
+            try UnfinishedRecording(
+                id: FfiConverterString.read(from: &buf), 
+                createdAt: FfiConverterDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: UnfinishedRecording, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterDouble.write(value.createdAt, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeUnfinishedRecording_lift(_ buf: RustBuffer) throws -> UnfinishedRecording {
+    return try FfiConverterTypeUnfinishedRecording.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeUnfinishedRecording_lower(_ value: UnfinishedRecording) -> RustBuffer {
+    return FfiConverterTypeUnfinishedRecording.lower(value)
+}
+
+
 public 
 enum MurmurError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
 
@@ -2077,6 +2185,31 @@ fileprivate struct FfiConverterSequenceTypeSearchHit: FfiConverterRustBuffer {
         return seq
     }
 }
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeUnfinishedRecording: FfiConverterRustBuffer {
+    typealias SwiftType = [UnfinishedRecording]
+
+    public static func write(_ value: [UnfinishedRecording], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeUnfinishedRecording.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [UnfinishedRecording] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [UnfinishedRecording]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeUnfinishedRecording.read(from: &buf))
+        }
+        return seq
+    }
+}
 /**
  * A new private key for this phone, for the keychain.
  */
@@ -2153,6 +2286,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_murmur_mobile_checksum_method_murmur_put_meeting() != 57142) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_murmur_mobile_checksum_method_murmur_recover_recording() != 21988) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_murmur_mobile_checksum_method_murmur_rename_meeting() != 2007) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2178,6 +2314,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_murmur_mobile_checksum_method_murmur_stop() != 8302) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_murmur_mobile_checksum_method_murmur_unfinished_recordings() != 38470) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_murmur_mobile_checksum_method_murmur_voice_progress() != 37939) {

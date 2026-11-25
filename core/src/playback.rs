@@ -57,8 +57,19 @@ pub fn decode_channels(path: &Path) -> Result<Vec<Vec<f32>>> {
     let mut out: Vec<Vec<f32>> = vec![vec![]; channels];
     // Up to 120 ms per packet.
     let mut frame = vec![0f32; RATE as usize / 1000 * 120 * channels];
-    while let Some(packet) = reader.read_packet()? {
-        let n = decoder.decode_float(&packet.data, &mut frame, false).map_err(|e| anyhow!("Opus: {e}"))?;
+    loop {
+        let packet = match reader.read_packet() {
+            Ok(Some(packet)) => packet,
+            Ok(None) => break,
+            // Cut short (the app was killed while recording): what's there is still the meeting.
+            Err(_) if out[0].len() > 0 => break,
+            Err(e) => return Err(e.into()),
+        };
+        let n = match decoder.decode_float(&packet.data, &mut frame, false) {
+            Ok(n) => n,
+            Err(_) if out[0].len() > 0 => break,
+            Err(e) => return Err(anyhow!("Opus: {e}")),
+        };
         for s in frame[..n * channels].chunks(channels) {
             for (c, v) in out.iter_mut().zip(s) {
                 c.push(*v);

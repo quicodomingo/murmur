@@ -130,6 +130,8 @@ final class Store: ObservableObject {
     @Published var unsent = 0
     /// What just changed, with Desfés ("Parlant 3 ara és Laia").
     @Published var toast: Toast?
+    /// Recordings cut off (the app closed or killed in the middle) being made meetings again.
+    @Published var recovering = 0
     /// Sync runs on its own queue: it can take a while (the audio), and the recording can't wait.
     let syncQueue = DispatchQueue(label: "murmur.sync", qos: .utility)
     /// The lock screen's Atura was tapped once: a second tap within 4 s stops.
@@ -157,9 +159,17 @@ final class Store: ObservableObject {
         // The models load in the background, so the first recording starts at once.
         let engine = engine
         queue.async { try? engine?.prepare() }
+        // A Live Activity left from a recording this process never had (the app was killed in the
+        // middle): its buttons would reach nothing.
+        Self.endStaleActivities()
+        recoverUnfinished()
         // The Live Activity's buttons (lock screen, Dynamic Island) land here.
         RecordingControls.handler = { [weak self] command in
             guard let self else { return }
+            guard self.live != nil else {
+                Self.endStaleActivities()
+                return
+            }
             switch command {
             case .mark: self.mark()
             case .togglePause: self.togglePause()
@@ -183,6 +193,36 @@ final class Store: ObservableObject {
             guard stopArmed else { return }
             stopArmed = false
             updateActivity()
+        }
+    }
+
+    /// Recordings whose meeting was never saved: the same live transcription runs over their
+    /// audio, on the engine's queue (a new recording waits for it), and they're back in the list.
+    private func recoverUnfinished() {
+        guard let engine else { return }
+        let language = language
+        let room = UserDefaults.standard.object(forKey: "moreInRoom") as? Bool ?? true
+        queue.async { [weak self] in
+            let found = (try? engine.unfinishedRecordings()) ?? []
+            guard !found.isEmpty else { return }
+            Task { @MainActor in self?.recovering = found.count }
+            for recording in found {
+                let time = Date(timeIntervalSince1970: recording.createdAt / 1000).formatted(date: .omitted, time: .shortened)
+                let ok = (try? engine.recoverRecording(id: recording.id, title: L("rec.defaultTitle", time), language: language, moreInRoom: room)) ?? false
+                Task { @MainActor in
+                    self?.recovering -= 1
+                    if ok {
+                        self?.reload()
+                        Analytics.track("recording_recovered")
+                    }
+                }
+            }
+        }
+    }
+
+    private static func endStaleActivities() {
+        for activity in Activity<RecordingAttributes>.activities {
+            Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
     }
 
@@ -218,19 +258,25 @@ final class Store: ObservableObject {
     private func startActivity(title: String) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = RecordingAttributes(title: title, language: languageName(language))
-        activity = try? Activity.request(attributes: attributes, content: .init(state: activityState, staleDate: nil))
+        activity = try? Activity.request(attributes: attributes, content: .init(state: activityState, staleDate: Self.stale))
+        // Also while paused: each update moves `stale` on, so the lock screen knows Murmur is alive.
         activityTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.live?.paused == false else { return }
+                guard let self, self.live != nil else { return }
                 self.updateActivity()
             }
         }
     }
 
+    /// When the Live Activity stops believing it: the app updates it every second, so if it goes
+    /// this long without, Murmur was closed (by iOS, or a crash) and the lock screen says so
+    /// instead of counting time nobody is recording.
+    private static var stale: Date { Date().addingTimeInterval(20) }
+
     private func updateActivity() {
         guard let activity else { return }
         let state = activityState
-        Task { await activity.update(.init(state: state, staleDate: nil)) }
+        Task { await activity.update(.init(state: state, staleDate: Self.stale)) }
     }
 
     private func endActivity() {

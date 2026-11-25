@@ -180,6 +180,22 @@ mod tests {
     }
 
     #[test]
+    fn a_recording_cut_short_still_plays_up_to_the_cut() {
+        let dir = std::env::temp_dir().join(format!("murmur-recorder-cut-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("killed.ogg");
+        // Never finished (the app killed in the middle), and the last page half written.
+        let mut rec = Recorder::create(&path, 1).unwrap();
+        rec.push(&tone(5.0, 1, 440.0)).unwrap();
+        drop(rec);
+        let len = std::fs::metadata(&path).unwrap().len();
+        std::fs::OpenOptions::new().write(true).open(&path).unwrap().set_len(len - 40).unwrap();
+        let seconds = crate::playback::decode(&path).unwrap().len() as f32 / SAMPLE_RATE as f32;
+        assert!(seconds > 3.5 && seconds <= 5.0, "{seconds}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn resume_carries_on_in_the_same_stream() {
         let dir = std::env::temp_dir().join(format!("murmur-recorder-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();

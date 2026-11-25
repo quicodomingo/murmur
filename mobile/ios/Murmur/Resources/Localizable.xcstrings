@@ -553,6 +553,29 @@
         }
       }
     },
+    "home.recovering": {
+      "extractionState": "manual",
+      "localizations": {
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuperant una reunió que es va tallar a mitja gravació…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuperando una reunión que se cortó a mitad de grabación…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovering a meeting that was cut off while recording…"
+          }
+        }
+      }
+    },
     "home.revised": {
       "extractionState": "manual",
       "localizations": {
@@ -2941,6 +2964,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "Back to the list"
+          }
+        }
+      }
+    },
+    "rec.closedText": {
+      "extractionState": "manual",
+      "localizations": {
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obre l'app: la reunió es recupera amb l'àudio que tenia."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre la app: la reunión se recupera con el audio que tenía."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the app: the meeting is recovered from the audio it had."
+          }
+        }
+      }
+    },
+    "rec.closedTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Murmur s'ha tancat i ja no grava"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Murmur se ha cerrado y ya no graba"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Murmur closed and isn't recording"
           }
         }
       }

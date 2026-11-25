@@ -313,6 +313,11 @@ RustBuffer uniffi_murmur_mobile_fn_method_murmur_push(uint64_t ptr, RustBuffer s
 void uniffi_murmur_mobile_fn_method_murmur_put_meeting(uint64_t ptr, RustBuffer json, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_RECOVER_RECORDING
+#define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_RECOVER_RECORDING
+int8_t uniffi_murmur_mobile_fn_method_murmur_recover_recording(uint64_t ptr, RustBuffer id, RustBuffer title, RustBuffer language, int8_t more_in_room, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_RENAME_MEETING
 #define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_RENAME_MEETING
 void uniffi_murmur_mobile_fn_method_murmur_rename_meeting(uint64_t ptr, RustBuffer id, RustBuffer title, RustCallStatus *_Nonnull out_status
@@ -356,6 +361,11 @@ RustBuffer uniffi_murmur_mobile_fn_method_murmur_start(uint64_t ptr, RustBuffer 
 #ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_STOP
 #define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_STOP
 RustBuffer uniffi_murmur_mobile_fn_method_murmur_stop(uint64_t ptr, RustBuffer extra, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_UNFINISHED_RECORDINGS
+#define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_UNFINISHED_RECORDINGS
+RustBuffer uniffi_murmur_mobile_fn_method_murmur_unfinished_recordings(uint64_t ptr, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_FN_METHOD_MURMUR_VOICE_PROGRESS
@@ -737,6 +747,12 @@ uint16_t uniffi_murmur_mobile_checksum_method_murmur_put_meeting(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_RECOVER_RECORDING
+#define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_RECOVER_RECORDING
+uint16_t uniffi_murmur_mobile_checksum_method_murmur_recover_recording(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_RENAME_MEETING
 #define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_RENAME_MEETING
 uint16_t uniffi_murmur_mobile_checksum_method_murmur_rename_meeting(void
@@ -788,6 +804,12 @@ uint16_t uniffi_murmur_mobile_checksum_method_murmur_start(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_STOP
 #define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_STOP
 uint16_t uniffi_murmur_mobile_checksum_method_murmur_stop(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_UNFINISHED_RECORDINGS
+#define UNIFFI_FFIDEF_UNIFFI_MURMUR_MOBILE_CHECKSUM_METHOD_MURMUR_UNFINISHED_RECORDINGS
+uint16_t uniffi_murmur_mobile_checksum_method_murmur_unfinished_recordings(void
     
 );
 #endif

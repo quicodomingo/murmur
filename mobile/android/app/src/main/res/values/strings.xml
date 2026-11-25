@@ -28,6 +28,7 @@
     <string name="home_emptyText">Murmur transcribes as you talk and tells who says what. Everything stays on your phone.</string>
     <string name="home_emptyTitle">Record your first meeting</string>
     <string name="home_fromComputer">recorded on the computer</string>
+    <string name="home_recovering">Recovering a meeting that was cut off while recording…</string>
     <string name="home_revised">revised on the computer</string>
     <string name="home_search">Search</string>
     <string name="home_thisWeek">This week</string>
@@ -132,6 +133,8 @@
     <string name="pair_title">Connect your computer</string>
     <string name="pair_unreachable">Can\'t find the computer. Check both are on the same Wi-Fi.</string>
     <string name="rec_back">Back to the list</string>
+    <string name="rec_closedText">Open the app: the meeting is recovered from the audio it had.</string>
+    <string name="rec_closedTitle">Murmur closed and isn\'t recording</string>
     <string name="rec_defaultTitle">%1$s meeting</string>
     <string name="rec_important">Important</string>
     <string name="rec_listening">Listening… start talking.</string>

@@ -104,6 +104,15 @@ pub struct MeetingRow {
     pub from_computer: bool,
 }
 
+/// A recording that never got saved: the app was closed or killed in the middle (by iOS, out of
+/// memory, or a crash). Its audio is there; `recover_recording` makes it a meeting again.
+#[derive(uniffi::Record)]
+pub struct UnfinishedRecording {
+    pub id: String,
+    /// Milliseconds since 1970, from its id.
+    pub created_at: f64,
+}
+
 /// A search result: where in which meeting. `snippet` has the matched words between \u{2} and
 /// \u{3}, to highlight them.
 #[derive(uniffi::Record)]
@@ -315,16 +324,10 @@ impl Murmur {
         let id = format!("phone-{}", created as u64);
         let audio = self.data_dir.join("recordings").join(format!("{id}.ogg"));
         let recorder = Recorder::create(&audio, 1)?;
-        let mut pipeline = Pipeline::new(models, true, false, if more_in_room { MAX_SPEAKERS } else { 1 }, THRESHOLD, Some(recorder), vec![])?;
+        let mut pipeline = self.pipeline(models, more_in_room, Some(recorder))?;
         pipeline.set_partials(partial_every > 0.0);
         if partial_every > 0.0 {
             pipeline.set_partial_every(partial_every);
-        }
-        // "Murmur" spelled right, so "Murmur, sóc la Laia" is heard as such (glossary.rs).
-        pipeline.set_glossary(glossary::with_guests(&[], &[]));
-        // The user's voice (voice.rs), if saved: they're speaker 0, "Tu", from the first word.
-        if let Some(voice) = voice::load(&self.data_dir) {
-            pipeline.known_speakers(Channel::Mic, vec![(0, voice.embedding)], 1);
         }
         let meeting = json!({
             "id": id, "title": title, "createdAt": created, "duration": 0.0, "status": "recording",
@@ -333,6 +336,73 @@ impl Murmur {
         });
         *lock(&self.live) = Some(Live { pipeline, meeting, samples: 0, lines: vec![] });
         Ok(id)
+    }
+
+    /// Recordings whose meeting was never saved (`UnfinishedRecording`). Only while not recording.
+    pub fn unfinished_recordings(&self) -> Result<Vec<UnfinishedRecording>> {
+        if lock(&self.live).is_some() {
+            return Ok(vec![]);
+        }
+        let db = lock(&self.db);
+        let mut out = vec![];
+        for entry in std::fs::read_dir(self.data_dir.join("recordings")).into_iter().flatten().flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let Some(id) = name.strip_suffix(".ogg").filter(|id| id.starts_with("phone-") && safe_dir(id) == *id) else { continue };
+            let Some(created_at) = id.strip_prefix("phone-").and_then(|ms| ms.parse::<f64>().ok()) else { continue };
+            if db.get(id)?.is_none() {
+                out.push(UnfinishedRecording { id: id.to_owned(), created_at });
+            }
+        }
+        Ok(out)
+    }
+
+    /// Makes an unfinished recording a meeting again: its audio goes through the same live
+    /// transcription (faster than it was spoken), the file is written again whole, and the photos
+    /// taken during it go with it. The notes were only in the app and are lost. Too short to hold
+    /// anything (under a second), it's deleted. Returns whether there's a meeting.
+    pub fn recover_recording(&self, id: String, title: String, language: String, more_in_room: bool) -> Result<bool> {
+        let id = safe_dir(&id);
+        let audio = self.data_dir.join("recordings").join(format!("{id}.ogg"));
+        let samples = murmur_core::playback::decode(&audio).unwrap_or_default();
+        if samples.len() < SAMPLE_RATE {
+            let _ = std::fs::remove_file(&audio);
+            return Ok(false);
+        }
+        let models = self.models()?;
+        let whole = audio.with_extension("ogg.recovered");
+        let mut pipeline = self.pipeline(models, more_in_room, Some(Recorder::create(&whole, 1)?))?;
+        let mut events = vec![];
+        for chunk in samples.chunks(SAMPLE_RATE) {
+            events.extend(pipeline.push(Source::Mic, chunk));
+        }
+        events.extend(pipeline.finish()?.0);
+        std::fs::rename(&whole, &audio).map_err(|e| MurmurError::Failed(e.to_string()))?;
+        let lines: Vec<Value> = events
+            .into_iter()
+            .filter_map(|e| match e {
+                Event::Final { id: n, start, end, speaker, text, .. } => Some(json!({ "id": line_id(&id, n), "start": start, "end": end, "speaker": speaker, "text": text })),
+                _ => None,
+            })
+            .collect();
+        let mut screens: Vec<Value> = std::fs::read_dir(self.data_dir.join("screens").join(&id))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter_map(|e| {
+                let file = e.file_name().to_string_lossy().into_owned();
+                let ms = file.strip_suffix(".jpg")?.parse::<f64>().ok()?;
+                Some(json!({ "t": ms / 1000.0, "path": format!("screens/{id}/{file}") }))
+            })
+            .collect();
+        screens.sort_by(|a, b| a["t"].as_f64().partial_cmp(&b["t"].as_f64()).unwrap_or(std::cmp::Ordering::Equal));
+        let created_at = id.strip_prefix("phone-").and_then(|ms| ms.parse::<f64>().ok()).unwrap_or_else(now_ms);
+        let meeting = json!({
+            "id": id, "title": title, "createdAt": created_at, "duration": samples.len() as f64 / SAMPLE_RATE as f64,
+            "status": "done", "utterances": lines, "speakerNames": {}, "notes": [], "language": language,
+            "sources": { "mic": true, "system": false }, "audioPath": audio.to_string_lossy(), "screens": screens,
+        });
+        lock(&self.db).put(&meeting)?;
+        Ok(true)
     }
 
     /// 16 kHz mono samples from the microphone.
@@ -435,6 +505,20 @@ impl Murmur {
         meeting["audioPath"].as_str().map(PathBuf::from).filter(|p| p.exists())
     }
 
+    /// The live transcription of one recording, without provisional text: the glossary and the
+    /// user's voice set.
+    fn pipeline(&self, models: &'static Models, more_in_room: bool, recorder: Option<Recorder>) -> Result<Pipeline<'static>> {
+        let mut pipeline = Pipeline::new(models, true, false, if more_in_room { MAX_SPEAKERS } else { 1 }, THRESHOLD, recorder, vec![])?;
+        pipeline.set_partials(false);
+        // "Murmur" spelled right, so "Murmur, sóc la Laia" is heard as such (glossary.rs).
+        pipeline.set_glossary(glossary::with_guests(&[], &[]));
+        // The user's voice (voice.rs), if saved: they're speaker 0, "Tu", from the first word.
+        if let Some(voice) = voice::load(&self.data_dir) {
+            pipeline.known_speakers(Channel::Mic, vec![(0, voice.embedding)], 1);
+        }
+        Ok(pipeline)
+    }
+
     /// Reads a meeting, changes it and saves it back (nothing if it isn't there).
     fn edit(&self, id: &str, change: impl FnOnce(&mut Value)) -> Result<()> {
         let mut db = lock(&self.db);
@@ -491,6 +575,27 @@ mod tests {
 
     fn saved(m: &Murmur) -> Value {
         serde_json::from_str(&m.meeting_json("phone-1".into()).unwrap().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn recordings_never_saved_are_found_and_empty_ones_dropped() {
+        let dir = std::env::temp_dir().join(format!("murmur-mobile-unfinished-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("recordings")).unwrap();
+        let m = Murmur::new("/nowhere".into(), dir.to_string_lossy().into_owned()).unwrap();
+        // One saved, one killed half a second in, and a file that isn't a recording.
+        lock(&m.db).put(&json!({ "id": "phone-1000", "title": "Desada", "createdAt": 1000.0, "status": "done" })).unwrap();
+        for id in ["phone-1000", "phone-2000"] {
+            let mut rec = Recorder::create(&dir.join(format!("recordings/{id}.ogg")), 1).unwrap();
+            rec.push(&vec![0.1; SAMPLE_RATE / 2]).unwrap();
+        }
+        std::fs::write(dir.join("recordings/other.ogg"), b"x").unwrap();
+        let found = m.unfinished_recordings().unwrap();
+        assert_eq!(found.iter().map(|r| (r.id.as_str(), r.created_at)).collect::<Vec<_>>(), [("phone-2000", 2000.0)]);
+        // Too short to hold anything: gone, without loading the models.
+        assert!(!m.recover_recording("phone-2000".into(), "Reunió".into(), "ca".into(), true).unwrap());
+        assert!(m.unfinished_recordings().unwrap().is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
