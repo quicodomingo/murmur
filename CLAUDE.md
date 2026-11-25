@@ -22,6 +22,7 @@ Guia per a qui treballa en aquest repositori, persones o agents de codi. Murmur 
 | `app/src-tauri/src/` | L'app de l'ordinador en Rust: captura d'àudio, finestres, calendari, Whisper, model de llenguatge, compartir, connector per a Claude |
 | `app/whisper/` | `murmur-whisper`, el procés a part que fa la passada final amb Whisper |
 | `share/` | El Worker de Cloudflare dels enllaços compartits ([`docs/COMPARTIR.md`](docs/COMPARTIR.md)) |
+| `feedback/` | El Worker de Cloudflare que rep els comentaris de l'app ([`docs/COMENTARIS.md`](docs/COMENTARIS.md)) |
 | `mobile/` | Les apps del mòbil: `ffi/` (el motor amb UniFFI, `murmur-mobile`), `ios/Murmur/` (l'app en SwiftUI) i `ios/MurmurProbe/` (la prova d'una tarda). Vegeu [`docs/MOBIL.md`](docs/MOBIL.md) |
 | `bench/`, `mvp/`, `tools/` | Banc de proves, primer prototip, scripts d'exportació de models (Python, amb `uv`) i les captures de la landing (`tools/landing-captures/`) |
 

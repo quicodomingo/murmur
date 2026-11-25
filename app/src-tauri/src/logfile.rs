@@ -59,7 +59,7 @@ fn home_dir() -> Option<PathBuf> {
     std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).map(PathBuf::from)
 }
 
-fn os_version() -> String {
+pub(crate) fn os_version() -> String {
     #[cfg(target_os = "macos")]
     let out = std::process::Command::new("sw_vers").arg("-productVersion").output().ok();
     #[cfg(windows)]

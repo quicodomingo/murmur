@@ -74,6 +74,7 @@ fn strings(key: &str) -> Option<[&'static str; 3]> {
         "menu_about" => ["Quant a Murmur", "Acerca de Murmur", "About Murmur"],
         "menu_settings" => ["Configuració…", "Ajustes…", "Settings…"],
         "menu_open_audio" => ["Transcriu des d'un fitxer…", "Transcribir desde un archivo…", "Transcribe from File…"],
+        "menu_feedback" => ["Envia un comentari…", "Enviar un comentario…", "Send Feedback…"],
         "menu_zoom_in" => ["Amplia el text", "Ampliar el texto", "Make Text Bigger"],
         "menu_zoom_out" => ["Redueix el text", "Reducir el texto", "Make Text Smaller"],
         "menu_zoom_reset" => ["Mida real del text", "Tamaño real del texto", "Actual Text Size"],

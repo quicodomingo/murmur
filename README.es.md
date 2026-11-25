@@ -55,6 +55,7 @@ Nació para reuniones en **catalán**, donde la mayoría de servicios de transcr
 - El teléfono y el ordenador se comunican solo por la red local, cifrado de extremo a extremo, sin pasar por ningún servidor.
 - Las reuniones se guardan en una base de datos SQLite local. El audio solo se guarda si lo activas.
 - Murmur lleva un registro técnico en el ordenador (grabaciones, modelos, errores; como mucho 2 MB), para que lo envíes tú si algo falla. No contiene nada de lo que se dice en las reuniones, ni títulos, ni nombres, ni el nombre de los dispositivos, y no sale del ordenador solo. Está en Configuración › General › Mostrar el registro.
+- «Enviar un comentario» (menú Ayuda y Configuración › General) solo envía lo que escribes cuando pulsas «Enviar», con la versión y el sistema, y el registro solo si lo marcas. Nunca nada de las reuniones.
 - Para grabar una reunión hace falta el consentimiento de todas las personas que participan. Murmur te lo recuerda al empezar.
 
 ## Requisitos

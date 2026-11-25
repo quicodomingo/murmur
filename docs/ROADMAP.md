@@ -222,6 +222,7 @@ Entre reunions (bloc 5):
   - [x] Publicada a l'App Store el 17 de novembre de 2026 (https://apps.apple.com/app/id6835415829).
   - [x] L'app de l'iPhone ja és a l'App Store de la UE: a la 0.18.0, `PHONE_APP` a `true` (`app/src/lib/features.ts`), el paràgraf dels README i la novetat de l'iPhone amb la imatge (la de la 0.16.0, que no va sortir).
   - [ ] La secció de l'iPhone a la landing: textos i captures a [`docs/LANDING.md`](LANDING.md).
+  - [ ] «Envia un comentari» a l'iPhone, al mateix Worker ([`docs/COMENTARIS.md`](COMENTARIS.md)).
   - [x] Les reunions de l'ordinador al mòbil, només el text: Configuració › Mòbil, de l'última setmana a totes. Cal l'app del mòbil 1.1.
   - [x] Publicar la 1.1 de l'app de l'iPhone (les reunions de l'ordinador): acceptada per Apple.
   - [x] Una trucada a mitja gravació la posa en pausa i, quan acaba, continua sola (o amb el botó de continuar, que ara torna a engegar el micròfon). «Tap to stop» ja no queda tallat.

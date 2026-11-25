@@ -1,0 +1,21 @@
+# Murmur's feedback (docs/COMENTARIS.md). Copy it to wrangler.toml (not in the repository) and
+# fill in the database id and the addresses; then `npm run schema` once and `npm run deploy`.
+name = "murmur-feedback"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "murmur-feedback"
+database_id = "D1_DATABASE_ID"
+
+# Cloudflare Email Routing: the address the messages go to (verified in Email Routing) and the
+# one they come from (on a domain with Email Routing on). Without it, they're only kept in D1.
+[[send_email]]
+name = "MAIL"
+destination_address = "TO_ADDRESS"
+
+[vars]
+FROM = "murmur@FROM_DOMAIN"
+TO = "TO_ADDRESS"

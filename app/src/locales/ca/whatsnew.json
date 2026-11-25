@@ -6,7 +6,7 @@
   "dontShow": "No ho tornis a mostrar",
   "ok": "Entesos",
   "releases": {
-    "0.19.0": [
+    "0.19.1": [
       {
         "title": "Whisper, també en català i castellà barrejats",
         "text": "Si tries «Català + castellà», en acabar la reunió Whisper la torna a escoltar frase a frase: les catalanes amb el Whisper català i les castellanes amb el general. En les nostres proves, els errors baixen del 21 % al 6 %.",
@@ -18,6 +18,12 @@
         "text": "Tria a Configuració › Mòbil quines reunions d'aquest ordinador vols al telèfon: de l'última setmana, de l'últim mes, dels últims 3 mesos o totes. Hi arriba només el text, per llegir-les i buscar-les. Cal Murmur per a iPhone 1.1.",
         "link": "mobile",
         "linkLabel": "Configuració › Mòbil"
+      },
+      {
+        "title": "Envia'ns un comentari",
+        "text": "Si alguna cosa no va o tens una idea, ara ho pots dir des de Murmur: menú Ajuda o Configuració › General. Als avisos d'error, «Explica'ns què ha passat» ja hi porta l'error. Mai s'hi envia res de les reunions.",
+        "link": "general",
+        "linkLabel": "Configuració › General"
       }
     ],
     "0.18.0": [

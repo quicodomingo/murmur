@@ -301,6 +301,18 @@ export const notionFind = (query: string) => invoke<NotionPlace[]>("notion_find"
 export const notionExport = (title: string, summary: string, transcript: string, parent: string | null) =>
   invoke<string>("notion_export", { title, summary, transcript, parent });
 
+// --- "Envia un comentari" (feedback.rs, docs/COMENTARIS.md) ---
+export type FeedbackKind = "bug" | "idea" | "other";
+export type FeedbackSystem = { os: string; osVersion: string; arch: string; machine: string; memory: string; language: string };
+export type FeedbackPreview = { app: string; system: FeedbackSystem; log: string };
+export type FeedbackDraft = { kind: FeedbackKind; message: string; email: string | null; context: string | null; includeLog: boolean; language: string };
+/** Whether this build knows where to send it (forks and test builds don't). */
+export const feedbackAvailable = () => (isTauri() ? invoke<boolean>("feedback_available") : Promise.resolve(false));
+export const feedbackPreview = (language: string) => invoke<FeedbackPreview>("feedback_preview", { language });
+/** "sent", or "queued" without a connection (it goes next time Murmur opens). Throws "tooMany" or what went wrong. */
+export const feedbackSend = (draft: FeedbackDraft) => invoke<"sent" | "queued">("feedback_send", { draft });
+export const onOpenFeedback = (fn: () => void) => listen("open-feedback", () => fn());
+
 // --- Phones (mobile.rs, docs/EMPARELLAR.md) ---
 export type Phone = { id: string; name: string; pairedAt: number; lastSeen: number | null };
 /** A phone syncing now (it only connects for a few seconds), and the meeting it's sending. */

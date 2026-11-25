@@ -382,6 +382,10 @@ Les finestres de 20 s ajunten persones diferents, i amb 6 s ja empitjora (79%). 
 
 Variables per experimentar: `TRANSCRIPTOR_EMBEDDING` (directe), `TRANSCRIPTOR_DIARIZE_EMBEDDING` (verificació) i `TRANSCRIPTOR_NO_PARTIALS`.
 
+## Comentaris (`feedback.rs`, `feedback/`)
+
+«Envia un comentari» (menú Ajuda, Configuració › General i el segon botó dels avisos d'error, que `lib/feedback.ts` afegeix a tots els `toast.error`) envia el missatge al Worker `feedback/`, que el desa a D1 i el reenvia per correu. Hi van la versió, el sistema, el model d'ordinador, la memòria i la llengua, i el registre de les últimes 24 hores només si es marca. Sense connexió, espera a `feedback-outbox/` fins al proper cop que s'obre Murmur. Sense adreça del Worker a la compilació, l'opció no hi és. Tot a [COMENTARIS.md](COMENTARIS.md).
+
 ## Registre (`logfile.rs`)
 
 Un fitxer de text a la carpeta de registres de l'app (al Mac `~/Library/Logs/com.quicodomingo.murmur`, a Windows `%LOCALAPPDATA%\com.quicodomingo.murmur\logs`, a Linux `~/.local/share/com.quicodomingo.murmur/logs`), perquè qui prova Murmur ens l'enviï quan alguna cosa falla. Configuració › General › Mostra el registre n'obre la carpeta (`show_log`); no s'envia mai sol.

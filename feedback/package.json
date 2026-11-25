@@ -1,0 +1,15 @@
+{
+  "name": "murmur-feedback",
+  "private": true,
+  "description": "Murmur's feedback: a Cloudflare Worker that receives the messages sent from the app, keeps them and forwards them by email.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema": "wrangler d1 execute murmur-feedback --remote --file=schema.sql",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.3"
+  }
+}

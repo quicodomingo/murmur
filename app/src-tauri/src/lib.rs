@@ -5,6 +5,7 @@ pub mod audio;
 pub mod awake;
 pub mod calendar;
 pub mod capture;
+pub mod feedback;
 pub mod gate;
 pub mod ics;
 pub mod import;
@@ -1045,6 +1046,36 @@ struct DownloadDone {
     cancelled: bool,
 }
 
+// --- "Envia un comentari" (feedback.rs, docs/COMENTARIS.md) ---------------------------------
+
+#[tauri::command]
+fn feedback_available() -> bool {
+    feedback::available()
+}
+
+/// What goes with the message, and the log, to show before sending.
+#[tauri::command]
+async fn feedback_preview(app: AppHandle, language: String) -> feedback::Preview {
+    tauri::async_runtime::spawn_blocking(move || feedback::preview(&app, &language)).await.unwrap_or_else(|_| feedback::Preview {
+        app: String::new(),
+        system: feedback::system(""),
+        log: String::new(),
+    })
+}
+
+/// "Envia". Errors: "tooMany", or what went wrong.
+#[tauri::command]
+async fn feedback_send(app: AppHandle, draft: feedback::Draft) -> Result<feedback::Sent, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        feedback::send(&app, draft).map_err(|e| match e {
+            feedback::Refused::TooMany => "tooMany".to_string(),
+            feedback::Refused::Failed(why) => why,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Settings › General › "Mostra el registre": the log's folder (logfile.rs), to attach the file.
 #[tauri::command]
 fn show_log(app: AppHandle) -> Result<(), String> {
@@ -1987,6 +2018,24 @@ pub fn run() {
                     view.insert(&tauri::menu::PredefinedMenuItem::separator(app)?, 3)?;
                 }
             }
+            // Help › "Envia un comentari…", if this build knows where to send it.
+            if feedback::available() {
+                let entry = tauri::menu::MenuItem::with_id(app, "feedback", i18n::t("menu_feedback"), true, None::<&str>)?;
+                shell::keep_label(app.handle(), &entry, "menu_feedback");
+                let help = menu.items()?.into_iter().find_map(|item| match item {
+                    tauri::menu::MenuItemKind::Submenu(s) if s.text().ok().as_deref() == Some("Help") => Some(s),
+                    _ => None,
+                });
+                match help {
+                    Some(help) => help.append(&entry)?,
+                    None => menu.append(&tauri::menu::Submenu::with_items(app, "Help", true, &[&entry])?)?,
+                }
+                let later = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(20));
+                    feedback::flush_outbox(&later);
+                });
+            }
             app.set_menu(menu)?;
             app.on_menu_event(|app, event| match event.id().as_ref() {
                 "settings" => {
@@ -1995,6 +2044,10 @@ pub fn run() {
                 "about" => {
                     shell::show_main(app);
                     let _ = app.emit_to("main", "open-about", ());
+                }
+                "feedback" => {
+                    shell::show_main(app);
+                    let _ = app.emit_to("main", "open-feedback", ());
                 }
                 "open-audio" => {
                     shell::show_main(app);
@@ -2045,6 +2098,9 @@ pub fn run() {
             mobile_cancel_pairing,
             mobile_unpair,
             mobile_set_history,
+            feedback_available,
+            feedback_preview,
+            feedback_send,
             set_ui_language,
             prepare,
             start_recording,

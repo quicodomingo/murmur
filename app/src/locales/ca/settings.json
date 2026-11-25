@@ -50,7 +50,11 @@
     "showWhatsNewNow": "Mostra-les",
     "log": "Registre",
     "logHint": "Un fitxer amb el que fa Murmur per dins (gravacions, models, errors), per enviar-lo si alguna cosa falla. No hi ha res del que es diu a les reunions, ni títols, ni noms, i no surt de l'ordinador si no l'envies tu.",
-    "showLog": "Mostra el registre"
+    "showLog": "Mostra el registre",
+    "help": "Ajuda",
+    "feedback": "Comentaris",
+    "feedbackHint": "Què no va, o què t'agradaria. Ho llegeix en Quico, que fa Murmur.",
+    "feedbackButton": "Envia un comentari…"
   },
   "calendar": {
     "connection": "Connexions",

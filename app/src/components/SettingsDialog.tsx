@@ -31,6 +31,7 @@ import { capabilities, isMac, OS } from "@/lib/platform";
 import { ago } from "@/lib/format";
 import { VoicePrivacy, VoiceRecorder } from "@/components/VoiceRecorder";
 import { PHONE_APP } from "@/lib/features";
+import { feedbackAvailable, openFeedback } from "@/lib/feedback";
 
 type Props = {
   open: boolean;
@@ -300,6 +301,19 @@ function GeneralTab({
           </button>
         </Row>
       </Group>
+      {feedbackAvailable() && (
+        <Group title={t("general.help")}>
+          <Row label={t("general.feedback")} hint={t("general.feedbackHint")}>
+            <button
+              type="button"
+              onClick={() => openFeedback()}
+              className="h-6 shrink-0 rounded-md border border-input bg-background px-2.5 text-[13px] hover:bg-muted"
+            >
+              {t("general.feedbackButton")}
+            </button>
+          </Row>
+        </Group>
+      )}
     </>
   );
 }
@@ -2487,17 +2501,20 @@ export function Segmented<T extends string>({
   options,
   onChange,
   labelledBy,
+  wide,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (v: T) => void;
   labelledBy?: string;
+  /** The whole width, the options sharing it. */
+  wide?: boolean;
 }) {
   // The white thumb slides to the option chosen (lib/motion.tsx).
   const track = useRef<HTMLDivElement>(null);
   const marker = useMarker(track, value, [options.map((o) => o.label).join("|")]);
   return (
-    <div ref={track} role="radiogroup" aria-labelledby={labelledBy} className="relative flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5">
+    <div ref={track} role="radiogroup" aria-labelledby={labelledBy} className={cn("relative flex shrink-0 rounded-[7px] bg-mm-segmented-track p-0.5", wide && "w-full")}>
       <MarkerBackground marker={marker} className="rounded-[5px] bg-mm-segmented-selected shadow-[0_1px_2px_rgb(0_0_0/0.15)]" />
       {options.map((o) => (
         <button
@@ -2507,7 +2524,7 @@ export function Segmented<T extends string>({
           data-marker={o.value}
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cn("relative h-6 rounded-[5px] px-3 text-[12px] transition-colors duration-200", value === o.value ? "font-medium" : "text-muted-foreground")}
+          className={cn("relative h-6 rounded-[5px] px-3 text-[12px] transition-colors duration-200", wide && "flex-1", value === o.value ? "font-medium" : "text-muted-foreground")}
         >
           {o.label}
         </button>

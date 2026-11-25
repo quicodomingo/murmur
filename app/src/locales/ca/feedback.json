@@ -1,0 +1,53 @@
+{
+  "title": "Envia un comentari",
+  "intro": "Ho llegeix en Quico, que fa Murmur. Cada missatge ajuda a decidir què es fa després.",
+  "kinds": {
+    "bug": "Alguna cosa no va",
+    "idea": "Una idea",
+    "other": "Una altra cosa"
+  },
+  "question": {
+    "bug": "Què ha passat?",
+    "idea": "Què t'agradaria?",
+    "other": "Què ens vols dir?"
+  },
+  "placeholder": {
+    "bug": "Què feies, què esperaves que passés i què ha passat. Si passa sempre, com es repeteix.",
+    "idea": "Què t'agradaria que fes Murmur, i per a què et serviria.",
+    "other": "El que vulguis."
+  },
+  "withError": "Amb l'error:",
+  "removeError": "Treu l'error",
+  "email": "El teu correu",
+  "optional": "(opcional)",
+  "emailPlaceholder": "nom@exemple.cat",
+  "emailHint": "Només per respondre't. Si el deixes buit, el missatge arriba sense saber qui l'envia.",
+  "log": "Adjunta el registre de Murmur de les últimes 24 hores",
+  "showLog": "Mostra'l",
+  "hideLog": "Amaga'l",
+  "goesWith": "S'hi afegeix: {{app}}, {{system}}, {{machine}} i la interfície en {{language}}",
+  "with": " amb ",
+  "andLog_one": ", i el registre ({{count}} línia)",
+  "andLog_other": ", i el registre ({{count}} línies)",
+  "never": "Mai res de les reunions: ni títols, ni text, ni noms, ni àudio.",
+  "languages": {
+    "ca": "català",
+    "es": "castellà",
+    "en": "anglès"
+  },
+  "tooShort": "Una mica més, si us plau",
+  "cancel": "Cancel·la",
+  "send": "Envia",
+  "sending": "Enviant…",
+  "sentTitle": "Gràcies, ja ha arribat",
+  "sentText": "Ho llegeixo tot, encara que no sempre pugui respondre.",
+  "sentWithEmail": "Ho llegeixo tot. Si cal, et respondré al correu que hi has deixat.",
+  "queuedTitle": "S'enviarà quan hi hagi connexió",
+  "queuedText": "Ara aquest ordinador no té connexió. El missatge es queda aquí i s'enviarà sol el proper cop que obris Murmur amb connexió.",
+  "copy": "Copia el text",
+  "copied": "S'ha copiat el text.",
+  "close": "Tanca",
+  "tooMany": "N'has enviat uns quants seguits. Espera una estona i torna-ho a provar.",
+  "failed": "No s'ha pogut enviar: {{error}}",
+  "explain": "Explica'ns què ha passat"
+}

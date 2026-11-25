@@ -55,6 +55,7 @@ It started as a tool for meetings in **Catalan**, where most transcription servi
 - The phone and the computer talk only over the local network, end-to-end encrypted, through no server.
 - Meetings are stored in a local SQLite database. Audio is only saved if you turn it on.
 - Murmur keeps a technical log on your computer (recordings, models, errors; 2 MB at most), for you to send if something goes wrong. It has nothing of what's said in meetings, no titles, no names and no device names, and it never leaves your computer by itself. It's in Settings › General › Show Log.
+- "Send Feedback" (Help menu and Settings › General) only sends what you write when you press "Send", with the version and the system, and the log only if you tick it. Never anything from your meetings.
 - Recording a meeting requires the consent of everyone in it. Murmur reminds you when you start.
 
 ## Requirements

@@ -1,0 +1,53 @@
+{
+  "title": "Enviar un comentario",
+  "intro": "Lo lee Quico, que hace Murmur. Cada mensaje ayuda a decidir qué se hace después.",
+  "kinds": {
+    "bug": "Algo no va",
+    "idea": "Una idea",
+    "other": "Otra cosa"
+  },
+  "question": {
+    "bug": "¿Qué ha pasado?",
+    "idea": "¿Qué te gustaría?",
+    "other": "¿Qué nos quieres decir?"
+  },
+  "placeholder": {
+    "bug": "Qué hacías, qué esperabas que pasara y qué ha pasado. Si pasa siempre, cómo se repite.",
+    "idea": "Qué te gustaría que hiciera Murmur, y para qué te serviría.",
+    "other": "Lo que quieras."
+  },
+  "withError": "Con el error:",
+  "removeError": "Quitar el error",
+  "email": "Tu correo",
+  "optional": "(opcional)",
+  "emailPlaceholder": "nombre@ejemplo.es",
+  "emailHint": "Solo para responderte. Si lo dejas vacío, el mensaje llega sin saber quién lo envía.",
+  "log": "Adjuntar el registro de Murmur de las últimas 24 horas",
+  "showLog": "Mostrarlo",
+  "hideLog": "Ocultarlo",
+  "goesWith": "Se añade: {{app}}, {{system}}, {{machine}} y la interfaz en {{language}}",
+  "with": " con ",
+  "andLog_one": ", y el registro ({{count}} línea)",
+  "andLog_other": ", y el registro ({{count}} líneas)",
+  "never": "Nunca nada de las reuniones: ni títulos, ni texto, ni nombres, ni audio.",
+  "languages": {
+    "ca": "catalán",
+    "es": "castellano",
+    "en": "inglés"
+  },
+  "tooShort": "Un poco más, por favor",
+  "cancel": "Cancelar",
+  "send": "Enviar",
+  "sending": "Enviando…",
+  "sentTitle": "Gracias, ya ha llegado",
+  "sentText": "Lo leo todo, aunque no siempre pueda responder.",
+  "sentWithEmail": "Lo leo todo. Si hace falta, te responderé al correo que has dejado.",
+  "queuedTitle": "Se enviará cuando haya conexión",
+  "queuedText": "Ahora este ordenador no tiene conexión. El mensaje se queda aquí y se enviará solo la próxima vez que abras Murmur con conexión.",
+  "copy": "Copiar el texto",
+  "copied": "Se ha copiado el texto.",
+  "close": "Cerrar",
+  "tooMany": "Has enviado unos cuantos seguidos. Espera un rato y vuelve a intentarlo.",
+  "failed": "No se ha podido enviar: {{error}}",
+  "explain": "Cuéntanos qué ha pasado"
+}

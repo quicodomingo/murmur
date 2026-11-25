@@ -50,7 +50,11 @@
     "showWhatsNewNow": "Mostrarlas",
     "log": "Registro",
     "logHint": "Un archivo con lo que hace Murmur por dentro (grabaciones, modelos, errores), para enviarlo si algo falla. No hay nada de lo que se dice en las reuniones, ni títulos, ni nombres, y no sale del ordenador si no lo envías tú.",
-    "showLog": "Mostrar el registro"
+    "showLog": "Mostrar el registro",
+    "help": "Ayuda",
+    "feedback": "Comentarios",
+    "feedbackHint": "Qué no va, o qué te gustaría. Lo lee Quico, que hace Murmur.",
+    "feedbackButton": "Enviar un comentario…"
   },
   "calendar": {
     "connection": "Conexiones",

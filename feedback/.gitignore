@@ -1,0 +1,4 @@
+node_modules/
+.wrangler/
+# The real one has the database id and the address the messages go to: wrangler.example.toml.
+wrangler.toml

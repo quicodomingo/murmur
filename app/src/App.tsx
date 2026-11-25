@@ -68,6 +68,8 @@ import { MarkerBackground, useMarker } from "@/lib/motion";
 import { openInObsidian, saveToObsidian } from "@/lib/obsidian";
 import { saveToNotion } from "@/lib/notion";
 import { exportSubtitles, rememberSource, type SubtitleFormat } from "@/lib/subtitles";
+import { initFeedback, onOpenFeedback } from "@/lib/feedback";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { markSeen, pendingReleases, releasesBetween, type WhatsNewRelease } from "@/lib/whatsnew";
 
 const ONBOARDED_KEY = "murmur.onboarded.v1";
@@ -160,6 +162,12 @@ export default function App() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>();
   const [whatsNew, setWhatsNew] = useState<{ releases: WhatsNewRelease[]; manual: boolean; version: string } | null>(null);
   const [showAbout, setShowAbout] = useState(false);
+  /** "Envia un comentari", and the error it came from. */
+  const [feedback, setFeedback] = useState<{ open: boolean; context?: string }>({ open: false });
+  useEffect(() => {
+    void initFeedback();
+    return onOpenFeedback((context) => setFeedback({ open: true, context }));
+  }, []);
   // First-run screens: once, and whenever the transcription model is missing.
   const [onboarding, setOnboarding] = useState<{ open: boolean; atModels: boolean }>({ open: false, atModels: false });
   const [showSidebar, setShowSidebar] = useState(true);
@@ -508,6 +516,7 @@ export default function App() {
     const unlisten = [
       backend.onOpenSettings(() => setShowSettings(true)),
       backend.onOpenAbout(() => setShowAbout(true)),
+      backend.onOpenFeedback(() => setFeedback({ open: true })),
       backend.onRecordRequest((start, choice, from) => {
         if (start) return startRef.current(choice);
         stoppedFromIndicator.current = from === "indicator";
@@ -1820,6 +1829,7 @@ export default function App() {
         />
       )}
       <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
+      <FeedbackDialog open={feedback.open} context={feedback.context} onOpenChange={(open) => setFeedback((f) => ({ ...f, open }))} />
       {whatsNew && !onboarding.open && (
         <WhatsNewDialog
           releases={whatsNew.releases}

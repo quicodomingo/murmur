@@ -148,4 +148,4 @@ Una actualització de model substitueix els fitxers d'un model **amb els mateixo
 
 ## Privadesa
 
-Comprovar actualitzacions és l'única connexió que Murmur fa per iniciativa pròpia: GitHub veu l'adreça IP i quina versió es demana. No s'hi envia res més, i es pot desactivar a Configuració › General › Actualitzacions.
+Comprovar actualitzacions és l'única connexió que Murmur fa per iniciativa pròpia: GitHub veu l'adreça IP i quina versió es demana. No s'hi envia res més, i es pot desactivar a Configuració › General › Actualitzacions. (Un comentari que no s'ha pogut enviar per falta de connexió s'envia sol en tornar a obrir Murmur, però només perquè l'usuari ja havia premut «Envia»: [COMENTARIS.md](COMENTARIS.md).)

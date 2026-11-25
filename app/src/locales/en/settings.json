@@ -50,7 +50,11 @@
     "showWhatsNewNow": "Show Now",
     "log": "Log",
     "logHint": "A file with what Murmur does inside (recordings, models, errors), to send if something goes wrong. It has nothing of what's said in meetings, no titles and no names, and it doesn't leave your computer unless you send it.",
-    "showLog": "Show Log"
+    "showLog": "Show Log",
+    "help": "Help",
+    "feedback": "Feedback",
+    "feedbackHint": "What isn't working, or what you'd like. Quico, who makes Murmur, reads it.",
+    "feedbackButton": "Send Feedback…"
   },
   "calendar": {
     "connection": "Connections",

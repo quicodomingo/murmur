@@ -55,6 +55,7 @@ Va néixer per a reunions en **català**, on la majoria de serveis de transcripc
 - El telèfon i l'ordinador es parlen només per la xarxa local, xifrat de punta a punta, sense passar per cap servidor.
 - Les reunions es desen en una base de dades SQLite local. L'àudio només es desa si ho actives.
 - Murmur porta un registre tècnic a l'ordinador (gravacions, models, errors; com a molt 2 MB), per enviar-lo tu mateix si alguna cosa falla. No hi ha res del que es diu a les reunions, ni títols, ni noms, ni el nom dels dispositius, i no surt de l'ordinador sol. És a Configuració › General › Mostra el registre.
+- «Envia un comentari» (menú Ajuda i Configuració › General) només envia el que escrius quan prems «Envia», amb la versió i el sistema, i el registre només si el marques. Mai res de les reunions.
 - Per gravar una reunió cal el consentiment de tothom que hi participa. Murmur t'ho recorda en començar.
 
 ## Requisits

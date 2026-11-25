@@ -1,0 +1,53 @@
+{
+  "title": "Send Feedback",
+  "intro": "Quico, who makes Murmur, reads it. Every message helps decide what comes next.",
+  "kinds": {
+    "bug": "Something's wrong",
+    "idea": "An idea",
+    "other": "Something else"
+  },
+  "question": {
+    "bug": "What happened?",
+    "idea": "What would you like?",
+    "other": "What would you like to tell us?"
+  },
+  "placeholder": {
+    "bug": "What you were doing, what you expected and what happened. If it always happens, how to make it happen again.",
+    "idea": "What you'd like Murmur to do, and what it would help you with.",
+    "other": "Anything you like."
+  },
+  "withError": "With the error:",
+  "removeError": "Remove the error",
+  "email": "Your email",
+  "optional": "(optional)",
+  "emailPlaceholder": "name@example.com",
+  "emailHint": "Only to answer you. If you leave it empty, the message arrives without knowing who sent it.",
+  "log": "Attach Murmur's log from the last 24 hours",
+  "showLog": "Show it",
+  "hideLog": "Hide it",
+  "goesWith": "Also sent: {{app}}, {{system}}, {{machine}} and the interface in {{language}}",
+  "with": " with ",
+  "andLog_one": ", and the log ({{count}} line)",
+  "andLog_other": ", and the log ({{count}} lines)",
+  "never": "Never anything from your meetings: no titles, text, names or audio.",
+  "languages": {
+    "ca": "Catalan",
+    "es": "Spanish",
+    "en": "English"
+  },
+  "tooShort": "A little more, please",
+  "cancel": "Cancel",
+  "send": "Send",
+  "sending": "Sending…",
+  "sentTitle": "Thanks, it's arrived",
+  "sentText": "I read everything, even if I can't always answer.",
+  "sentWithEmail": "I read everything. If needed, I'll answer at the email you left.",
+  "queuedTitle": "It'll be sent when there's a connection",
+  "queuedText": "This computer has no connection right now. The message stays here and goes on its own the next time you open Murmur with a connection.",
+  "copy": "Copy the Text",
+  "copied": "The text has been copied.",
+  "close": "Close",
+  "tooMany": "You've sent a few in a row. Wait a while and try again.",
+  "failed": "It couldn't be sent: {{error}}",
+  "explain": "Tell us what happened"
+}

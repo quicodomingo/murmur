@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ca" data-theme="acid" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Envia un comentari</title>
+<link rel="stylesheet" href="../../app/src/murmur-theme.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0 0 60px; background: var(--mm-fill-subtle); color: var(--mm-text-primary); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  [data-mode="dark"] body { background: var(--mm-sidebar); }
+  .i { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  button { font: inherit; color: inherit; }
+
+  .top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 12px 24px; background: var(--mm-background); border-bottom: 1px solid var(--mm-separator); }
+  .top h1 { margin: 0; font-size: 14px; flex: 1; }
+  .switch { display: flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; }
+  .switch button { all: unset; cursor: pointer; padding: 2px 12px; border-radius: 5px; color: var(--mm-text-secondary); }
+  .switch button[aria-pressed="true"] { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+  .lead, h2, .cap, .stage { width: 1040px; margin-left: auto; margin-right: auto; }
+  .lead { margin-top: 28px; color: var(--mm-text-secondary); }
+  .lead b, .cap b { color: var(--mm-text-primary); }
+  h2 { margin-top: 40px; margin-bottom: 10px; font-size: 15px; }
+  .cap { margin-top: 12px; color: var(--mm-text-secondary); }
+  .row3 { display: flex; gap: 24px; align-items: flex-start; }
+
+  /* A bit of window behind */
+  .backdrop { position: relative; height: 640px; border-radius: 12px; overflow: hidden; background: var(--mm-background); box-shadow: 0 20px 50px rgb(0 0 0 / .18), 0 0 0 1px var(--mm-separator); display: flex; }
+  .backdrop nav { width: 230px; background: var(--mm-sidebar); border-right: 1px solid var(--mm-separator); padding: 52px 12px 0; }
+  .backdrop nav .new { height: 32px; border-radius: 8px; background: var(--mm-new-meeting); color: var(--mm-on-new-meeting); display: flex; align-items: center; padding: 0 10px; font-weight: 600; }
+  .backdrop nav .l { height: 30px; margin-top: 6px; border-radius: 6px; background: var(--mm-fill-subtle); }
+  .backdrop .fake { flex: 1; padding: 60px 80px; }
+  .backdrop .fake i { display: block; height: 12px; border-radius: 6px; background: var(--mm-fill-subtle); margin-bottom: 14px; }
+  .scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .28); display: grid; place-items: center; }
+  [data-mode="dark"] .scrim { background: rgb(0 0 0 / .5); }
+
+  /* The dialog */
+  .dlg { width: 480px; background: var(--mm-background); border-radius: 12px; box-shadow: 0 24px 60px rgb(0 0 0 / .28), 0 0 0 1px var(--mm-separator); overflow: hidden; text-align: left; }
+  .dlg header { padding: 20px 22px 0; }
+  .dlg h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .dlg .sub { margin: 4px 0 0; color: var(--mm-text-secondary); font-size: 12px; }
+  .dlg .body { padding: 16px 22px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .seg { display: flex; background: var(--mm-segmented-track); border-radius: 7px; padding: 2px; font-size: 12px; }
+  .seg button { all: unset; cursor: pointer; flex: 1; text-align: center; padding: 3px 8px; border-radius: 5px; color: var(--mm-text-secondary); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .seg button[aria-pressed="true"] { background: var(--mm-segmented-selected); color: var(--mm-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+  label.f { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 500; }
+  label.f .opt { font-weight: 400; color: var(--mm-text-tertiary); }
+  textarea, input[type=email] { font: 13px/1.5 inherit; font-family: inherit; color: var(--mm-text-primary); background: var(--mm-field); border: 1px solid var(--mm-separator); border-radius: 7px; padding: 8px 10px; outline: none; width: 100%; }
+  textarea { height: 120px; resize: none; }
+  textarea:focus, input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--mm-text-primary) 12%, transparent); border-color: var(--mm-text-secondary); }
+  ::placeholder { color: var(--mm-text-tertiary); }
+  .hint { font-size: 11px; font-weight: 400; color: var(--mm-text-secondary); }
+  .context { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 7px; background: var(--mm-fill-subtle); font-size: 12px; color: var(--mm-text-secondary); }
+  .context b { color: var(--mm-text-primary); font-weight: 500; }
+  .context .x { margin-left: auto; cursor: pointer; color: var(--mm-text-tertiary); }
+  .check { display: flex; gap: 9px; align-items: flex-start; cursor: pointer; }
+  .box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--mm-separator); flex: none; margin-top: 1px; display: grid; place-items: center; }
+  .box.on { background: var(--mm-text-primary); border-color: var(--mm-text-primary); color: var(--mm-background); }
+  .box .i { width: 11px; height: 11px; stroke-width: 3; }
+  .check .t { font-size: 13px; }
+  .link { color: var(--mm-link); cursor: pointer; font-size: 12px; }
+  .log { display: none; margin-top: 8px; max-height: 128px; overflow: auto; padding: 8px 10px; border-radius: 7px; background: var(--mm-fill-subtle); font: 11px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: var(--mm-text-secondary); white-space: pre; }
+  .log.open { display: block; }
+  .log mark { background: none; color: var(--mm-text-tertiary); }
+  .sys { font-size: 11px; color: var(--mm-text-secondary); line-height: 1.5; display: flex; gap: 6px; }
+  .sys .i { width: 12px; height: 12px; margin-top: 2px; }
+  .dlg footer { display: flex; align-items: center; gap: 8px; padding: 12px 22px; border-top: 1px solid var(--mm-separator); }
+  .dlg footer .sp { flex: 1; font-size: 11px; color: var(--mm-text-tertiary); }
+  .btn { all: unset; cursor: pointer; height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 7px; font-size: 13px; }
+  .btn.line { box-shadow: inset 0 0 0 1px var(--mm-separator); }
+  .btn.main { background: var(--mm-accent); color: var(--mm-on-accent); font-weight: 600; }
+  .btn.main[aria-disabled="true"] { opacity: .45; cursor: default; }
+
+  /* Sent */
+  .done { padding: 34px 22px 26px; text-align: center; }
+  .done .ok { width: 44px; height: 44px; border-radius: 50%; background: var(--mm-fill-subtle); display: grid; place-items: center; margin: 0 auto 12px; }
+  .done .ok .i { width: 22px; height: 22px; stroke-width: 2.2; }
+  .done h3 { margin: 0; font-size: 15px; }
+  .done p { margin: 6px auto 0; max-width: 340px; color: var(--mm-text-secondary); font-size: 12px; }
+
+  /* Entry points */
+  .menubar { width: 330px; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .14), 0 0 0 1px var(--mm-separator); background: var(--mm-background); }
+  .menubar .bar { height: 24px; display: flex; gap: 16px; align-items: center; padding: 0 12px; font-size: 13px; background: var(--mm-sidebar); border-bottom: 1px solid var(--mm-separator); }
+  .menubar .bar b.on { background: var(--mm-fill-subtle); padding: 1px 7px; border-radius: 4px; }
+  .menu { padding: 5px; }
+  .menu div { padding: 4px 10px; border-radius: 5px; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .menu div.sel { background: var(--mm-text-primary); color: var(--mm-background); }
+  .menu hr { border: 0; border-top: 1px solid var(--mm-separator); margin: 4px 8px; }
+  .menu kbd { margin-left: auto; font: inherit; opacity: .55; }
+  .toast { width: 360px; border-radius: 12px; background: var(--mm-toast-background); color: var(--mm-toast-text); box-shadow: 0 10px 30px rgb(0 0 0 / .16), 0 0 0 1px var(--mm-toast-border); padding: 12px 14px; font-size: 13px; }
+  .toast .r { display: flex; gap: 10px; }
+  .toast .e { color: var(--mm-recording-label); }
+  .toast small { display: block; color: var(--mm-toast-secondary); font-size: 12px; margin-top: 2px; }
+  .toast .a { margin-top: 8px; display: flex; gap: 14px; font-size: 12px; font-weight: 500; }
+  .toast .a span:last-child { color: var(--mm-toast-secondary); font-weight: 400; }
+  .settings { width: 300px; border-radius: 10px; background: var(--mm-settings-background); box-shadow: 0 0 0 1px var(--mm-separator); padding: 14px; }
+  .settings h4 { margin: 0 0 6px; font-size: 11px; font-weight: 600; color: var(--mm-text-secondary); }
+  .settings .grp { background: var(--mm-background); border-radius: 8px; box-shadow: 0 0 0 1px var(--mm-separator); }
+  .settings .srow { display: flex; align-items: center; gap: 10px; padding: 9px 12px; }
+  .settings .srow + .srow { border-top: 1px solid var(--mm-separator); }
+  .settings .l { flex: 1; font-size: 13px; }
+  .settings .l small { display: block; font-size: 11px; color: var(--mm-text-secondary); }
+
+  /* Phone */
+  .phone { width: 300px; height: 620px; border-radius: 44px; padding: 12px; background: #000; box-shadow: 0 20px 50px rgb(0 0 0 / .2); }
+  .screen { height: 100%; border-radius: 34px; overflow: hidden; background: var(--mm-sidebar); position: relative; }
+  .sheet { position: absolute; inset: 44px 0 0; background: var(--mm-background); border-radius: 14px 14px 0 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .sheet .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--mm-separator); margin: 0 auto 2px; }
+  .sheet .hd { display: flex; align-items: center; font-size: 15px; }
+  .sheet .hd span { flex: 1; text-align: center; font-weight: 600; }
+  .sheet .hd .c { color: var(--mm-text-secondary); font-size: 15px; }
+  .sheet .hd .s { font-weight: 600; font-size: 15px; }
+  .sheet .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sheet .chips b { font-weight: 500; font-size: 13px; padding: 6px 11px; border-radius: 16px; background: var(--mm-fill-subtle); }
+  .sheet .chips b.on { background: var(--mm-text-primary); color: var(--mm-background); }
+  .sheet textarea { height: 150px; font-size: 15px; border-radius: 12px; }
+  .sheet .sys { font-size: 12px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="bug" viewBox="0 0 24 24"><path d="M12 20v-9M8 6l1.5 1.5M16 6l-1.5 1.5"/><rect x="7" y="8" width="10" height="12" rx="5"/><path d="M3 13h4M17 13h4M4 19l3-2M20 19l-3-2M4 7l3 2M20 7l-3 2"/></symbol>
+  <symbol id="idea" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></symbol>
+  <symbol id="chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/></symbol>
+  <symbol id="cloud" viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 000-9h-1.3A7 7 0 104 15.3"/><path d="M8 19h9.5"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+  <symbol id="wifi" viewBox="0 0 24 24"><path d="M2 2l20 20M8.5 16.5a5 5 0 017 0M5 12.9a10 10 0 015.2-2.8M19 12.9a10 10 0 00-2.4-1.7M2 8.8a15 15 0 014.2-2.6M22 8.8A15 15 0 0011 5"/><path d="M12 20h.01"/></symbol>
+</svg>
+
+<div class="top">
+  <h1>Envia un comentari · mockup</h1>
+  <div class="switch" role="group" aria-label="Tema">
+    <button data-theme-set="acid" aria-pressed="true">Àcid</button>
+    <button data-theme-set="mono" aria-pressed="false">Monocrom</button>
+    <button data-theme-set="formigo" aria-pressed="false">Formigó</button>
+  </div>
+  <div class="switch" role="group" aria-label="Mode">
+    <button data-mode-set="light" aria-pressed="true">Clar</button>
+    <button data-mode-set="dark" aria-pressed="false">Fosc</button>
+  </div>
+</div>
+
+<p class="lead">Una finestra petita per dir què no va o què t'agradaria, sense sortir de Murmur. El text va a un Worker de Cloudflare del projecte, que l'envia per correu i el desa. <b>Només s'envia quan prems «Envia»</b>, hi va el que veus a la finestra i res de les reunions. El registre és opcional, desmarcat, i es pot llegir abans d'enviar-lo.</p>
+
+<h2>1 · D'on s'hi arriba</h2>
+<div class="stage row3">
+  <div>
+    <div class="menubar">
+      <div class="bar"><b>Murmur</b><span>Fitxer</span><span>Edita</span><span>Visualització</span><b class="on">Ajuda</b></div>
+      <div class="menu">
+        <div>Ajuda de Murmur</div>
+        <div>Novetats de Murmur</div>
+        <hr>
+        <div class="sel">Envia un comentari…</div>
+        <div>Mostra el registre al Finder</div>
+      </div>
+    </div>
+    <p class="cap" style="width:330px">Al Mac, al menú Ajuda. Sempre a mà, sense ocupar espai a la finestra.</p>
+  </div>
+  <div>
+    <div class="settings">
+      <h4>Ajuda</h4>
+      <div class="grp">
+        <div class="srow"><div class="l">Novetats<small>Les d'aquesta versió i les anteriors</small></div><span class="btn line" style="height:24px;font-size:12px">Mostra-les</span></div>
+        <div class="srow"><div class="l">Comentaris<small>Què no va, o què t'agradaria</small></div><span class="btn line" style="height:24px;font-size:12px">Envia un comentari…</span></div>
+      </div>
+    </div>
+    <p class="cap" style="width:300px">A Configuració › General, al final. A Windows i Linux, on no hi ha menú Ajuda, és el camí principal.</p>
+  </div>
+  <div>
+    <div class="toast">
+      <div class="r">
+        <svg class="i e" style="width:18px;height:18px"><use href="#alert"/></svg>
+        <div style="flex:1">No s'ha pogut descarregar el model de Whisper
+          <small>La connexió s'ha tallat a mitja descàrrega.</small>
+          <div class="a"><span>Torna-ho a provar</span><span>Explica'ns què ha passat</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="cap" style="width:360px">Als avisos d'error, una segona acció discreta. Obre la finestra amb «Alguna cosa no va» triat i l'error ja enganxat (pas 2).</p>
+  </div>
+</div>
+
+<h2>2 · La finestra</h2>
+<div class="stage">
+  <div class="backdrop">
+    <nav><div class="new">+ Nova reunió</div><div class="l"></div><div class="l"></div><div class="l"></div></nav>
+    <div class="fake"><i style="width:60%;height:26px"></i><i style="width:30%"></i><i></i><i></i><i style="width:80%"></i></div>
+    <div class="scrim">
+      <div class="dlg" id="dlg" role="dialog" aria-labelledby="dlg-title">
+        <div id="form">
+          <header>
+            <h3 id="dlg-title">Envia un comentari</h3>
+            <p class="sub">Ho llegeix en Quico, que fa Murmur. Cada missatge ajuda a decidir què es fa després.</p>
+          </header>
+          <div class="body">
+            <div class="seg" role="group" aria-label="Què és">
+              <button data-kind="bug" aria-pressed="true"><svg class="i"><use href="#bug"/></svg>Alguna cosa no va</button>
+              <button data-kind="idea" aria-pressed="false"><svg class="i"><use href="#idea"/></svg>Una idea</button>
+              <button data-kind="other" aria-pressed="false"><svg class="i"><use href="#chat"/></svg>Una altra cosa</button>
+            </div>
+            <div class="context" id="ctx">
+              <svg class="i" style="margin-top:1px"><use href="#alert"/></svg>
+              <div><b>Amb l'error:</b> No s'ha pogut descarregar el model de Whisper. La connexió s'ha tallat a mitja descàrrega.</div>
+              <svg class="i x" id="ctx-x" aria-label="Treu-lo"><use href="#x"/></svg>
+            </div>
+            <label class="f"><span id="msg-label">Què ha passat?</span>
+              <textarea id="msg" placeholder="Què feies, què esperaves que passés i què ha passat. Si passa sempre, com es repeteix."></textarea>
+            </label>
+            <label class="f"><span>El teu correu <span class="opt">(opcional)</span></span>
+              <input type="email" placeholder="nom@exemple.cat">
+              <span class="hint">Només per respondre't. Si el deixes buit, el missatge arriba sense saber qui l'envia.</span>
+            </label>
+            <div>
+              <div class="check" id="logcheck" role="checkbox" aria-checked="false" tabindex="0">
+                <span class="box" id="logbox"></span>
+                <span class="t">Adjunta el registre de Murmur de les últimes 24 hores <span class="link" id="logshow">Mostra'l</span></span>
+              </div>
+              <div class="log" id="log"><mark>10:02:14</mark> INFO murmur 0.19.0 · macOS 26.1 · Apple M4, 16 GB
+<mark>10:02:15</mark> INFO models: parakeet-ca ok, whisper ok, whisper-ca missing
+<mark>10:31:40</mark> INFO recording started (language=ca-es, mic, system)
+<mark>11:05:02</mark> INFO recording stopped (34 min)
+<mark>11:05:03</mark> INFO heavy work paused (recording=false call=true)
+<mark>11:09:47</mark> INFO heavy work resumed (recording=false call=false)
+<mark>11:09:48</mark> INFO download whisper-ca: 1.6 GB
+<mark>11:12:20</mark> WARN download whisper-ca: connection reset at 61%
+<mark>11:12:20</mark> ERROR download whisper-ca: gave up after 3 tries</div>
+            </div>
+            <div class="sys">
+              <svg class="i"><use href="#cloud"/></svg>
+              <span id="sysline">S'hi afegeix: Murmur 0.19.0, macOS 26.1, Apple M4 amb 16 GB i la interfície en català. Mai res de les reunions: ni títols, ni text, ni noms, ni àudio.</span>
+            </div>
+          </div>
+          <footer>
+            <span class="sp" id="count"></span>
+            <button class="btn line">Cancel·la</button>
+            <button class="btn main" id="send" aria-disabled="true">Envia</button>
+          </footer>
+        </div>
+        <div id="sent" hidden>
+          <div class="done">
+            <div class="ok"><svg class="i"><use href="#check"/></svg></div>
+            <h3>Gràcies, ja ha arribat</h3>
+            <p id="sent-text">Si hi has deixat el correu, et respondré allà. Ho llegeixo tot, encara que no sempre pugui respondre.</p>
+          </div>
+          <footer><span class="sp"></span><button class="btn main" id="again">Tanca</button></footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="cap">Diàleg de 480 pt, com el de les novetats. <b>El tipus</b> és un segmentat (no un desplegable) perquè es vegin les tres opcions d'un cop d'ull; canvia el títol del camp i el text d'exemple («Què ha passat?», «Què t'agradaria?», «Què ens vols dir?»). <b>Envia</b> s'activa quan hi ha almenys 10 caràcters. Amb l'error enganxat, la creu el treu. La línia del núvol diu sempre exactament què més s'hi afegeix, i amb el registre marcat, també ho diu. Escriu alguna cosa i prem «Envia» per veure el pas 4.</p>
+
+<h2>3 · Si no hi ha connexió</h2>
+<div class="stage" style="display:flex;justify-content:center">
+  <div class="dlg">
+    <header><h3>Envia un comentari</h3></header>
+    <div class="body">
+      <div class="context" style="color:var(--mm-text-primary)">
+        <svg class="i" style="margin-top:1px;color:var(--mm-recording-label)"><use href="#wifi"/></svg>
+        <div>No s'ha pogut enviar: aquest ordinador no té connexió. El missatge es queda aquí, i l'enviarà sol quan torni la connexió.</div>
+      </div>
+      <textarea readonly>Quan tanco la tapa durant una trucada, la gravació es para i en tornar diu que el micròfon no envia so.</textarea>
+    </div>
+    <footer><span class="sp"></span><button class="btn line">Copia el text</button><button class="btn main">Desa'l i tanca</button></footer>
+  </div>
+</div>
+<p class="cap">Mai es perd el que s'ha escrit: si falla, es desa i es torna a provar en obrir Murmur (en silenci, i només aquest missatge). «Copia el text» és per si el vols enviar per un altre camí.</p>
+
+<h2>4 · A l'iPhone</h2>
+<div class="stage" style="display:flex;gap:40px;align-items:flex-start">
+  <div class="phone"><div class="screen">
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="hd"><span class="c">Cancel·la</span><span>Comentari</span><span class="s">Envia</span></div>
+      <div class="chips"><b class="on">Alguna cosa no va</b><b>Una idea</b><b>Una altra cosa</b></div>
+      <textarea placeholder="Què feies, què esperaves que passés i què ha passat."></textarea>
+      <input type="email" placeholder="El teu correu (opcional)" style="font-size:15px;border-radius:12px;padding:10px 12px">
+      <div class="sys"><svg class="i"><use href="#cloud"/></svg><span>S'hi afegeix: Murmur 1.1, iOS 26.1 i iPhone 16. Mai res de les reunions.</span></div>
+    </div>
+  </div></div>
+  <p class="cap" style="width:auto;margin:0;flex:1">Al telèfon, a Configuració › Ajuda › «Envia un comentari», en un full que puja de baix. Els mateixos tres tipus com a botons que es poden tocar, i el mateix Worker. Sense registre a la primera versió: al telèfon és més difícil de llegir abans d'enviar, i es pot afegir més endavant.</p>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const kinds = {
+  bug: ["Què ha passat?", "Què feies, què esperaves que passés i què ha passat. Si passa sempre, com es repeteix."],
+  idea: ["Què t'agradaria?", "Què t'agradaria que fes Murmur, i per a què et serviria."],
+  other: ["Què ens vols dir?", "El que vulguis."],
+};
+for (const b of document.querySelectorAll("[data-kind]")) {
+  b.addEventListener("click", () => {
+    for (const s of b.parentElement.children) s.setAttribute("aria-pressed", s === b);
+    const [label, ph] = kinds[b.dataset.kind];
+    $("msg-label").textContent = label;
+    $("msg").placeholder = ph;
+    $("ctx").hidden = b.dataset.kind !== "bug" || $("ctx").dataset.gone === "1";
+  });
+}
+$("ctx-x").addEventListener("click", () => { $("ctx").hidden = true; $("ctx").dataset.gone = "1"; });
+const base = "S'hi afegeix: Murmur 0.19.0, macOS 26.1, Apple M4 amb 16 GB i la interfície en català";
+function toggleLog() {
+  const on = $("logcheck").getAttribute("aria-checked") !== "true";
+  $("logcheck").setAttribute("aria-checked", on);
+  $("logbox").classList.toggle("on", on);
+  $("logbox").innerHTML = on ? '<svg class="i"><use href="#check"/></svg>' : "";
+  $("sysline").textContent = base + (on ? ", i el registre (9 línies, 1 KB)" : "") + ". Mai res de les reunions: ni títols, ni text, ni noms, ni àudio.";
+}
+$("logcheck").addEventListener("click", (e) => { if (e.target.id !== "logshow") toggleLog(); });
+$("logcheck").addEventListener("keydown", (e) => { if (e.key === " ") { e.preventDefault(); toggleLog(); } });
+$("logshow").addEventListener("click", () => {
+  const open = $("log").classList.toggle("open");
+  $("logshow").textContent = open ? "Amaga'l" : "Mostra'l";
+});
+$("msg").addEventListener("input", () => {
+  const n = $("msg").value.trim().length;
+  $("send").setAttribute("aria-disabled", n < 10);
+  $("count").textContent = n && n < 10 ? "Una mica més, si us plau" : "";
+});
+$("send").addEventListener("click", () => {
+  if ($("send").getAttribute("aria-disabled") === "true") return;
+  $("form").hidden = true; $("sent").hidden = false;
+});
+$("again").addEventListener("click", () => { $("sent").hidden = true; $("form").hidden = false; });
+for (const [attr, key] of [["data-mode-set", "mode"], ["data-theme-set", "theme"]]) {
+  for (const b of document.querySelectorAll(`[${attr}]`)) {
+    b.addEventListener("click", () => {
+      document.documentElement.dataset[key] = b.getAttribute(attr);
+      for (const s of b.parentElement.children) s.setAttribute("aria-pressed", s === b);
+    });
+  }
+}
+</script>
+</body>
+</html>

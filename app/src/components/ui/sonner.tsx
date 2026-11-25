@@ -37,6 +37,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: "cn-toast",
+          // The second, quieter action: "Explica'ns què ha passat" on errors (lib/feedback.ts).
+          cancelButton: "!bg-transparent !text-muted-foreground hover:!text-foreground !font-normal !px-1",
         },
       }}
       {...props}
