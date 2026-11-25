@@ -215,9 +215,12 @@ struct RecordingView: View {
                     }
                 }
             } label: {
+                // Confirming, the words alone: «Tap to stop», «Toca para detener» don't fit beside the icon.
                 Label(confirmStop ? L("rec.stopConfirm") : L("rec.stop"), systemImage: "stop.fill")
+                    .labelStyle(StopLabelStyle(iconShown: !confirmStop))
                     .font(.system(size: 17, weight: .semibold))
-                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .padding(.horizontal, 12)
                     .frame(maxWidth: .infinity, minHeight: 56)
                     // The dark red with white of the swipe to delete (5.6:1), in both modes.
                     .background(confirmStop ? MurmurPalette.acidLight.recordingLabel : palette.newMeeting, in: Capsule())
@@ -430,3 +433,15 @@ extension View {
     }
 }
 
+
+/// Atura with its icon, or the confirmation's words alone.
+private struct StopLabelStyle: LabelStyle {
+    var iconShown: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        if iconShown {
+            Label(configuration)
+        } else {
+            configuration.title
+        }
+    }
+}

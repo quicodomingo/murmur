@@ -224,6 +224,9 @@ Entre reunions (bloc 5):
   - [ ] La secció de l'iPhone a la landing: textos i captures a [`docs/LANDING.md`](LANDING.md).
   - [x] Les reunions de l'ordinador al mòbil, només el text: Configuració › Mòbil, de l'última setmana a totes. Cal l'app del mòbil 1.1.
   - [x] Publicar la 1.1 de l'app de l'iPhone (les reunions de l'ordinador): acceptada per Apple.
+  - [x] Una trucada a mitja gravació la posa en pausa i, quan acaba, continua sola (o amb el botó de continuar, que ara torna a engegar el micròfon). «Tap to stop» ja no queda tallat.
+  - [x] Enviar la 1.1.1 a Apple.
+  - [ ] Provar la trucada a l'iPhone de debò.
   - [ ] Les edicions després de revisar en tots dos sentits (avui el mòbil només conserva el títol i els noms que hi canvies).
   - [ ] iPad i iPhone Duo.
   - [ ] Android (`mobile/android/`, en curs; què hi ha i què falta a [`docs/MOBIL.md`](MOBIL.md#android-on-som)):

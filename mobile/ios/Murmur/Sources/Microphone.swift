@@ -25,6 +25,10 @@ final class Microphone: @unchecked Sendable {
     private let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
     private var onSamples: (([Float]) -> Void)?
     private var configurationObserver: NSObjectProtocol?
+    private var interruptionObserver: NSObjectProtocol?
+    /// A phone call (or Siri, an alarm) takes the microphone and iOS stops the engine: `began`
+    /// true when it goes, false when it's back, with `resume` if iOS says to carry on.
+    var onInterruption: ((_ began: Bool, _ resume: Bool) -> Void)?
 
     func start(onSamples: @escaping ([Float]) -> Void) throws {
         if let path = Self.simulated {
@@ -55,6 +59,24 @@ final class Microphone: @unchecked Sendable {
         configurationObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
             try? self?.restartEngine()
         }
+        interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance(), queue: .main) { [weak self] note in
+            guard let info = note.userInfo, let raw = info[AVAudioSessionInterruptionTypeKey] as? UInt, let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+            switch type {
+            case .began: self?.onInterruption?(true, false)
+            case .ended:
+                let options = AVAudioSession.InterruptionOptions(rawValue: info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0)
+                self?.onInterruption?(false, options.contains(.shouldResume))
+            @unknown default: break
+            }
+        }
+    }
+
+    /// After an interruption the engine stays stopped: the session and the engine start again
+    /// (nothing if it's running). Fails while the call is still on.
+    func ensureRunning() throws {
+        guard timer == nil, onSamples != nil, !engine.isRunning else { return }
+        try Self.configureSession()
+        try restartEngine()
     }
 
     func stop() {
@@ -65,6 +87,9 @@ final class Microphone: @unchecked Sendable {
         }
         if let observer = configurationObserver { NotificationCenter.default.removeObserver(observer) }
         configurationObserver = nil
+        if let observer = interruptionObserver { NotificationCenter.default.removeObserver(observer) }
+        interruptionObserver = nil
+        onInterruption = nil
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         onSamples = nil

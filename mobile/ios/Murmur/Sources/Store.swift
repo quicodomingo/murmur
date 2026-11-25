@@ -268,7 +268,11 @@ final class Store: ObservableObject {
             // With the user's voice saved, speaker 0 is them (the engine knows them from the first word).
             if engine.voiceSaved() != nil { live?.speakerNames[0] = L("rec.you") }
             paused.isOn = false
+            pausedByCall = false
             meter.reset()
+            microphone.onInterruption = { [weak self] began, resume in
+                Task { @MainActor in self?.interrupted(began: began, resume: resume) }
+            }
             let gate = paused, meter = meter
             try microphone.start { [weak self] samples in
                 guard !gate.isOn else { return }
@@ -293,10 +297,39 @@ final class Store: ObservableObject {
     }
 
     func togglePause() {
-        guard live != nil else { return }
-        live?.paused.toggle()
-        paused.isOn = live?.paused ?? false
-        if paused.isOn { meter.pause() } else { meter.resume() }
+        guard let live else { return }
+        pausedByCall = false
+        setPaused(!live.paused)
+    }
+
+    /// Paused by a call, not by the user: it carries on by itself when the call ends, if iOS says so.
+    private var pausedByCall = false
+
+    /// A call came in (`began`) or ended: the recording pauses, so the clock and the Live
+    /// Activity say so, and goes on afterwards. Otherwise Continua starts the microphone again.
+    private func interrupted(began: Bool, resume: Bool) {
+        guard let live else { return }
+        if began {
+            guard !live.paused else { return }
+            pausedByCall = true
+            setPaused(true)
+        } else if pausedByCall {
+            pausedByCall = false
+            if resume { setPaused(false) }
+        }
+    }
+
+    private func setPaused(_ on: Bool) {
+        if !on {
+            // After a call iOS has stopped the microphone: start it again first.
+            do { try microphone.ensureRunning() } catch {
+                self.error = error.localizedDescription
+                return
+            }
+        }
+        live?.paused = on
+        paused.isOn = on
+        if on { meter.pause() } else { meter.resume() }
         updateActivity()
     }
 

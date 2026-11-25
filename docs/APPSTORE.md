@@ -5,7 +5,7 @@ Tot el que demana l'App Store Connect per publicar l'app de l'iPhone (`mobile/io
 ## Abans d'enviar-la
 
 - **Només iPhone** en aquesta primera versió (`TARGETED_DEVICE_FAMILY: "1"`): l'iPad encara no té disposició pròpia, i Apple la provaria també a l'iPad.
-- **Versió 1.1 (2)** als dos `Info.plist` (la 1.0 va ser la 1). Cada pujada nova necessita un número de compilació (`CFBundleVersion`) més alt.
+- **Versió 1.1.1 (3)** als dos `Info.plist` (la 1.0 va ser la 1, la 1.1 la 2). Cada pujada nova necessita un número de compilació (`CFBundleVersion`) més alt.
 - **La pàgina de privadesa de la web** (`murmur.quicodomingo.com/privacitat`): l'App Store en demana una. El text és més avall.
 - **La prova de bateria** de mitja hora encara està pendent (docs/MOBIL.md).
 
